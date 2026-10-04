@@ -569,37 +569,117 @@ void renderer_metal_set_native_visible( int visible )
     metal_present_set_visible( visible );
 }
 
+static int renderer_metal_prepare_camera_uniforms(
+    const tux_renderer_camera_state_t *camera )
+{
+    float vp[16];
+    int i;
+    struct {
+        float viewProjection[16];
+        float cameraAndFogStart[4];
+        float fogEndAndPad[4];
+    } uniforms;
+
+    if ( camera == NULL || !camera->valid || g_device == nil ) return 0;
+
+    for ( i = 0; i < 16; ++i )
+        vp[i] = (float)camera->view_projection_matrix[i];
+    for ( i = 0; i < 4; ++i ) {
+        vp[i*4 + 1] = -(float)camera->view_projection_matrix[i*4 + 1];
+        vp[i*4 + 2] =
+            0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
+                    (float)camera->view_projection_matrix[i*4 + 3]);
+    }
+
+    memcpy( uniforms.viewProjection, vp, sizeof(vp) );
+    uniforms.cameraAndFogStart[0] = (float)camera->position[0];
+    uniforms.cameraAndFogStart[1] = (float)camera->position[1];
+    uniforms.cameraAndFogStart[2] = (float)camera->position[2];
+    uniforms.cameraAndFogStart[3] = (float)camera->far_clip * 0.68f;
+    uniforms.fogEndAndPad[0] = (float)camera->far_clip * 0.98f;
+    uniforms.fogEndAndPad[1] = 0.0f;
+    uniforms.fogEndAndPad[2] = 0.0f;
+    uniforms.fogEndAndPad[3] = 0.0f;
+
+    g_camera_uniform_buffer =
+        [g_device newBufferWithBytes:&uniforms
+                              length:sizeof(uniforms)
+                             options:MTLResourceStorageModeShared];
+    return g_camera_uniform_buffer != nil;
+}
+
 int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera,
                                        int width, int height )
 {
     @autoreleasepool {
         void *opaque;
+        MTLTextureDescriptor *depth;
+
         if ( camera == NULL || !camera->valid || width <= 0 || height <= 0 ||
              g_command_queue == nil || g_terrain_pipeline == nil ) return 0;
+
+        /*
+         * Strict lifecycle invariant: never replace an active encoder.
+         * A native frame owns exactly one command buffer and one encoder.
+         */
+        if ( g_frame_encoder != nil || g_frame_command_buffer != nil ) {
+            fprintf( stderr,
+                     "Tux Racer Modern: refusing nested native Metal frame\n" );
+            return 0;
+        }
+
+        if ( !renderer_metal_prepare_camera_uniforms( camera ) ) return 0;
 
         metal_present_resize( width, height );
         opaque = metal_present_next_drawable();
         if ( opaque == NULL ) return 0;
         g_native_drawable = (__bridge_transfer id<CAMetalDrawable>)opaque;
 
-        /*
-         * Reuse the validated camera uniform setup by beginning the ordinary
-         * Metal frame, then redirect its render target to the drawable before
-         * encoding terrain. Native-specific consolidation follows after the
-         * first direct-presentation milestone.
-         */
-        renderer_metal_begin_offscreen_frame( camera, width, height );
-        if ( g_frame_encoder != nil ) {
-            [g_frame_encoder endEncoding];
-            g_frame_encoder = nil;
+        if ( g_offscreen_depth == nil ||
+             width != g_offscreen_width || height != g_offscreen_height ) {
+            depth =
+                [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float
+                                                                   width:(NSUInteger)width
+                                                                  height:(NSUInteger)height
+                                                               mipmapped:NO];
+            depth.usage = MTLTextureUsageRenderTarget;
+            depth.storageMode = MTLStorageModePrivate;
+            g_offscreen_depth = [g_device newTextureWithDescriptor:depth];
+            g_offscreen_width = width;
+            g_offscreen_height = height;
         }
-        if ( g_frame_command_buffer == nil ) return 0;
+        if ( g_offscreen_depth == nil ) {
+            g_native_drawable = nil;
+            return 0;
+        }
 
+        g_frame_pass = [MTLRenderPassDescriptor renderPassDescriptor];
         g_frame_pass.colorAttachments[0].texture = g_native_drawable.texture;
         g_frame_pass.colorAttachments[0].loadAction = MTLLoadActionClear;
         g_frame_pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        g_frame_pass.colorAttachments[0].clearColor =
+            MTLClearColorMake( 0.36, 0.48, 0.64, 1.0 );
+        g_frame_pass.depthAttachment.texture = g_offscreen_depth;
+        g_frame_pass.depthAttachment.loadAction = MTLLoadActionClear;
+        g_frame_pass.depthAttachment.storeAction = MTLStoreActionDontCare;
+        g_frame_pass.depthAttachment.clearDepth = 1.0;
+
+        g_frame_command_buffer = [g_command_queue commandBuffer];
+        if ( g_frame_command_buffer == nil ) {
+            g_frame_pass = nil;
+            g_native_drawable = nil;
+            return 0;
+        }
+
         g_frame_encoder =
             [g_frame_command_buffer renderCommandEncoderWithDescriptor:g_frame_pass];
+        if ( g_frame_encoder == nil ) {
+            g_frame_command_buffer = nil;
+            g_frame_pass = nil;
+            g_native_drawable = nil;
+            return 0;
+        }
+
         g_draw_count = 0;
         g_native_frame_active = 1;
         return 1;
