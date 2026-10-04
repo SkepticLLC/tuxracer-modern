@@ -23,6 +23,7 @@
 #include "hier.h"
 #include "phys_sim.h"
 #include "textures.h"
+#include "multiplayer.h"
 #ifdef __APPLE__
 #include "renderer_metal.h"
 #endif
