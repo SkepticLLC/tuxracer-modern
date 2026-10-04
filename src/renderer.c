@@ -190,6 +190,12 @@ void renderer_present_metal_world_layer( void )
      * readback, then restore the classic 3D matrices so OpenGL can draw
      * trees/items/Tux/HUD above it.  Depth bridging follows next.
      */
+    /*
+     * Finish GPU work before CPU readback/compositing.  This may be called
+     * earlier than renderer_end_frame() in hybrid mode; the Metal end routine
+     * is deliberately idempotent when no encoder remains active.
+     */
+    renderer_metal_end_offscreen_frame();
     renderer_present_metal_terrain();
 
     glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
