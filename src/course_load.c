@@ -126,6 +126,54 @@ const tux_vertex_t *get_renderer_course_vertices( size_t *vertex_count )
     return renderer_vertices;
 }
 
+scalar_t get_renderer_course_height( scalar_t x, scalar_t z )
+{
+    scalar_t gx, gy, fx, fy;
+    int ix, iy;
+    const tux_vertex_t *v00, *v10, *v01, *v11;
+    scalar_t h;
+
+    if ( renderer_vertices == NULL || nx < 2 || ny < 2 ||
+         course_width <= 0.0 || course_length <= 0.0 ) {
+        return find_y_coord( x, z );
+    }
+
+    gx = x / course_width * (nx - 1);
+    gy = (-z) / course_length * (ny - 1);
+    ix = (int)floor( gx ); iy = (int)floor( gy );
+    if ( ix < 0 ) ix = 0; if ( ix > nx-2 ) ix = nx-2;
+    if ( iy < 0 ) iy = 0; if ( iy > ny-2 ) iy = ny-2;
+    fx = gx - ix; fy = gy - iy;
+    if ( fx < 0 ) fx=0; if(fx>1)fx=1;
+    if ( fy < 0 ) fy=0; if(fy>1)fy=1;
+
+    v00=&renderer_vertices[ix + nx*iy];
+    v10=&renderer_vertices[(ix+1) + nx*iy];
+    v01=&renderer_vertices[ix + nx*(iy+1)];
+    v11=&renderer_vertices[(ix+1) + nx*(iy+1)];
+
+    /*
+     * Match the renderer grid's alternating diagonal. Linear interpolation
+     * inside the same triangle guarantees objects meet the visible mesh.
+     */
+    if ( ((ix + iy) & 1) == 0 ) {
+        if ( fx >= fy )
+            h = v00->position[1] + fx*(v10->position[1]-v00->position[1]) +
+                fy*(v11->position[1]-v10->position[1]);
+        else
+            h = v00->position[1] + fy*(v01->position[1]-v00->position[1]) +
+                fx*(v11->position[1]-v01->position[1]);
+    } else {
+        if ( fx + fy <= 1.0 )
+            h = v00->position[1] + fx*(v10->position[1]-v00->position[1]) +
+                fy*(v01->position[1]-v00->position[1]);
+        else
+            h = v11->position[1] + (1.0-fx)*(v01->position[1]-v11->position[1]) +
+                (1.0-fy)*(v10->position[1]-v11->position[1]);
+    }
+    return h;
+}
+
 void get_course_dimensions( scalar_t *width, scalar_t *length )
 {
     *width = course_width;
