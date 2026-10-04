@@ -1216,3 +1216,32 @@ void renderer_metal_draw_skybox( const tux_texture_handle_t faces[6] )
         }
     }
 }
+
+
+void renderer_metal_draw_textured_quad( const float positions[12],
+                                       const float uvs[8],
+                                       float alpha,
+                                       tux_texture_handle_t texture )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,u,v,pad; } qv_t;
+        static const int idx[6]={0,1,2,0,2,3};
+        qv_t v[6]; int i,k;
+        if(g_frame_encoder==nil||g_billboard_pipeline==nil||g_camera_uniform_buffer==nil||
+           positions==NULL||uvs==NULL)return;
+        id<MTLTexture> tex=[g_textures objectForKey:@(texture)];
+        if(tex==nil)return;
+        for(i=0;i<6;++i){k=idx[i];v[i]=(qv_t){positions[k*3],positions[k*3+1],positions[k*3+2],
+                                               uvs[k*2],uvs[k*2+1],0.0f};}
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+        if(vb==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+        [g_frame_encoder setFragmentTexture:tex atIndex:0];
+        [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+        (void)alpha;
+    }
+}
