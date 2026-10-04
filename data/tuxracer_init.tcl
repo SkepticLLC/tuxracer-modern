@@ -117,11 +117,11 @@ foreach {binding file} {
     modern_mountains_foothills textures/modern_mountains_foothills.rgb
 } {
     if {[file exists $file]} {
-        if {[tux_load_texture $binding $file 0]} {
+        if {[catch {tux_load_texture $binding $file 0} load_error]} {
+            puts "Tux Racer Modern: FAILED to load mountain layer $binding from $file: $load_error"
+        } else {
             tux_bind_texture $binding $binding
             puts "Tux Racer Modern: loaded mountain layer $binding from $file"
-        } else {
-            puts "Tux Racer Modern: FAILED to load mountain layer $binding from $file"
         }
     } else {
         puts "Tux Racer Modern: MISSING mountain layer $binding at $file"
