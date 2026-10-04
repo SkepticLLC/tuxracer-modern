@@ -32,6 +32,7 @@
 #include "game_config.h"
 #include "loop.h"
 #include "render_util.h"
+#include "renderer.h"
 #include "splash_screen.h"
 #include "intro.h"
 #include "racing.h"
@@ -79,6 +80,7 @@ void cleanup(void)
     write_saved_games();
 
     shutdown_audio();
+    renderer_shutdown();
 
     winsys_shutdown();
 }
@@ -253,6 +255,11 @@ int main( int argc, char **argv )
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
     init_opengl_extensions();
+
+    /* v0.2 renderer boundary: preserve OpenGL behavior behind a stable API. */
+    if ( !renderer_initialize( TUX_RENDERER_LEGACY_OPENGL ) ) {
+        handle_error( 1, "could not initialize rendering backend" );
+    }
 
     /* Print OpenGL debugging information if requested */
     if ( debug_mode_is_active( DEBUG_GL_INFO ) ) {
