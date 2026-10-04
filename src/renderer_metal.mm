@@ -218,6 +218,26 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> sphereVertex =
+                    [g_terrain_library newFunctionWithName:@"sphere_vertex"];
+                id<MTLFunction> sphereFragment =
+                    [g_terrain_library newFunctionWithName:@"sphere_fragment"];
+                MTLRenderPipelineDescriptor *sphereDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                sphereDesc.vertexFunction = sphereVertex;
+                sphereDesc.fragmentFunction = sphereFragment;
+                sphereDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                sphereDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_sphere_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:sphereDesc error:&error];
+                if ( g_sphere_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal sphere pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
