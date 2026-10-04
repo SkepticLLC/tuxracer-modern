@@ -305,9 +305,9 @@ void renderer_end_frame( void )
     if ( g_metal_native_enabled ) {
         /*
          * Native mode owns the drawable and must finish through the native
-         * lifecycle so presentDrawable and native state are cleared exactly
-         * once. The racing loop may already have presented it; this call is
-         * intentionally safe because end_native_frame is idempotent.
+         * lifecycle so presentDrawable and native ownership are cleared
+         * exactly once. renderer_end_frame is the sole owner of native
+         * frame completion.
          */
         renderer_metal_end_native_frame();
     } else {
