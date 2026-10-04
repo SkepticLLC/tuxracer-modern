@@ -86,6 +86,8 @@ static int           num_items;
 /* Interleaved vertex, normal, and color data */
 static GLubyte      *vnc_array = NULL;
 static tux_vertex_t *renderer_vertices = NULL;
+static uint32_t *renderer_grid_indices = NULL;
+static size_t renderer_grid_index_count = 0;
 
 scalar_t     *get_course_elev_data()    { return elevation; }
 terrain_t    *get_course_terrain_data() { return terrain; }
@@ -108,6 +110,12 @@ item_type_t  *get_item_types()          { return item_types; }
 void get_gl_arrays( GLubyte **vnc_arr )
 {
     *vnc_arr = vnc_array;
+}
+
+const uint32_t *get_renderer_course_grid_indices( size_t *index_count )
+{
+    if ( index_count ) *index_count = renderer_grid_index_count;
+    return renderer_grid_indices;
 }
 
 const tux_vertex_t *get_renderer_course_vertices( size_t *vertex_count )
@@ -220,6 +228,8 @@ static void reset_course()
 
     free( vnc_array ); vnc_array = NULL;
     free( renderer_vertices ); renderer_vertices = NULL;
+    free( renderer_grid_indices ); renderer_grid_indices = NULL;
+    renderer_grid_index_count = 0;
 
     for ( i = 0; i < num_tree_types; i++) {
 	unbind_texture( tree_types[i].name );
@@ -414,6 +424,35 @@ void fill_gl_arrays()
         }
     }
 #endif
+
+    /*
+     * Modern renderer: retain the complete course heightfield.  The original
+     * adaptive quadtree remains authoritative for Classic OpenGL, but modern
+     * GPUs can render this grid directly without 1999-era crack-prone LOD.
+     */
+    renderer_grid_index_count = (size_t)(nx - 1) * (size_t)(ny - 1) * 6u;
+    renderer_grid_indices = (uint32_t *)malloc(
+        renderer_grid_index_count * sizeof(uint32_t) );
+    check_assertion( renderer_grid_indices != NULL,
+                     "out of memory allocating modern terrain grid" );
+    {
+        size_t out = 0;
+        int gx, gy;
+        for ( gy = 0; gy < ny - 1; ++gy ) {
+            for ( gx = 0; gx < nx - 1; ++gx ) {
+                uint32_t a = (uint32_t)(gy * nx + gx);
+                uint32_t b = a + 1u;
+                uint32_t c0 = (uint32_t)((gy + 1) * nx + gx);
+                uint32_t d = c0 + 1u;
+                renderer_grid_indices[out++] = a;
+                renderer_grid_indices[out++] = c0;
+                renderer_grid_indices[out++] = b;
+                renderer_grid_indices[out++] = b;
+                renderer_grid_indices[out++] = c0;
+                renderer_grid_indices[out++] = d;
+            }
+        }
+    }
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer( 3, GL_FLOAT, STRIDE_GL_ARRAY, vnc_array );
