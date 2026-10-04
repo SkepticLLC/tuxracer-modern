@@ -34,6 +34,7 @@ void render_course();
 void draw_background(scalar_t fov, scalar_t aspect );
 void draw_sky(point_t pos);
 void draw_trees() ;
+void draw_sky_metal();
 void draw_trees_metal();
 void draw_items_metal();
 void set_course_clipping( bool_t state );
