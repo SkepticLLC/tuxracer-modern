@@ -415,6 +415,39 @@ void draw_sky(point_t pos)
 
 }
 
+void draw_trees_metal()
+{
+#ifdef __APPLE__
+    tree_t *treeLocs = get_tree_locs();
+    int numTrees = get_num_trees();
+    int i;
+
+    for ( i = 0; i < numTrees; ++i ) {
+        tux_texture_handle_t handle = TUX_INVALID_TEXTURE_HANDLE;
+        char *tree_name;
+
+        if ( clip_course ) {
+            scalar_t fwd = getparam_forward_clip_distance();
+            scalar_t bwd = getparam_backward_clip_distance();
+            if ( eye_pt.z - treeLocs[i].ray.pt.z > fwd ) continue;
+            if ( treeLocs[i].ray.pt.z - eye_pt.z > bwd ) continue;
+        }
+
+        tree_name = get_tree_name( treeLocs[i].tree_type );
+        if ( tree_name == NULL ||
+             !get_texture_handle_binding( tree_name, &handle ) ) continue;
+
+        renderer_metal_draw_billboard_cross(
+            (float)treeLocs[i].ray.pt.x,
+            (float)treeLocs[i].ray.pt.y,
+            (float)treeLocs[i].ray.pt.z,
+            (float)(treeLocs[i].diam * 0.5),
+            (float)treeLocs[i].height,
+            handle );
+    }
+#endif
+}
+
 void draw_trees() 
 {
     tree_t    *treeLocs;
