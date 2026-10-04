@@ -83,14 +83,16 @@ int renderer_metal_initialize_resources( void )
             NSString *source = @
                 "#include <metal_stdlib>\n"
                 "using namespace metal;\n"
-                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; };\n"
+                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; float3 terrainWeights; };\n"
                 "struct CameraUniforms { float4x4 viewProjection; };\n"
-                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; };\n"
+                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; float3 terrainWeights; };\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant CameraUniforms &u [[buffer(1)]]) { "
-                "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; return o; }\n"
-                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
-                "float l=0.45+0.55*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
-                "float4 a=tex.sample(samp,in.texcoord); return float4(a.rgb*l,a.a); }\n";
+                "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.terrainWeights=v[vid].terrainWeights; return o; }\n"
+                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
+                "float3 w=max(in.terrainWeights,float3(0.0)); float sum=max(w.x+w.y+w.z,0.0001); w/=sum; "
+                "float4 s=snow.sample(samp,in.texcoord); float4 r=rock.sample(samp,in.texcoord); float4 i=ice.sample(samp,in.texcoord); "
+                "float4 a=s*w.x+r*w.y+i*w.z; float l=0.45+0.55*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
+                "return float4(a.rgb*l,1.0); }\n";
 
             NSError *error = nil;
             g_terrain_library = [g_device newLibraryWithSource:source
@@ -213,11 +215,19 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
                 [g_frame_encoder setDepthStencilState:g_depth_state];
                 [g_frame_encoder setVertexBuffer:g_course_vertex_buffer offset:0 atIndex:0];
                 [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
-                id<MTLTexture> texture = [g_textures objectForKey:@(batch->texture)];
-                if ( texture != nil ) {
-                    [g_frame_encoder setFragmentTexture:texture atIndex:0];
-                    [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
-                }
+                /*
+                 * Terrain textures are stable renderer handles assigned in load
+                 * order, but batch->texture gives us only the active legacy
+                 * pass. Bind known terrain resources by their handles below;
+                 * missing slots safely retain no texture until all are loaded.
+                 */
+                id<MTLTexture> snow = [g_textures objectForKey:@(1)];
+                id<MTLTexture> rock = [g_textures objectForKey:@(2)];
+                id<MTLTexture> ice  = [g_textures objectForKey:@(3)];
+                if ( snow != nil ) [g_frame_encoder setFragmentTexture:snow atIndex:0];
+                if ( rock != nil ) [g_frame_encoder setFragmentTexture:rock atIndex:1];
+                if ( ice  != nil ) [g_frame_encoder setFragmentTexture:ice  atIndex:2];
+                [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
                 [g_frame_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                             indexCount:batch->index_count
                                              indexType:MTLIndexTypeUInt32
