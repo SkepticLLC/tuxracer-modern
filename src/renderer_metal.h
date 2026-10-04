@@ -14,6 +14,10 @@ int renderer_metal_probe( void );
 const char *renderer_metal_device_name( void );
 int renderer_metal_initialize_resources( void );
 void renderer_metal_shutdown_resources( void );
+int renderer_metal_upload_texture( tux_texture_handle_t handle,
+                                   int width, int height, int channels,
+                                   const unsigned char *pixels,
+                                   int repeatable );
 int renderer_metal_upload_course_vertices( const tux_vertex_t *vertices,
                                            size_t vertex_count );
 void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
