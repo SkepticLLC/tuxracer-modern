@@ -330,7 +330,8 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         int i;
         for ( i = 0; i < 16; ++i ) vp[i] = (float)camera->view_projection_matrix[i];
         for ( i = 0; i < 4; ++i ) {
-            vp[i*4 + 1] = -(float)camera->view_projection_matrix[i*4 + 1];
+            vp[i*4 + 1] = (flip_y ? -1.0f : 1.0f) *
+                        (float)camera->view_projection_matrix[i*4 + 1];
             vp[i*4 + 2] = 0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
                                   (float)camera->view_projection_matrix[i*4 + 3]);
         }
@@ -570,7 +571,7 @@ void renderer_metal_set_native_visible( int visible )
 }
 
 static int renderer_metal_prepare_camera_uniforms(
-    const tux_renderer_camera_state_t *camera )
+    const tux_renderer_camera_state_t *camera, int flip_y )
 {
     float vp[16];
     int i;
@@ -628,7 +629,7 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
             return 0;
         }
 
-        if ( !renderer_metal_prepare_camera_uniforms( camera ) ) return 0;
+        if ( !renderer_metal_prepare_camera_uniforms( camera, 0 ) ) return 0;
 
         metal_present_resize( width, height );
         opaque = metal_present_next_drawable();
@@ -689,15 +690,16 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
 void renderer_metal_end_native_frame( void )
 {
     @autoreleasepool {
-        if ( !g_native_frame_active || g_frame_command_buffer == nil ||
-             g_native_drawable == nil ) return;
+        if ( !g_native_frame_active ) return;
 
         if ( g_frame_encoder != nil ) {
             [g_frame_encoder endEncoding];
             g_frame_encoder = nil;
         }
-        [g_frame_command_buffer presentDrawable:g_native_drawable];
-        [g_frame_command_buffer commit];
+        if ( g_frame_command_buffer != nil && g_native_drawable != nil ) {
+            [g_frame_command_buffer presentDrawable:g_native_drawable];
+            [g_frame_command_buffer commit];
+        }
 
         g_frame_command_buffer = nil;
         g_frame_pass = nil;
