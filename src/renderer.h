@@ -39,6 +39,7 @@ typedef struct {
 void renderer_resize( int logical_width, int logical_height );
 void renderer_begin_frame( void );
 void renderer_end_frame( void );
+void renderer_present_metal_terrain( void );
 const tux_renderer_info_t *renderer_get_info( void );
 typedef struct {
     double view_matrix[16];
