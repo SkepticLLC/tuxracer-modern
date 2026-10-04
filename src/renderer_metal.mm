@@ -66,7 +66,7 @@ void renderer_metal_set_frame_pacing_log( int enabled )
     g_pacing_log_enabled = enabled ? 1 : 0;
 }
 
-static int g_capture_written = 0;
+static int g_capture_written = 1; /* diagnostic PPM capture disabled by default */
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
 static id<MTLSamplerState> g_repeat_sampler = nil;
 static tux_texture_handle_t g_snow_handle = TUX_INVALID_TEXTURE_HANDLE;
