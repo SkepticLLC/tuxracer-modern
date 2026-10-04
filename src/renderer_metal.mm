@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #include <stdio.h>
+#include <string.h>
 #include "renderer_metal.h"
 
 static id<MTLDevice> g_device = nil;
@@ -86,13 +87,13 @@ int renderer_metal_initialize_resources( void )
             NSString *source = @
                 "#include <metal_stdlib>\n"
                 "using namespace metal;\n"
-                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; float3 terrainWeights; };\n"
+                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; float4 terrainWeights; };\n"
                 "struct CameraUniforms { float4x4 viewProjection; };\n"
-                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; float3 terrainWeights; };\n"
+                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; float4 terrainWeights; };\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant CameraUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.terrainWeights=v[vid].terrainWeights; return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
-                "float3 w=max(in.terrainWeights,float3(0.0)); float sum=max(w.x+w.y+w.z,0.0001); w/=sum; "
+                "float3 w=max(in.terrainWeights.xyz,float3(0.0)); float sum=max(w.x+w.y+w.z,0.0001); w/=sum; "
                 "float4 s=snow.sample(samp,in.texcoord); float4 r=rock.sample(samp,in.texcoord); float4 i=ice.sample(samp,in.texcoord); "
                 "float4 a=s*w.x+r*w.y+i*w.z; float l=0.45+0.55*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
                 "return float4(a.rgb*l,1.0); }\n";
@@ -442,11 +443,11 @@ int renderer_metal_upload_texture( tux_texture_handle_t handle,
 }
 
 
-void renderer_metal_set_terrain_texture_handles( tux_texture_handle_t snow,
-                                                 tux_texture_handle_t rock,
-                                                 tux_texture_handle_t ice )
+void renderer_metal_register_named_texture( const char *name,
+                                            tux_texture_handle_t handle )
 {
-    g_snow_handle = snow;
-    g_rock_handle = rock;
-    g_ice_handle = ice;
+    if ( name == NULL ) return;
+    if ( strcmp( name, "snow" ) == 0 ) g_snow_handle = handle;
+    else if ( strcmp( name, "rock" ) == 0 ) g_rock_handle = handle;
+    else if ( strcmp( name, "ice" ) == 0 ) g_ice_handle = handle;
 }
