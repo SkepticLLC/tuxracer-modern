@@ -27,16 +27,27 @@
 static bool_t initialized = False;
 static hash_table_t texture_table;
 static hash_table_t binding_table;
+static tux_texture_handle_t next_texture_handle = 1;
 
 
 bool_t get_texture_binding( char *binding, GLuint *texid )
 {
     texture_node_t *texnode;
     if (get_hash_entry(binding_table, binding, (hash_entry_t*)(&texnode))) {
-	*texid = texnode->texture_id;
-	return True;
+        *texid = texnode->texture_id;
+        return True;
     }
-    return False;  
+    return False;
+}
+
+bool_t get_texture_handle_binding( char *binding, tux_texture_handle_t *handle )
+{
+    texture_node_t *texnode;
+    if (get_hash_entry(binding_table, binding, (hash_entry_t*)(&texnode))) {
+        *handle = texnode->handle;
+        return True;
+    }
+    return False;
 }
 
 bool_t load_and_bind_texture( char *binding, char *filename )
@@ -105,6 +116,10 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
 	check_assertion( tex != NULL, "out of memory" );
 
 	tex->ref_count = 0;
+        tex->handle = next_texture_handle++;
+        if ( next_texture_handle == TUX_INVALID_TEXTURE_HANDLE ) {
+            next_texture_handle++;
+        }
 	add_hash_entry( texture_table, texname, (hash_entry_t)tex ); 
     }
  
