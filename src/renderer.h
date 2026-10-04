@@ -28,10 +28,19 @@ typedef struct {
 
 int renderer_initialize( tux_renderer_backend_t backend );
 void renderer_shutdown( void );
+typedef struct {
+    int logical_width;
+    int logical_height;
+    int drawable_width;
+    int drawable_height;
+    double aspect_ratio;
+} tux_renderer_frame_state_t;
+
 void renderer_resize( int logical_width, int logical_height );
 void renderer_begin_frame( void );
 void renderer_end_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
+const tux_renderer_frame_state_t *renderer_get_frame_state( void );
 
 #ifdef __cplusplus
 }
