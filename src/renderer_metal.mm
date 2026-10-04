@@ -505,3 +505,41 @@ void renderer_metal_register_named_texture( const char *name,
     else if ( strcmp( name, "rock" ) == 0 ) g_rock_handle = handle;
     else if ( strcmp( name, "ice" ) == 0 ) g_ice_handle = handle;
 }
+
+
+int renderer_metal_read_present_frame( unsigned char *rgba,
+                                       size_t rgba_bytes,
+                                       int *width, int *height )
+{
+    @autoreleasepool {
+        if ( g_offscreen_color == nil || rgba == NULL ||
+             g_offscreen_width <= 0 || g_offscreen_height <= 0 ) {
+            return 0;
+        }
+
+        const size_t needed = (size_t)g_offscreen_width *
+                              (size_t)g_offscreen_height * 4u;
+        if ( rgba_bytes < needed ) return 0;
+
+        MTLRegion region = MTLRegionMake2D( 0, 0,
+                                            (NSUInteger)g_offscreen_width,
+                                            (NSUInteger)g_offscreen_height );
+        [g_offscreen_color getBytes:rgba
+                       bytesPerRow:(NSUInteger)g_offscreen_width * 4u
+                        fromRegion:region
+                       mipmapLevel:0];
+
+        /*
+         * Offscreen target is BGRA8. Convert in place for the OpenGL bridge.
+         */
+        for ( size_t i = 0; i < needed; i += 4 ) {
+            unsigned char b = rgba[i + 0];
+            rgba[i + 0] = rgba[i + 2];
+            rgba[i + 2] = b;
+        }
+
+        if ( width ) *width = g_offscreen_width;
+        if ( height ) *height = g_offscreen_height;
+        return 1;
+    }
+}
