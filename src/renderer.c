@@ -139,8 +139,26 @@ void renderer_begin_world_frame( void )
     {
         const tux_renderer_camera_state_t *camera = renderer_get_camera_state();
         if ( camera != NULL && camera->valid ) {
+            size_t index_count = 0;
+            const uint32_t *indices = get_renderer_course_grid_indices( &index_count );
             renderer_metal_begin_offscreen_frame(
                 camera, g_frame.drawable_width, g_frame.drawable_height );
+            if ( indices != NULL && index_count > 0 ) {
+                tux_terrain_batch_t full_grid;
+                full_grid.terrain_index = -3;
+                full_grid.indices = indices;
+                full_grid.index_count = index_count;
+                full_grid.min_vertex_index = 0;
+                {
+                    size_t vertex_count = 0;
+                    get_renderer_course_vertices( &vertex_count );
+                    full_grid.max_vertex_index =
+                        vertex_count > 0 ? (uint32_t)(vertex_count - 1) : 0;
+                }
+                full_grid.texture = TUX_INVALID_TEXTURE_HANDLE;
+                full_grid.environment_pass = 0;
+                renderer_metal_consume_terrain_batch( &full_grid, NULL );
+            }
         }
     }
 #endif
