@@ -20,6 +20,15 @@ static tux_renderer_frame_state_t g_frame = {
     640, 480, 640, 480, 4.0 / 3.0
 };
 
+static tux_renderer_camera_state_t g_camera = {
+    { 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1 },
+    60.0, 0.1, 100.0, 4.0 / 3.0,
+    { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 }, 0
+};
+
 int renderer_initialize( tux_renderer_backend_t backend )
 {
     /*
@@ -79,7 +88,32 @@ const tux_renderer_info_t *renderer_get_info( void )
     return &g_renderer;
 }
 
+void renderer_set_camera( const double view_matrix[16],
+                          double px, double py, double pz,
+                          double dx, double dy, double dz,
+                          double ux, double uy, double uz )
+{
+    int i;
+    for ( i = 0; i < 16; ++i ) {
+        g_camera.view_matrix[i] = view_matrix[i];
+    }
+
+    g_camera.projection_fov_degrees = getparam_fov();
+    g_camera.near_clip = NEAR_CLIP_DIST;
+    g_camera.far_clip = getparam_forward_clip_distance() + 5.0;
+    g_camera.aspect_ratio = g_frame.aspect_ratio;
+    g_camera.position[0] = px; g_camera.position[1] = py; g_camera.position[2] = pz;
+    g_camera.direction[0] = dx; g_camera.direction[1] = dy; g_camera.direction[2] = dz;
+    g_camera.up[0] = ux; g_camera.up[1] = uy; g_camera.up[2] = uz;
+    g_camera.valid = 1;
+}
+
 const tux_renderer_frame_state_t *renderer_get_frame_state( void )
 {
     return &g_frame;
+}
+
+const tux_renderer_camera_state_t *renderer_get_camera_state( void )
+{
+    return &g_camera;
 }
