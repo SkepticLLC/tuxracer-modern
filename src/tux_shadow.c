@@ -48,10 +48,12 @@ void draw_tux_shadow_metal()
 #ifdef __APPLE__
     player_data_t *plyr = get_player_data( local_player() );
     scalar_t ground_y;
+    point_t pos;
     if ( plyr == NULL ) return;
-    ground_y = find_y_coord( plyr->pos.x, plyr->pos.z ) + 0.035;
+    pos = plyr->pos;
+    ground_y = find_y_coord( pos.x, pos.z ) + 0.035;
     renderer_metal_draw_shadow_ellipse(
-        (float)plyr->pos.x, (float)ground_y, (float)plyr->pos.z,
+        (float)pos.x, (float)ground_y, (float)pos.z,
         0.62f, 0.88f, 0.34f );
 #endif
 }
