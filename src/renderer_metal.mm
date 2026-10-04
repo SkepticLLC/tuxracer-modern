@@ -268,6 +268,29 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> shadowVertex =
+                    [g_terrain_library newFunctionWithName:@"shadow_vertex"];
+                id<MTLFunction> shadowFragment =
+                    [g_terrain_library newFunctionWithName:@"shadow_fragment"];
+                MTLRenderPipelineDescriptor *shadowDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                shadowDesc.vertexFunction = shadowVertex;
+                shadowDesc.fragmentFunction = shadowFragment;
+                shadowDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                shadowDesc.colorAttachments[0].blendingEnabled = YES;
+                shadowDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+                shadowDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+                shadowDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_shadow_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:shadowDesc error:&error];
+                if ( g_shadow_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal shadow pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
