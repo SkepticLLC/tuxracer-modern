@@ -182,6 +182,20 @@ int renderer_metal_compare_enabled( void )
 #endif
 }
 
+void renderer_present_metal_world_layer( void )
+{
+#ifdef __APPLE__
+    /*
+     * Transitional hybrid world layer.  Reuse the proven Metal color
+     * readback, then restore the classic 3D matrices so OpenGL can draw
+     * trees/items/Tux/HUD above it.  Depth bridging follows next.
+     */
+    renderer_present_metal_terrain();
+
+    glClear( GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+#endif
+}
+
 void renderer_present_metal_terrain( void )
 {
 #ifdef __APPLE__
