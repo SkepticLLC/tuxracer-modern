@@ -26,6 +26,7 @@ static tux_renderer_frame_state_t g_frame = {
 };
 
 #ifdef __APPLE__
+static int g_metal_compare_enabled = 0;
 static unsigned char *g_metal_present_pixels = NULL;
 static size_t g_metal_present_capacity = 0;
 #endif
@@ -142,6 +143,24 @@ void renderer_begin_world_frame( void )
                 camera, g_frame.drawable_width, g_frame.drawable_height );
         }
     }
+#endif
+}
+
+void renderer_toggle_metal_compare( void )
+{
+#ifdef __APPLE__
+    g_metal_compare_enabled = !g_metal_compare_enabled;
+    fprintf( stderr, "Tux Racer Modern: Metal compare %s\n",
+             g_metal_compare_enabled ? "ON" : "OFF" );
+#endif
+}
+
+int renderer_metal_compare_enabled( void )
+{
+#ifdef __APPLE__
+    return g_metal_compare_enabled;
+#else
+    return 0;
 #endif
 }
 
