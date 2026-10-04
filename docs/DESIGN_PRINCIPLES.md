@@ -17,6 +17,18 @@ Tux, penguins, fish, playful downhill racing, snow, mountains, exaggerated chara
 - Original gameplay feel and physics remain the reference until a change is deliberately evaluated.
 - Original authorship, contributors, history and open-source heritage remain visible.
 
+## Modern renderer philosophy
+
+The preservation renderer is a behavioral and historical reference, **not a visual ceiling**. Metal/Vulkan do not need to reproduce obsolete fixed-function or multipass implementation details when a modern technique can preserve the same course/game meaning with better quality.
+
+Renderer parity means preserving:
+- course geometry and intended terrain regions;
+- camera/gameplay relationships;
+- recognizable original assets and visual identity;
+- gameplay-relevant visibility and feedback.
+
+After those constraints are satisfied, modern backends should prefer physically coherent, GPU-native techniques over emulating legacy OpenGL artifacts.
+
 ## Modernize aggressively
 
 - GPU renderer and platform architecture.
