@@ -130,6 +130,13 @@ void adjust_tux_joints( scalar_t turnFact, bool_t isBraking,
 
 }
 
+void draw_tux_metal()
+{
+#ifdef __APPLE__
+    draw_scene_graph_metal( tuxRootNode );
+#endif
+}
+
 void draw_tux()
 {
     GLfloat dummy_colour[]  = { 0.0, 0.0, 0.0, 1.0 };
