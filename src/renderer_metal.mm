@@ -314,13 +314,19 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         }
 
         /*
-         * Convert the preserved OpenGL clip-space Z range [-w,+w] to Metal's
-         * [0,+w] while retaining X/Y and the original camera transform.
+         * Convert preserved OpenGL clip space to Metal:
+         *   - OpenGL Z is [-w,+w], Metal Z is [0,+w].
+         *   - The diagnostic/presentation bridge uses top-left image
+         *     orientation, so invert clip-space Y once at this boundary.
+         *
+         * Keep world/course coordinates untouched; renderer convention
+         * differences belong in the projection transform.
          */
         float vp[16];
         int i;
         for ( i = 0; i < 16; ++i ) vp[i] = (float)camera->view_projection_matrix[i];
         for ( i = 0; i < 4; ++i ) {
+            vp[i*4 + 1] = -(float)camera->view_projection_matrix[i*4 + 1];
             vp[i*4 + 2] = 0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
                                   (float)camera->view_projection_matrix[i*4 + 3]);
         }
