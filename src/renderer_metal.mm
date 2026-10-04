@@ -88,7 +88,7 @@ int renderer_metal_initialize_resources( void )
             NSString *source = @
                 "#include <metal_stdlib>\n"
                 "using namespace metal;\n"
-                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; float4 terrainWeights; };\n"
+                "struct TerrainVertex { packed_float3 position; packed_float3 normal; float2 texcoord; float4 terrainWeights; };\n"
                 "struct TerrainUniforms { float4x4 viewProjection; float4 cameraAndFogStart; float4 fogEndAndPad; };\n"
                 "struct TerrainVarying { float4 position [[position]]; float3 worldPosition; float3 normal; float2 texcoord; float3 weights; };\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
