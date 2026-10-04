@@ -428,6 +428,7 @@ void racing_loop( scalar_t time_step )
     }
 
     if ( renderer_metal_native_enabled() ) {
+        draw_sky_metal();
         draw_trees_metal();
         draw_items_metal();
     }
