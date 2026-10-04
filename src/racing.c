@@ -27,6 +27,7 @@
 #include "fps.h"
 #include "loop.h"
 #include "render_util.h"
+#include "renderer.h"
 #include "view.h"
 #include "tux.h"
 #include "tux_shadow.h"
@@ -68,7 +69,7 @@ void racing_init(void)
 
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
-    winsys_set_reshape_func( reshape );
+    winsys_set_reshape_func( renderer_resize );
     winsys_set_mouse_func( NULL );
     winsys_set_motion_func( NULL );
     winsys_set_passive_motion_func( NULL );
@@ -161,7 +162,7 @@ void racing_loop( scalar_t time_step )
 
     update_audio();
 
-    clear_rendering_context();
+    renderer_begin_frame();
 
     setup_fog();
 
@@ -419,9 +420,9 @@ void racing_loop( scalar_t time_step )
 
     draw_hud( plyr );
 
-    reshape( width, height );
+    renderer_resize( width, height );
 
-    winsys_swap_buffers();
+    renderer_end_frame();
 
     g_game.time += time_step;
 } 
