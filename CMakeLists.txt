@@ -20,7 +20,18 @@ find_package(SDL2_mixer REQUIRED CONFIG)
 configure_file(cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/config.h @ONLY)
 file(GLOB TUXRACER_C_SOURCES CONFIGURE_DEPENDS src/*.c)
 file(GLOB TUXRACER_CXX_SOURCES CONFIGURE_DEPENDS src/*.cpp)
-add_executable(tuxracer ${TUXRACER_C_SOURCES} ${TUXRACER_CXX_SOURCES})
+
+set(TUXRACER_PLATFORM_SOURCES)
+if(APPLE)
+    file(GLOB TUXRACER_OBJCXX_SOURCES CONFIGURE_DEPENDS src/*.mm)
+    list(APPEND TUXRACER_PLATFORM_SOURCES ${TUXRACER_OBJCXX_SOURCES})
+endif()
+
+add_executable(tuxracer
+    ${TUXRACER_C_SOURCES}
+    ${TUXRACER_CXX_SOURCES}
+    ${TUXRACER_PLATFORM_SOURCES}
+)
 
 target_compile_definitions(tuxracer PRIVATE HAVE_CONFIG_H=1)
 target_include_directories(tuxracer PRIVATE
