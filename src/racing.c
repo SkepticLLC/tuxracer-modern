@@ -439,6 +439,10 @@ void racing_loop( scalar_t time_step )
 	draw_particles( plyr );
     }
 
+    if ( renderer_metal_native_enabled() ) {
+        draw_tux_metal();
+    }
+
     draw_tux();
     draw_tux_shadow();
 
