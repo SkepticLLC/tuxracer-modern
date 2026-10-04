@@ -222,7 +222,7 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
         }
 
         /* Legacy snow/rock/ice passes remain OpenGL-only. */
-        if ( batch->terrain_index != -2 ) {
+        if ( batch->terrain_index != -2 && batch->terrain_index != -3 ) {
             return;
         }
 
