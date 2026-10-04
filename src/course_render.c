@@ -457,7 +457,8 @@ void draw_trees_metal()
         renderer_metal_draw_billboard_cross(
             (float)treeLocs[i].ray.pt.x,
             (float)(find_y_coord( treeLocs[i].ray.pt.x,
-                                  treeLocs[i].ray.pt.z ) - 0.035),
+                                  treeLocs[i].ray.pt.z ) -
+                    min( 0.28, max( 0.08, treeLocs[i].height * 0.045 ) )),
             (float)treeLocs[i].ray.pt.z,
             (float)(treeLocs[i].diam * 0.5),
             (float)treeLocs[i].height,
