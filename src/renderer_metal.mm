@@ -31,6 +31,8 @@ static MTLRenderPassDescriptor *g_frame_pass = nil;
 static int g_offscreen_width = 0;
 static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
+static float g_modern_fog_start = 45.0f;
+static float g_modern_fog_end = 180.0f;
 static int g_capture_written = 0;
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
 static id<MTLSamplerState> g_repeat_sampler = nil;
@@ -88,15 +90,18 @@ int renderer_metal_initialize_resources( void )
                 "#include <metal_stdlib>\n"
                 "using namespace metal;\n"
                 "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; float4 terrainWeights; };\n"
-                "struct CameraUniforms { float4x4 viewProjection; };\n"
-                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; float4 terrainWeights; };\n"
-                "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant CameraUniforms &u [[buffer(1)]]) { "
-                "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.terrainWeights=v[vid].terrainWeights; return o; }\n"
-                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
-                "float3 w=max(in.terrainWeights.xyz,float3(0.0)); float sum=max(w.x+w.y+w.z,0.0001); w/=sum; "
-                "float4 s=snow.sample(samp,in.texcoord); float4 r=rock.sample(samp,in.texcoord); float4 i=ice.sample(samp,in.texcoord); "
-                "float4 a=s*w.x+r*w.y+i*w.z; float l=0.45+0.55*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
-                "return float4(a.rgb*l,1.0); }\n";
+                "struct TerrainUniforms { float4x4 viewProjection; float4 cameraAndFogStart; float4 fogEndAndPad; };\n"
+                "struct TerrainVarying { float4 position [[position]]; float3 worldPosition; float3 normal; float2 texcoord; float3 weights; };\n"
+                "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
+                "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
+                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
+                "float3 w=in.weights/max(in.weights.x+in.weights.y+in.weights.z,0.0001); "
+                "float3 albedo=snow.sample(samp,in.texcoord).rgb*w.x+rock.sample(samp,in.texcoord).rgb*w.y+ice.sample(samp,in.texcoord).rgb*w.z; "
+                "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.30,-0.88,-0.36)); float ndl=saturate(dot(n,-sunDir)); "
+                "float hemi=0.55+0.45*saturate(n.y); float3 ambient=float3(0.46,0.54,0.68)*hemi; float3 sunlight=float3(0.95,0.91,0.80)*ndl; "
+                "float3 lit=albedo*(ambient+sunlight); float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
+                "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d); float3 fogColor=float3(0.70,0.79,0.88); "
+                "return float4(mix(lit,fogColor,fog),1.0); }\n";
 
             NSError *error = nil;
             g_terrain_library = [g_device newLibraryWithSource:source
@@ -205,6 +210,11 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
             return;
         }
 
+        /* Legacy snow/rock/ice passes remain OpenGL-only. */
+        if ( batch->terrain_index != -2 ) {
+            return;
+        }
+
         g_last_index_bytes = batch->index_count * sizeof(uint32_t);
         g_last_index_buffer =
             [g_device newBufferWithBytes:batch->indices
@@ -303,8 +313,21 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
             vp[i*4 + 2] = 0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
                                   (float)camera->view_projection_matrix[i*4 + 3]);
         }
+        struct {
+            float viewProjection[16];
+            float cameraAndFogStart[4];
+            float fogEndAndPad[4];
+        } uniforms;
+        memcpy( uniforms.viewProjection, vp, sizeof(vp) );
+        uniforms.cameraAndFogStart[0] = (float)camera->position[0];
+        uniforms.cameraAndFogStart[1] = (float)camera->position[1];
+        uniforms.cameraAndFogStart[2] = (float)camera->position[2];
+        uniforms.cameraAndFogStart[3] = g_modern_fog_start;
+        uniforms.fogEndAndPad[0] = g_modern_fog_end;
+        uniforms.fogEndAndPad[1] = uniforms.fogEndAndPad[2] = uniforms.fogEndAndPad[3] = 0.0f;
+
         g_camera_uniform_buffer =
-            [g_device newBufferWithBytes:vp length:sizeof(vp)
+            [g_device newBufferWithBytes:&uniforms length:sizeof(uniforms)
                                  options:MTLResourceStorageModeShared];
 
         g_frame_pass = [MTLRenderPassDescriptor renderPassDescriptor];
