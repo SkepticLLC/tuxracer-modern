@@ -413,7 +413,8 @@ void racing_loop( scalar_t time_step )
      * Hybrid modernization milestone: Metal replaces the visible terrain
      * color layer; preserved OpenGL continues with scene actors/objects.
      */
-    if ( !renderer_metal_compare_enabled() ) {
+    if ( !renderer_metal_compare_enabled() &&
+         !renderer_metal_native_enabled() ) {
         renderer_present_metal_world_layer();
     }
 
