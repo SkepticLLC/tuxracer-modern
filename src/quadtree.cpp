@@ -1072,25 +1072,6 @@ void	quadsquare::Render(const quadcornerdata& cd, GLubyte *vnc_array)
     fog_on = is_fog_on();
 
     /*
-     * Modern renderer path: collect the currently visible adaptive terrain
-     * exactly once, independent of the legacy material passes.
-     */
-    InitArrayCounters();
-    RenderAux( cd, SomeClip, -2 );
-    if ( VertexArrayCounter > 0 ) {
-        tux_terrain_batch_t modern_batch;
-        modern_batch.terrain_index = -2;
-        modern_batch.indices = (const uint32_t *)VertexArrayIndices;
-        modern_batch.index_count = VertexArrayCounter;
-        modern_batch.min_vertex_index = VertexArrayMinIdx;
-        modern_batch.max_vertex_index = VertexArrayMaxIdx;
-        modern_batch.texture = TUX_INVALID_TEXTURE_HANDLE;
-        modern_batch.environment_pass = 0;
-        terrain_submit_batch( &modern_batch );
-    }
-
-
-    /*
      * Draw the "normal" blended triangles ( <= 2 terrains textures )
      */
     for (j=0; j<NumTerrains; j++) {
