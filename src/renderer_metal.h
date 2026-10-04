@@ -34,6 +34,7 @@ void renderer_metal_set_native_visible( int visible );
 int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera,
                                        int width, int height );
 void renderer_metal_end_native_frame( void );
+void renderer_metal_draw_full_grid( const tux_terrain_batch_t *batch );
 
 int renderer_metal_read_present_frame( unsigned char *rgba,
                                        size_t rgba_bytes,
