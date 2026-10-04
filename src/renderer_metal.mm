@@ -20,6 +20,7 @@ static id<MTLBuffer> g_last_index_buffer = nil;
 static id<MTLLibrary> g_terrain_library = nil;
 static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static id<MTLRenderPipelineState> g_sky_pipeline = nil;
+static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
@@ -105,6 +106,12 @@ int renderer_metal_initialize_resources( void )
                 "float3 c=mix(horizon,zenith,smoothstep(0.0,0.92,y)); "
                 "float sun=exp(-distance(in.uv,float2(0.72,0.72))*18.0); "
                 "c+=float3(1.0,0.82,0.58)*sun*0.16; return float4(c,1.0); }\n"
+                "struct ObjectVertex { packed_float3 position; float2 uv; };\n"
+                "struct ObjectOut { float4 position [[position]]; float2 uv; };\n"
+                "vertex ObjectOut object_vertex(uint vid [[vertex_id]], const device ObjectVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
+                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=v[vid].uv; return o; }\n"
+                "fragment float4 object_fragment(ObjectOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
+                "float4 c=tex.sample(samp,in.uv); if(c.a<0.18) discard_fragment(); return c; }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -208,6 +215,7 @@ void renderer_metal_shutdown_resources( void )
         g_depth_state = nil;
         g_terrain_pipeline = nil;
         g_sky_pipeline = nil;
+        g_billboard_pipeline = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
