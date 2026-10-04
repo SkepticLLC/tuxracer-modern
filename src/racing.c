@@ -439,14 +439,6 @@ void racing_loop( scalar_t time_step )
 
     renderer_resize( width, height );
 
-    /*
-     * F10 development milestone: present terrain directly through
-     * CAMetalLayer with no CPU readback or OpenGL pixel upload.
-     */
-    if ( renderer_metal_native_enabled() ) {
-        renderer_present_native_metal_frame();
-    }
-
     renderer_end_frame();
 
     g_game.time += time_step;
