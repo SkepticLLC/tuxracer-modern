@@ -427,6 +427,10 @@ void racing_loop( scalar_t time_step )
         setup_course_lighting();
     }
 
+    if ( renderer_metal_native_enabled() ) {
+        draw_trees_metal();
+    }
+
     draw_trees();
 
     if ( getparam_draw_particles() ) {
