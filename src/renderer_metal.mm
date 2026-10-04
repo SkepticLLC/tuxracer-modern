@@ -1052,13 +1052,15 @@ void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
     @autoreleasepool {
         typedef struct { float px,py,pz,a; } shv_t;
         const int segments=32;
-        shv_t verts[34];
-        int i;
+        shv_t verts[32 * 3];
+        int i, k=0;
         if(g_frame_encoder==nil||g_shadow_pipeline==nil||g_camera_uniform_buffer==nil)return;
-        verts[0]=(shv_t){x,y,z,alpha};
-        for(i=0;i<=segments;++i){
-            float a=(float)(2.0*M_PI*i/segments);
-            verts[i+1]=(shv_t){x+cosf(a)*radius_x,y,z+sinf(a)*radius_z,0.0f};
+        for(i=0;i<segments;++i){
+            float a0=(float)(2.0*M_PI*i/segments);
+            float a1=(float)(2.0*M_PI*(i+1)/segments);
+            verts[k++]=(shv_t){x,y,z,alpha};
+            verts[k++]=(shv_t){x+cosf(a0)*radius_x,y,z+sinf(a0)*radius_z,0.0f};
+            verts[k++]=(shv_t){x+cosf(a1)*radius_x,y,z+sinf(a1)*radius_z,0.0f};
         }
         id<MTLBuffer> vb=[g_device newBufferWithBytes:verts length:sizeof(verts) options:MTLResourceStorageModeShared];
         if(vb==nil)return;
@@ -1066,6 +1068,6 @@ void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
         [g_frame_encoder setDepthStencilState:g_depth_state];
         [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
         [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
-        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangleFan vertexStart:0 vertexCount:34];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:(32 * 3)];
     }
 }
