@@ -10,6 +10,7 @@
 #import <QuartzCore/CAMetalLayer.h>
 #include <stdio.h>
 #include <string.h>
+#include <mach/mach_time.h>
 #include "renderer_metal.h"
 #include "metal_present.h"
 
@@ -38,6 +39,27 @@ static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
 static id<CAMetalDrawable> g_native_drawable = nil;
 static int g_native_frame_active = 0;
+static int g_pacing_log_enabled = 1;
+static uint64_t g_pacing_last_present_ns = 0;
+static uint64_t g_pacing_drawable_start_ns = 0;
+static uint64_t g_pacing_frame_start_ns = 0;
+static double g_pacing_sum_ms = 0.0;
+static double g_pacing_min_ms = 1000000.0;
+static double g_pacing_max_ms = 0.0;
+static unsigned int g_pacing_samples = 0;
+
+static uint64_t renderer_metal_now_ns( void )
+{
+    static mach_timebase_info_data_t tb = {0,0};
+    uint64_t t = mach_absolute_time();
+    if ( tb.denom == 0 ) mach_timebase_info( &tb );
+    return t * tb.numer / tb.denom;
+}
+
+void renderer_metal_set_frame_pacing_log( int enabled )
+{
+    g_pacing_log_enabled = enabled ? 1 : 0;
+}
 
 static int g_capture_written = 0;
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
@@ -725,6 +747,8 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         if ( !renderer_metal_prepare_camera_uniforms( camera, 0 ) ) return 0;
 
         metal_present_resize( width, height );
+        g_pacing_frame_start_ns = renderer_metal_now_ns();
+        g_pacing_drawable_start_ns = g_pacing_frame_start_ns;
         opaque = metal_present_next_drawable();
         if ( opaque == NULL ) return 0;
         g_native_drawable = (__bridge_transfer id<CAMetalDrawable>)opaque;
@@ -801,6 +825,31 @@ void renderer_metal_end_native_frame( void )
         if ( g_frame_command_buffer != nil && g_native_drawable != nil ) {
             [g_frame_command_buffer presentDrawable:g_native_drawable];
             [g_frame_command_buffer commit];
+        }
+
+        if ( g_pacing_log_enabled ) {
+            uint64_t now = renderer_metal_now_ns();
+            if ( g_pacing_last_present_ns != 0 ) {
+                double frame_ms = (double)(now - g_pacing_last_present_ns) / 1000000.0;
+                g_pacing_sum_ms += frame_ms;
+                if ( frame_ms < g_pacing_min_ms ) g_pacing_min_ms = frame_ms;
+                if ( frame_ms > g_pacing_max_ms ) g_pacing_max_ms = frame_ms;
+                ++g_pacing_samples;
+            }
+            g_pacing_last_present_ns = now;
+
+            if ( g_pacing_samples >= 120 ) {
+                fprintf( stderr,
+                         "Tux Racer Modern: Metal pacing avg %.2f ms (%.1f fps), min %.2f, max %.2f, CPU encode %.2f ms\n",
+                         g_pacing_sum_ms / g_pacing_samples,
+                         1000.0 / (g_pacing_sum_ms / g_pacing_samples),
+                         g_pacing_min_ms, g_pacing_max_ms,
+                         (double)(now - g_pacing_frame_start_ns) / 1000000.0 );
+                g_pacing_sum_ms = 0.0;
+                g_pacing_min_ms = 1000000.0;
+                g_pacing_max_ms = 0.0;
+                g_pacing_samples = 0;
+            }
         }
 
         g_frame_command_buffer = nil;
