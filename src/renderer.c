@@ -304,12 +304,13 @@ void renderer_end_frame( void )
 #ifdef __APPLE__
     if ( g_metal_native_enabled ) {
         /*
-         * Native mode owns the drawable and must finish through the native
-         * lifecycle so presentDrawable and native ownership are cleared
-         * exactly once. renderer_end_frame is the sole owner of native
-         * frame completion.
+         * Native Metal owns presentation through CAMetalDrawable.
+         * Do not also swap the SDL/OpenGL back buffer: dual presentation
+         * serializes two graphics APIs on one window and adds visible input
+         * latency/judder.
          */
         renderer_metal_end_native_frame();
+        return;
     } else {
         renderer_metal_end_offscreen_frame();
     }
