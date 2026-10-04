@@ -44,6 +44,9 @@ void renderer_present_metal_world_layer( void );
 void renderer_begin_world_frame( void );
 void renderer_toggle_metal_compare( void );
 int renderer_metal_compare_enabled( void );
+void renderer_toggle_metal_native( void );
+int renderer_metal_native_enabled( void );
+void renderer_present_native_metal_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
 typedef struct {
     double view_matrix[16];
