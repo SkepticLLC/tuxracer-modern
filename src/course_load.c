@@ -339,6 +339,13 @@ void fill_gl_arrays()
             renderer_vertices[y*nx+x].texcoord[1] =
                 renderer_vertices[y*nx+x].position[2] / (float)TEX_SCALE;
 
+            renderer_vertices[y*nx+x].terrain_weights[0] =
+                terrain[y*nx+x] == Snow ? 1.0f : 0.0f;
+            renderer_vertices[y*nx+x].terrain_weights[1] =
+                terrain[y*nx+x] == Rock ? 1.0f : 0.0f;
+            renderer_vertices[y*nx+x].terrain_weights[2] =
+                terrain[y*nx+x] == Ice ? 1.0f : 0.0f;
+
 #undef byteval
 
 	}
