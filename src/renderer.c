@@ -25,6 +25,11 @@ static tux_renderer_frame_state_t g_frame = {
     640, 480, 640, 480, 4.0 / 3.0
 };
 
+#ifdef __APPLE__
+static unsigned char *g_metal_present_pixels = NULL;
+static size_t g_metal_present_capacity = 0;
+#endif
+
 static tux_renderer_camera_state_t g_camera = {
     { 1, 0, 0, 0,
       0, 1, 0, 0,
@@ -69,6 +74,9 @@ void renderer_shutdown( void )
 {
 #ifdef __APPLE__
     terrain_set_batch_consumer( NULL, NULL );
+    free( g_metal_present_pixels );
+    g_metal_present_pixels = NULL;
+    g_metal_present_capacity = 0;
     renderer_metal_shutdown_resources();
 #endif
     g_renderer.initialized = 0;
@@ -130,10 +138,67 @@ void renderer_begin_frame( void )
     clear_rendering_context();
 }
 
+void renderer_present_metal_terrain( void )
+{
+#ifdef __APPLE__
+    int w = 0, h = 0;
+    size_t needed;
+    int old_matrix_mode = GL_MODELVIEW;
+
+    if ( g_game.mode != RACING || g_frame.drawable_width <= 0 ||
+         g_frame.drawable_height <= 0 ) return;
+
+    needed = (size_t)g_frame.drawable_width *
+             (size_t)g_frame.drawable_height * 4u;
+    if ( needed > g_metal_present_capacity ) {
+        unsigned char *pixels = (unsigned char *)realloc(
+            g_metal_present_pixels, needed );
+        if ( pixels == NULL ) return;
+        g_metal_present_pixels = pixels;
+        g_metal_present_capacity = needed;
+    }
+
+    if ( !renderer_metal_read_present_frame( g_metal_present_pixels,
+                                             g_metal_present_capacity,
+                                             &w, &h ) ) return;
+
+    glGetIntegerv( GL_MATRIX_MODE, &old_matrix_mode );
+    glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT |
+                  GL_DEPTH_BUFFER_BIT | GL_PIXEL_MODE_BIT );
+    glDisable( GL_DEPTH_TEST );
+    glDisable( GL_LIGHTING );
+    glDisable( GL_TEXTURE_2D );
+    glDisable( GL_BLEND );
+    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+
+    glMatrixMode( GL_PROJECTION );
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho( 0.0, (double)w, 0.0, (double)h, -1.0, 1.0 );
+    glMatrixMode( GL_MODELVIEW );
+    glPushMatrix();
+    glLoadIdentity();
+
+    glRasterPos2i( 0, 0 );
+    glDrawPixels( w, h, GL_RGBA, GL_UNSIGNED_BYTE, g_metal_present_pixels );
+
+    glPopMatrix();
+    glMatrixMode( GL_PROJECTION );
+    glPopMatrix();
+    glMatrixMode( old_matrix_mode );
+    glPopAttrib();
+#endif
+}
+
 void renderer_end_frame( void )
 {
 #ifdef __APPLE__
     renderer_metal_end_offscreen_frame();
+    /*
+     * Transitional live presentation bridge: Metal owns terrain pixels,
+     * OpenGL still owns the SDL window, classic HUD and Tux.
+     */
+    renderer_present_metal_terrain();
 #endif
     winsys_swap_buffers();
 }
