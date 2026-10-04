@@ -246,6 +246,7 @@ void winsys_show_cursor( bool_t visible );
 /* Return the OpenGL backing-store size in physical pixels. On Retina/HiDPI
  * displays this can be larger than the SDL window size in logical points. */
 void winsys_get_drawable_size( int *w, int *h );
+void winsys_get_window_size( int *w, int *h );
 
 void winsys_init( int *argc, char **argv, char *window_title,
 		  char *icon_title );
