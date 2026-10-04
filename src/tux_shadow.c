@@ -23,6 +23,9 @@
 #include "hier.h"
 #include "phys_sim.h"
 #include "textures.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 #define SHADOW_HEIGHT 0.1
 
@@ -39,6 +42,19 @@ static colour_t shadow_colour = { 0.0, 0.0, 0.0, 0.3 };
 static colour_t shadow_colour = { 0.0, 0.0, 0.0, 0.1 };
 
 #endif /* USE_STENCIL_BUFFER */
+
+void draw_tux_shadow_metal()
+{
+#ifdef __APPLE__
+    player_data_t *plyr = get_player_data( local_player() );
+    scalar_t ground_y;
+    if ( plyr == NULL ) return;
+    ground_y = find_y_coord( plyr->pos.x, plyr->pos.z ) + 0.035;
+    renderer_metal_draw_shadow_ellipse(
+        (float)plyr->pos.x, (float)ground_y, (float)plyr->pos.z,
+        0.62f, 0.88f, 0.34f );
+#endif
+}
 
 void draw_tux_shadow()
 {
