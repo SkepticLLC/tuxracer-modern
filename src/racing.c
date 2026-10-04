@@ -438,6 +438,9 @@ void racing_loop( scalar_t time_step )
 
     if ( getparam_draw_particles() ) {
 	update_particles( time_step );
+        if ( renderer_metal_native_enabled() ) {
+            draw_particles_metal( plyr );
+        }
 	draw_particles( plyr );
     }
 
