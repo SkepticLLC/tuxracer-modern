@@ -14,9 +14,8 @@ int renderer_metal_probe( void );
 const char *renderer_metal_device_name( void );
 int renderer_metal_initialize_resources( void );
 void renderer_metal_shutdown_resources( void );
-void renderer_metal_set_terrain_texture_handles( tux_texture_handle_t snow,
-                                                 tux_texture_handle_t rock,
-                                                 tux_texture_handle_t ice );
+void renderer_metal_register_named_texture( const char *name,
+                                            tux_texture_handle_t handle );
 int renderer_metal_upload_texture( tux_texture_handle_t handle,
                                    int width, int height, int channels,
                                    const unsigned char *pixels,
