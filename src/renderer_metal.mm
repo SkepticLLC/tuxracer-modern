@@ -112,11 +112,7 @@ int renderer_metal_initialize_resources( void )
                 "float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
                 "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d)*0.55; "
                 "float3 fogColor=float3(0.68,0.77,0.88); return float4(mix(lit,fogColor,fog),1.0); "
-                "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.30,-0.88,-0.36)); float ndl=saturate(dot(n,-sunDir)); "
-                "float hemi=0.65+0.35*saturate(n.y); float3 ambient=float3(0.58,0.63,0.72)*hemi; float3 sunlight=float3(0.78,0.74,0.66)*ndl; "
-                "float3 lit=albedo*(ambient+sunlight); float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
-                "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d); float3 fogColor=float3(0.72,0.79,0.86); "
-                "return float4(mix(lit,fogColor,fog),1.0); }\n";
+                "}\n";
 
             NSError *error = nil;
             g_terrain_library = [g_device newLibraryWithSource:source
