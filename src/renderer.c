@@ -106,12 +106,22 @@ void renderer_begin_frame( void )
             renderer_metal_upload_course_vertices( vertices, vertex_count );
         }
     }
+    {
+        const tux_renderer_camera_state_t *camera = renderer_get_camera_state();
+        if ( camera != NULL && camera->valid ) {
+            renderer_metal_begin_offscreen_frame(
+                camera, g_frame.drawable_width, g_frame.drawable_height );
+        }
+    }
 #endif
     clear_rendering_context();
 }
 
 void renderer_end_frame( void )
 {
+#ifdef __APPLE__
+    renderer_metal_end_offscreen_frame();
+#endif
     winsys_swap_buffers();
 }
 
