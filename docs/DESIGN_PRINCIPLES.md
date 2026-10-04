@@ -63,6 +63,17 @@ A future Tux Racer Modern menu should retain Tux and the penguin personality pro
 
 Tux may inhabit/react to menu scenes. Other penguins may appear in the environment. The presentation can become cinematic and modern without becoming sterile or generic.
 
+## Classic preservation policy
+
+The classic experience must remain recoverable throughout modernization.
+
+- `main` / v0.1.9 preserves the first polished Apple Silicon classic application baseline.
+- `preservation/v0.1` preserves the earlier porting baseline.
+- `preservation/metal-parity-baseline` freezes the v0.2 renderer-transition state before intentional Metal visual redesign.
+- The Legacy OpenGL renderer remains the behavioral/visual reference during v0.2 development.
+- Modern renderer work must not require destructive changes to original course, Tcl, physics or gameplay data.
+- Where practical, the project should retain a **Classic** rendering/presentation option even after Metal becomes the default modern renderer.
+
 ## Preservation test
 
 When evaluating a feature or visual change, ask:
