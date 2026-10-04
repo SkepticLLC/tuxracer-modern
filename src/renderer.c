@@ -98,6 +98,19 @@ void renderer_resize( int logical_width, int logical_height )
 
 void renderer_begin_frame( void )
 {
+    {
+        int logical_w = g_frame.logical_width;
+        int logical_h = g_frame.logical_height;
+        int drawable_w = g_frame.drawable_width;
+        int drawable_h = g_frame.drawable_height;
+        winsys_get_window_size( &logical_w, &logical_h );
+        winsys_get_drawable_size( &drawable_w, &drawable_h );
+        g_frame.logical_width = logical_w;
+        g_frame.logical_height = logical_h;
+        g_frame.drawable_width = drawable_w;
+        g_frame.drawable_height = drawable_h;
+        g_frame.aspect_ratio = logical_h > 0 ? (double)logical_w / (double)logical_h : 1.0;
+    }
 #ifdef __APPLE__
     if ( renderer_metal_vertex_bytes() == 0 ) {
         size_t vertex_count = 0;
