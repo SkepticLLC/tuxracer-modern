@@ -456,9 +456,9 @@ void draw_trees_metal()
 
         renderer_metal_draw_billboard_cross(
             (float)treeLocs[i].ray.pt.x,
-            (float)(find_y_coord( treeLocs[i].ray.pt.x,
-                                  treeLocs[i].ray.pt.z ) -
-                    min( 0.28, max( 0.08, treeLocs[i].height * 0.045 ) )),
+            (float)(get_renderer_course_height( treeLocs[i].ray.pt.x,
+                                         treeLocs[i].ray.pt.z ) -
+                    min( 0.22, max( 0.06, treeLocs[i].height * 0.035 ) )),
             (float)treeLocs[i].ray.pt.z,
             (float)(treeLocs[i].diam * 0.5),
             (float)treeLocs[i].height,
@@ -511,8 +511,8 @@ void draw_items_metal()
 
         renderer_metal_draw_billboard(
             (float)itemLocs[i].ray.pt.x,
-            (float)(find_y_coord( itemLocs[i].ray.pt.x,
-                                  itemLocs[i].ray.pt.z ) + 0.015),
+            (float)(get_renderer_course_height( itemLocs[i].ray.pt.x,
+                                         itemLocs[i].ray.pt.z ) + 0.015),
             (float)itemLocs[i].ray.pt.z,
             (float)(itemLocs[i].diam * 0.5),
             (float)itemLocs[i].height,
