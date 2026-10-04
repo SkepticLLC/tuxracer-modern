@@ -39,7 +39,7 @@ typedef struct {
     float position[3];
     float normal[3];
     float texcoord[2];
-    float terrain_weights[3]; /* Snow, Rock, Ice */
+    float terrain_weights[4]; /* Snow, Rock, Ice, padding */
 } tux_vertex_t;
 
 typedef struct {
