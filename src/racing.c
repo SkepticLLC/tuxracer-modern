@@ -431,6 +431,7 @@ void racing_loop( scalar_t time_step )
         draw_sky_metal();
         draw_trees_metal();
         draw_items_metal();
+        draw_track_marks_metal();
     }
 
     draw_trees();
