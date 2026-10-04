@@ -2,11 +2,11 @@
 
 ## 2026-10-04 — First visible Metal-rendered Tux Racer terrain
 
-Tux Racer Modern successfully rendered original adaptive course terrain through Apple's Metal API on an **Apple M5 Max**.
+Tux Racer Modern successfully rendered original adaptive course terrain through Apple's Metal API on an **Apple Silicon**.
 
 Validated path:
 
-- Metal device: Apple M5 Max
+- Metal device: Apple Silicon
 - Native Metal terrain pipeline compiled successfully
 - 21,600 canonical terrain vertices uploaded
 - 691,200 bytes of terrain vertex data resident in Metal
