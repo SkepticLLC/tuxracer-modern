@@ -17,6 +17,7 @@
 
 #include "tuxracer.h"
 #include "viewfrustum.h"
+#include "renderer_resources.h"
 
 typedef enum {
     East,
@@ -80,6 +81,7 @@ struct quadsquare {
     static int RowSize, NumRows;
     static terrain_t *Terrain;
     static GLuint TexId[NumTerrains];
+    static tux_texture_handle_t TextureHandle[NumTerrains];
     static GLuint EnvmapTexId;
 
     static GLuint *VertexArrayIndices;
