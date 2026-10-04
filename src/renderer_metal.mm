@@ -106,7 +106,7 @@ int renderer_metal_initialize_resources( void )
                 "float3 c=mix(horizon,zenith,smoothstep(0.0,0.92,y)); "
                 "float sun=exp(-distance(in.uv,float2(0.72,0.72))*18.0); "
                 "c+=float3(1.0,0.82,0.58)*sun*0.16; return float4(c,1.0); }\n"
-                "struct ObjectVertex { packed_float3 position; float2 uv; };\n"
+                "struct ObjectVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
                 "struct ObjectOut { float4 position [[position]]; float2 uv; };\n"
                 "vertex ObjectOut object_vertex(uint vid [[vertex_id]], const device ObjectVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=v[vid].uv; return o; }\n"
@@ -793,14 +793,14 @@ void renderer_metal_draw_billboard_cross( float x, float y, float z,
     @autoreleasepool {
         typedef struct {
             float px, py, pz;
-            float u, v;
+            float u, v, pad;
         } object_vertex_t;
 
         const object_vertex_t verts[12] = {
-            {x-radius,y,z, 0,0}, {x+radius,y,z, 1,0}, {x+radius,y+height,z, 1,1},
-            {x-radius,y,z, 0,0}, {x+radius,y+height,z, 1,1}, {x-radius,y+height,z, 0,1},
-            {x,y,z-radius, 0,0}, {x,y,z+radius, 1,0}, {x,y+height,z+radius, 1,1},
-            {x,y,z-radius, 0,0}, {x,y+height,z+radius, 1,1}, {x,y+height,z-radius, 0,1}
+            {x-radius,y,z, 0,0,0}, {x+radius,y,z, 1,0,0}, {x+radius,y+height,z, 1,1,0},
+            {x-radius,y,z, 0,0,0}, {x+radius,y+height,z, 1,1,0}, {x-radius,y+height,z, 0,1,0},
+            {x,y,z-radius, 0,0,0}, {x,y,z+radius, 1,0,0}, {x,y+height,z+radius, 1,1,0},
+            {x,y,z-radius, 0,0,0}, {x,y+height,z+radius, 1,1,0}, {x,y+height,z-radius, 0,1,0}
         };
 
         if ( g_frame_encoder == nil || g_billboard_pipeline == nil ||
