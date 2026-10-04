@@ -11,6 +11,8 @@
 #include "winsys.h"
 #ifdef __APPLE__
 #include "renderer_metal.h"
+#include "course_load.h"
+#include "terrain_batch.h"
 #endif
 
 static tux_renderer_info_t g_renderer = {
@@ -52,9 +54,10 @@ int renderer_initialize( tux_renderer_backend_t backend )
      * Probe Metal in parallel while OpenGL remains the presenting backend.
      * This is intentionally diagnostic during the first v0.2 milestone.
      */
-    if ( renderer_metal_probe() ) {
+    if ( renderer_metal_probe() && renderer_metal_initialize_resources() ) {
         fprintf( stderr, "Tux Racer Modern: Metal device available: %s\n",
                  renderer_metal_device_name() );
+        terrain_set_batch_consumer( renderer_metal_consume_terrain_batch, NULL );
     } else {
         fprintf( stderr, "Tux Racer Modern: Metal device unavailable\n" );
     }
@@ -64,6 +67,10 @@ int renderer_initialize( tux_renderer_backend_t backend )
 
 void renderer_shutdown( void )
 {
+#ifdef __APPLE__
+    terrain_set_batch_consumer( NULL, NULL );
+    renderer_metal_shutdown_resources();
+#endif
     g_renderer.initialized = 0;
 }
 
@@ -91,6 +98,15 @@ void renderer_resize( int logical_width, int logical_height )
 
 void renderer_begin_frame( void )
 {
+#ifdef __APPLE__
+    if ( renderer_metal_vertex_bytes() == 0 ) {
+        size_t vertex_count = 0;
+        const tux_vertex_t *vertices = get_renderer_course_vertices( &vertex_count );
+        if ( vertices != NULL && vertex_count > 0 ) {
+            renderer_metal_upload_course_vertices( vertices, vertex_count );
+        }
+    }
+#endif
     clear_rendering_context();
 }
 
