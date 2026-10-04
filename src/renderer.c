@@ -26,6 +26,7 @@ static tux_renderer_frame_state_t g_frame = {
 };
 
 #ifdef __APPLE__
+static int g_metal_native_enabled = 0;
 static int g_metal_compare_enabled = 0;
 static unsigned char *g_metal_present_pixels = NULL;
 static size_t g_metal_present_capacity = 0;
@@ -63,6 +64,9 @@ int renderer_initialize( tux_renderer_backend_t backend )
     if ( renderer_metal_probe() && renderer_metal_initialize_resources() ) {
         fprintf( stderr, "Tux Racer Modern: Metal device available: %s\n",
                  renderer_metal_device_name() );
+        if ( !renderer_metal_attach_native_window( winsys_get_native_window() ) ) {
+            fprintf( stderr, "Tux Racer Modern: native Metal layer unavailable\n" );
+        }
         terrain_set_batch_consumer( renderer_metal_consume_terrain_batch, NULL );
     } else {
         fprintf( stderr, "Tux Racer Modern: Metal device unavailable\n" );
@@ -173,12 +177,62 @@ void renderer_toggle_metal_compare( void )
 #endif
 }
 
+void renderer_toggle_metal_native( void )
+{
+#ifdef __APPLE__
+    g_metal_native_enabled = !g_metal_native_enabled;
+    renderer_metal_set_native_visible( g_metal_native_enabled );
+    fprintf( stderr, "Tux Racer Modern: native Metal %s\n",
+             g_metal_native_enabled ? "ON" : "OFF" );
+#endif
+}
+
+int renderer_metal_native_enabled( void )
+{
+#ifdef __APPLE__
+    return g_metal_native_enabled;
+#else
+    return 0;
+#endif
+}
+
 int renderer_metal_compare_enabled( void )
 {
 #ifdef __APPLE__
     return g_metal_compare_enabled;
 #else
     return 0;
+#endif
+}
+
+void renderer_present_native_metal_frame( void )
+{
+#ifdef __APPLE__
+    size_t index_count = 0, vertex_count = 0;
+    const uint32_t *indices;
+    const tux_renderer_camera_state_t *camera;
+    tux_terrain_batch_t batch;
+
+    if ( !g_metal_native_enabled || g_game.mode != RACING ) return;
+    camera = renderer_get_camera_state();
+    if ( camera == NULL || !camera->valid ) return;
+
+    indices = get_renderer_course_grid_indices( &index_count );
+    get_renderer_course_vertices( &vertex_count );
+    if ( indices == NULL || index_count == 0 || vertex_count == 0 ) return;
+
+    if ( !renderer_metal_begin_native_frame(
+            camera, g_frame.drawable_width, g_frame.drawable_height ) ) return;
+
+    batch.terrain_index = -3;
+    batch.indices = indices;
+    batch.index_count = index_count;
+    batch.min_vertex_index = 0;
+    batch.max_vertex_index = (uint32_t)(vertex_count - 1);
+    batch.texture = TUX_INVALID_TEXTURE_HANDLE;
+    batch.environment_pass = 0;
+    renderer_metal_draw_full_grid( &batch );
+    renderer_metal_end_native_frame();
 #endif
 }
 
