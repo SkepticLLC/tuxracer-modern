@@ -420,6 +420,15 @@ void racing_loop( scalar_t time_step )
 
     draw_hud( plyr );
 
+    /*
+     * Development parity view. F9 deliberately replaces the completed
+     * classic racing frame with Metal terrain so camera motion can be
+     * compared without making Metal the default presentation path.
+     */
+    if ( renderer_metal_compare_enabled() ) {
+        renderer_present_metal_terrain();
+    }
+
     renderer_resize( width, height );
 
     renderer_end_frame();
@@ -518,6 +527,13 @@ START_KEYBOARD_CB( pause_cb )
 }
 END_KEYBOARD_CB
 
+START_KEYBOARD_CB( metal_compare_cb )
+{
+    if ( release ) return;
+    renderer_toggle_metal_compare();
+}
+END_KEYBOARD_CB
+
 START_KEYBOARD_CB( reset_cb )
 {
     if ( release ) return;
@@ -564,6 +580,8 @@ void racing_register()
 				"p", getparam_pause_key, pause_cb );
     status |= add_keymap_entry( RACING, CONFIGURABLE_KEY, 
 				"r", getparam_reset_key, reset_cb );
+    status |= add_keymap_entry( RACING, FIXED_KEY,
+                                "f9", NULL, metal_compare_cb );
     status |= add_keymap_entry( RACING, CONFIGURABLE_KEY, 
 				"i", getparam_jump_key, jump_cb );
 
