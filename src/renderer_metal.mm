@@ -317,7 +317,7 @@ void renderer_metal_end_offscreen_frame( void )
 
                 FILE *fp = fopen( "metal-terrain-frame.ppm", "wb" );
                 if ( fp != NULL ) {
-                    fprintf( fp, "P6\\n%lu %lu\\n255\\n",
+                    fprintf( fp, "P6\n%lu %lu\n255\n",
                              (unsigned long)width, (unsigned long)height );
                     for ( NSUInteger y = 0; y < height; ++y ) {
                         for ( NSUInteger x = 0; x < width; ++x ) {
@@ -331,7 +331,8 @@ void renderer_metal_end_offscreen_frame( void )
                     fclose( fp );
                     g_capture_written = 1;
                     fprintf( stderr,
-                             "Tux Racer Modern: wrote Metal diagnostic frame: metal-terrain-frame.ppm\\n" );
+                             "Tux Racer Modern: wrote Metal diagnostic frame: metal-terrain-frame.ppm (%zu bytes)\n",
+                             byteCount );
                 }
                 free( pixels );
             }
