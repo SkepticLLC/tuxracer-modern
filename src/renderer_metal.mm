@@ -27,6 +27,7 @@ static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
 static id<MTLRenderPipelineState> g_mountain_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
+static id<MTLDepthStencilState> g_no_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
 static size_t g_vertex_bytes = 0;
@@ -360,6 +361,14 @@ int renderer_metal_initialize_resources( void )
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
             g_depth_state = [g_device newDepthStencilStateWithDescriptor:depthDesc];
+            {
+                MTLDepthStencilDescriptor *noDepthDesc =
+                    [[MTLDepthStencilDescriptor alloc] init];
+                noDepthDesc.depthCompareFunction = MTLCompareFunctionAlways;
+                noDepthDesc.depthWriteEnabled = NO;
+                g_no_depth_state =
+                    [g_device newDepthStencilStateWithDescriptor:noDepthDesc];
+            }
             if ( g_depth_state == nil ) {
                 fprintf( stderr, "Tux Racer Modern: Metal depth state creation failed\n" );
                 return 0;
@@ -384,6 +393,7 @@ void renderer_metal_shutdown_resources( void )
         g_course_vertex_buffer = nil;
         g_camera_uniform_buffer = nil;
         g_depth_state = nil;
+        g_no_depth_state = nil;
         g_terrain_pipeline = nil;
         g_sky_pipeline = nil;
         g_billboard_pipeline = nil;
@@ -909,9 +919,11 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
 
         if ( g_mountain_pipeline != nil ) {
             [g_frame_encoder setRenderPipelineState:g_mountain_pipeline];
+            [g_frame_encoder setDepthStencilState:g_no_depth_state];
             [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
                                 vertexStart:0
                                 vertexCount:3];
+            [g_frame_encoder setDepthStencilState:g_depth_state];
         }
 
         g_native_frame_active = 1;
