@@ -18,6 +18,7 @@
 #include "course_render.h"
 
 #include "quadtree.hpp"
+#include "terrain_batch.h"
 #include "quadgeom.hpp"
 
 /* Amount to scale terrain errors by in order to be comparable to
@@ -48,6 +49,7 @@ VNCArray[j*STRIDE_GL_ARRAY+STRIDE_GL_ARRAY-4+(ch)]
 //
 
 GLuint quadsquare::TexId[NumTerrains];
+tux_texture_handle_t quadsquare::TextureHandle[NumTerrains];
 GLuint quadsquare::EnvmapTexId;
 GLuint *quadsquare::VertexArrayIndices = (GLuint*) NULL;
 GLuint quadsquare::VertexArrayCounter;
@@ -104,14 +106,23 @@ quadsquare::quadsquare(quadcornerdata* pcd)
 
 	// Initialize texture data
 	if (!get_texture_binding("snow", &(TexId[Snow]))) {
-	    TexId[Snow] = 0;
-	}
-	if (!get_texture_binding("ice", &TexId[Ice])) {
-	    TexId[Ice] = 0;
-	}
-	if (!get_texture_binding("rock", &TexId[Rock])) {
-	    TexId[Rock] = 0;
-	}
+            TexId[Snow] = 0;
+        }
+        if (!get_texture_handle_binding("snow", &(TextureHandle[Snow]))) {
+            TextureHandle[Snow] = TUX_INVALID_TEXTURE_HANDLE;
+        }
+        if (!get_texture_binding("ice", &TexId[Ice])) {
+            TexId[Ice] = 0;
+        }
+        if (!get_texture_handle_binding("ice", &(TextureHandle[Ice]))) {
+            TextureHandle[Ice] = TUX_INVALID_TEXTURE_HANDLE;
+        }
+        if (!get_texture_binding("rock", &TexId[Rock])) {
+            TexId[Rock] = 0;
+        }
+        if (!get_texture_handle_binding("rock", &(TextureHandle[Rock]))) {
+            TextureHandle[Rock] = TUX_INVALID_TEXTURE_HANDLE;
+        }
 	if ( !get_texture_binding( "terrain_envmap", &EnvmapTexId ) ) {
 	    EnvmapTexId = 0;
 	}
@@ -1070,7 +1081,19 @@ void	quadsquare::Render(const quadcornerdata& cd, GLubyte *vnc_array)
             continue;
         } 
 
-	glBindTexture( GL_TEXTURE_2D, TexId[j] );
+	{
+            tux_terrain_batch_t batch;
+            batch.terrain_index = (int)j;
+            batch.indices = (const uint32_t *)VertexArrayIndices;
+            batch.index_count = VertexArrayCounter;
+            batch.min_vertex_index = VertexArrayMinIdx;
+            batch.max_vertex_index = VertexArrayMaxIdx;
+            batch.texture = TextureHandle[j];
+            batch.environment_pass = 0;
+            terrain_submit_batch( &batch );
+        }
+
+        glBindTexture( GL_TEXTURE_2D, TexId[j] );
 	DrawTris();
 
 	if ( j == Ice && getparam_terrain_envmap() ) {
