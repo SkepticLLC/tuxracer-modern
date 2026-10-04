@@ -1,0 +1,8 @@
+#pragma once
+#define VERSION "@PROJECT_VERSION@"
+#define PACKAGE "tuxracer-modern"
+#define HAVE_SDL 1
+#define HAVE_SDL_JOYSTICKOPEN 1
+#define HAVE_SDL_MIXER 1
+#define HAVE_ISNAN 1
+#define TCL_HEADER <tcl.h>
