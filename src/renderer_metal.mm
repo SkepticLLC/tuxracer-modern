@@ -330,8 +330,7 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         int i;
         for ( i = 0; i < 16; ++i ) vp[i] = (float)camera->view_projection_matrix[i];
         for ( i = 0; i < 4; ++i ) {
-            vp[i*4 + 1] = (flip_y ? -1.0f : 1.0f) *
-                        (float)camera->view_projection_matrix[i*4 + 1];
+            vp[i*4 + 1] = -(float)camera->view_projection_matrix[i*4 + 1];
             vp[i*4 + 2] = 0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
                                   (float)camera->view_projection_matrix[i*4 + 3]);
         }
@@ -586,7 +585,8 @@ static int renderer_metal_prepare_camera_uniforms(
     for ( i = 0; i < 16; ++i )
         vp[i] = (float)camera->view_projection_matrix[i];
     for ( i = 0; i < 4; ++i ) {
-        vp[i*4 + 1] = -(float)camera->view_projection_matrix[i*4 + 1];
+        vp[i*4 + 1] = (flip_y ? -1.0f : 1.0f) *
+                        (float)camera->view_projection_matrix[i*4 + 1];
         vp[i*4 + 2] =
             0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
                     (float)camera->view_projection_matrix[i*4 + 3]);
