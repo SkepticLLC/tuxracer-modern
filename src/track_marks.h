@@ -29,6 +29,7 @@ extern "C"
 
 void init_track_marks(void);
 void draw_track_marks(void);
+void draw_track_marks_metal(void);
 void add_track_mark( player_data_t *plyr );
 void break_track_marks(void);
 
