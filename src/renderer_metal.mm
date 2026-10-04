@@ -109,7 +109,7 @@ int renderer_metal_initialize_resources( void )
                 "struct ObjectVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
                 "struct ObjectOut { float4 position [[position]]; float2 uv; };\n"
                 "vertex ObjectOut object_vertex(uint vid [[vertex_id]], const device ObjectVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
-                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=v[vid].uv; return o; }\n"
+                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); return o; }\n"
                 "fragment float4 object_fragment(ObjectOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
                 "float4 c=tex.sample(samp,in.uv); if(c.a<0.18) discard_fragment(); return c; }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
