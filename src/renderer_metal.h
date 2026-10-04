@@ -39,6 +39,8 @@ void renderer_metal_draw_full_grid( const tux_terrain_batch_t *batch );
 void renderer_metal_draw_billboard_cross( float x, float y, float z,
                                           float radius, float height,
                                           tux_texture_handle_t texture );
+void renderer_metal_draw_skybox( const tux_texture_handle_t faces[6] );
+
 void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
                                          float radius_x, float radius_z,
                                          float alpha );
