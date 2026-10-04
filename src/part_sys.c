@@ -26,6 +26,9 @@
 #include "course_render.h"
 #include "render_util.h"
 #include "textures.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 /* This constant is here as part of a debugging check to prevent an infinite 
    number of particles from being created */
@@ -149,6 +152,30 @@ void update_particles( scalar_t time_step )
         p = &( (**p).next );
     } 
 } 
+
+void draw_particles_metal( player_data_t *plyr )
+{
+#ifdef __APPLE__
+    Particle *p;
+    tux_texture_handle_t handle=TUX_INVALID_TEXTURE_HANDLE;
+    if(plyr==NULL||!get_texture_handle_binding("snow_particle",&handle))return;
+    for(p=head;p!=NULL;p=p->next){
+        vector_t n; scalar_t len;
+        float u0,v0,u1,v1;
+        if(p->age<0)continue;
+        u0=(p->type==0||p->type==3)?0.0f:0.5f; u1=u0+0.5f;
+        v0=(p->type==0||p->type==1)?0.0f:0.5f; v1=v0+0.5f;
+        n=subtract_points(plyr->view.pos,p->pt); n.y=0.0;
+        len=sqrt(n.x*n.x+n.z*n.z); if(len<=0.0001)continue;
+        n.x/=len;n.z/=len;
+        renderer_metal_draw_billboard_uv(
+            (float)p->pt.x,(float)(p->pt.y-p->cur_size*0.5),(float)p->pt.z,
+            (float)(p->cur_size*0.5),(float)p->cur_size,
+            (float)n.x,(float)n.z,u0,v0,u1,v1,
+            (float)(particle_colour[3]*p->alpha),handle);
+    }
+#endif
+}
 
 void draw_particles( player_data_t *plyr )
 {
