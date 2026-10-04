@@ -440,6 +440,7 @@ void racing_loop( scalar_t time_step )
     }
 
     if ( renderer_metal_native_enabled() ) {
+        draw_tux_shadow_metal();
         draw_tux_metal();
     }
 
