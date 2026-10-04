@@ -26,6 +26,9 @@
 #include "alglib.h"
 #include "course_render.h"
 #include "render_util.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 #undef TRACK_TRIANGLES
 
@@ -332,6 +335,38 @@ void init_track_marks(void)
 }
 
 
+
+void draw_track_marks_metal(void)
+{
+#ifdef __APPLE__
+    tux_texture_handle_t tex[NUM_TRACK_TYPES];
+    int current_quad, num_quads, first_quad;
+    if ( getparam_track_marks() == False ) return;
+    if ( !get_texture_handle_binding( "track_head", &tex[TRACK_HEAD] ) ||
+         !get_texture_handle_binding( "track_mark", &tex[TRACK_MARK] ) ||
+         !get_texture_handle_binding( "track_tail", &tex[TRACK_TAIL] ) ) return;
+
+    num_quads = min( track_marks.current_mark,
+                     MAX_TRACK_MARKS-track_marks.next_mark+track_marks.current_mark );
+    first_quad = track_marks.current_mark-num_quads;
+    for(current_quad=0;current_quad<num_quads;++current_quad){
+        track_quad_t *q=&track_marks.quads[(first_quad+current_quad)%MAX_TRACK_MARKS];
+        float p[12]={
+            (float)q->v1.x,(float)(q->v1.y+0.012),(float)q->v1.z,
+            (float)q->v2.x,(float)(q->v2.y+0.012),(float)q->v2.z,
+            (float)q->v4.x,(float)(q->v4.y+0.012),(float)q->v4.z,
+            (float)q->v3.x,(float)(q->v3.y+0.012),(float)q->v3.z
+        };
+        float uv[8]={
+            (float)q->t1.x,(float)q->t1.y,
+            (float)q->t2.x,(float)q->t2.y,
+            (float)q->t4.x,(float)q->t4.y,
+            (float)q->t3.x,(float)q->t3.y
+        };
+        renderer_metal_draw_textured_quad(p,uv,(float)q->alpha,tex[q->track_type]);
+    }
+#endif
+}
 
 void draw_track_marks(void)
 {
