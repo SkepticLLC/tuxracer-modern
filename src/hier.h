@@ -50,6 +50,7 @@ extern char* create_sphere_node( char *parent_name, char *child_name, scalar_t r
 extern void initialize_scene_graph();
 
 extern void draw_scene_graph( char *node );
+extern void draw_scene_graph_metal( char *node );
 extern  bool_t collide( char *node, polyhedron_t ph );
 
 #endif
