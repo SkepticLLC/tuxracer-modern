@@ -339,13 +339,51 @@ void fill_gl_arrays()
             renderer_vertices[y*nx+x].texcoord[1] =
                 renderer_vertices[y*nx+x].position[2] / (float)TEX_SCALE;
 
-            renderer_vertices[y*nx+x].terrain_weights[0] =
-                terrain[y*nx+x] == Snow ? 1.0f : 0.0f;
-            renderer_vertices[y*nx+x].terrain_weights[1] =
-                terrain[y*nx+x] == Rock ? 1.0f : 0.0f;
-            renderer_vertices[y*nx+x].terrain_weights[2] =
-                terrain[y*nx+x] == Ice ? 1.0f : 0.0f;
-            renderer_vertices[y*nx+x].terrain_weights[3] = 0.0f;
+            /*
+             * Build continuous modern material weights from the authoritative
+             * classic terrain classification.  A small 5x5 kernel preserves
+             * pure interiors while creating stable transitions at material
+             * boundaries independent of adaptive render LOD.
+             */
+            {
+                float weights[3] = { 0.0f, 0.0f, 0.0f };
+                float total = 0.0f;
+                int ox, oy;
+                for ( oy = -2; oy <= 2; ++oy ) {
+                    int sy = y + oy;
+                    if ( sy < 0 ) sy = 0;
+                    if ( sy >= ny ) sy = ny - 1;
+                    for ( ox = -2; ox <= 2; ++ox ) {
+                        int sx = x + ox;
+                        float sample_weight;
+                        terrain_t sample;
+                        if ( sx < 0 ) sx = 0;
+                        if ( sx >= nx ) sx = nx - 1;
+
+                        /* Center and immediate neighbors influence most. */
+                        sample_weight = 1.0f / (1.0f + (float)(ox*ox + oy*oy));
+                        sample = terrain[sy*nx+sx];
+                        if ( sample == Snow ) weights[0] += sample_weight;
+                        else if ( sample == Rock ) weights[1] += sample_weight;
+                        else if ( sample == Ice ) weights[2] += sample_weight;
+                        total += sample_weight;
+                    }
+                }
+
+                if ( total > 0.0f ) {
+                    renderer_vertices[y*nx+x].terrain_weights[0] = weights[0] / total;
+                    renderer_vertices[y*nx+x].terrain_weights[1] = weights[1] / total;
+                    renderer_vertices[y*nx+x].terrain_weights[2] = weights[2] / total;
+                } else {
+                    renderer_vertices[y*nx+x].terrain_weights[0] =
+                        terrain[y*nx+x] == Snow ? 1.0f : 0.0f;
+                    renderer_vertices[y*nx+x].terrain_weights[1] =
+                        terrain[y*nx+x] == Rock ? 1.0f : 0.0f;
+                    renderer_vertices[y*nx+x].terrain_weights[2] =
+                        terrain[y*nx+x] == Ice ? 1.0f : 0.0f;
+                }
+                renderer_vertices[y*nx+x].terrain_weights[3] = 0.0f;
+            }
 
 #undef byteval
 
