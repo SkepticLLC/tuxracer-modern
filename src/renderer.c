@@ -144,6 +144,35 @@ void renderer_set_camera( const double view_matrix[16],
     g_camera.near_clip = NEAR_CLIP_DIST;
     g_camera.far_clip = getparam_forward_clip_distance() + 5.0;
     g_camera.aspect_ratio = g_frame.aspect_ratio;
+
+    {
+        const double fov = g_camera.projection_fov_degrees * M_PI / 180.0;
+        const double f = 1.0 / tan( fov * 0.5 );
+        const double a = g_camera.aspect_ratio > 0.0 ? g_camera.aspect_ratio : 1.0;
+        const double n = g_camera.near_clip;
+        const double zf = g_camera.far_clip;
+        double p[16] = {
+            f/a, 0, 0, 0,
+            0, f, 0, 0,
+            0, 0, (zf+n)/(n-zf), -1,
+            0, 0, (2*zf*n)/(n-zf), 0
+        };
+        int row, col, k;
+        for ( k = 0; k < 16; ++k ) {
+            g_camera.projection_matrix[k] = p[k];
+            g_camera.view_projection_matrix[k] = 0.0;
+        }
+        /* Column-major P * V, matching the preserved OpenGL matrices. */
+        for ( col = 0; col < 4; ++col ) {
+            for ( row = 0; row < 4; ++row ) {
+                double sum = 0.0;
+                for ( k = 0; k < 4; ++k ) {
+                    sum += p[k*4 + row] * view_matrix[col*4 + k];
+                }
+                g_camera.view_projection_matrix[col*4 + row] = sum;
+            }
+        }
+    }
     g_camera.position[0] = px; g_camera.position[1] = py; g_camera.position[2] = pz;
     g_camera.direction[0] = dx; g_camera.direction[1] = dy; g_camera.direction[2] = dz;
     g_camera.up[0] = ux; g_camera.up[1] = uy; g_camera.up[2] = uz;
