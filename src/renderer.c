@@ -145,8 +145,13 @@ void renderer_begin_world_frame( void )
         if ( camera != NULL && camera->valid ) {
             size_t index_count = 0;
             const uint32_t *indices = get_renderer_course_grid_indices( &index_count );
-            renderer_metal_begin_offscreen_frame(
-                camera, g_frame.drawable_width, g_frame.drawable_height );
+            if ( g_metal_native_enabled ) {
+                renderer_metal_begin_native_frame(
+                    camera, g_frame.drawable_width, g_frame.drawable_height );
+            } else {
+                renderer_metal_begin_offscreen_frame(
+                    camera, g_frame.drawable_width, g_frame.drawable_height );
+            }
             if ( indices != NULL && index_count > 0 ) {
                 tux_terrain_batch_t full_grid;
                 full_grid.terrain_index = -3;
@@ -208,31 +213,9 @@ int renderer_metal_compare_enabled( void )
 void renderer_present_native_metal_frame( void )
 {
 #ifdef __APPLE__
-    size_t index_count = 0, vertex_count = 0;
-    const uint32_t *indices;
-    const tux_renderer_camera_state_t *camera;
-    tux_terrain_batch_t batch;
-
-    if ( !g_metal_native_enabled || g_game.mode != RACING ) return;
-    camera = renderer_get_camera_state();
-    if ( camera == NULL || !camera->valid ) return;
-
-    indices = get_renderer_course_grid_indices( &index_count );
-    get_renderer_course_vertices( &vertex_count );
-    if ( indices == NULL || index_count == 0 || vertex_count == 0 ) return;
-
-    if ( !renderer_metal_begin_native_frame(
-            camera, g_frame.drawable_width, g_frame.drawable_height ) ) return;
-
-    batch.terrain_index = -3;
-    batch.indices = indices;
-    batch.index_count = index_count;
-    batch.min_vertex_index = 0;
-    batch.max_vertex_index = (uint32_t)(vertex_count - 1);
-    batch.texture = TUX_INVALID_TEXTURE_HANDLE;
-    batch.environment_pass = 0;
-    renderer_metal_draw_full_grid( &batch );
-    renderer_metal_end_native_frame();
+    if ( g_metal_native_enabled ) {
+        renderer_metal_end_native_frame();
+    }
 #endif
 }
 
