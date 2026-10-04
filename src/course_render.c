@@ -30,6 +30,9 @@
 #include "course_quad.h"
 #include "viewfrustum.h"
 #include "track_marks.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 /* 
  *  Constants 
