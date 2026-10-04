@@ -73,6 +73,17 @@ void winsys_get_drawable_size( int *w, int *h )
     if ( h ) *h = dh;
 }
 
+void winsys_get_window_size( int *w, int *h )
+{
+    int ww = getparam_x_resolution();
+    int wh = getparam_y_resolution();
+    if ( window != NULL ) {
+        SDL_GetWindowSize( window, &ww, &wh );
+    }
+    if ( w ) *w = ww;
+    if ( h ) *h = wh;
+}
+
 static void setup_sdl_video_mode()
 {
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
