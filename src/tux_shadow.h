@@ -28,6 +28,7 @@ extern "C"
 #include "tuxracer.h"
 
 void draw_tux_shadow();
+void draw_tux_shadow_metal();
 void traverse_dag_for_shadow( scene_node_t *node, matrixgl_t model_matrix );
 void draw_shadow_sphere( matrixgl_t model_matrix );
 void draw_shadow_vertex( scalar_t x, scalar_t y, scalar_t z, 
