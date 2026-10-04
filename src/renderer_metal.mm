@@ -95,10 +95,23 @@ int renderer_metal_initialize_resources( void )
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
                 "float3 w=in.weights/max(in.weights.x+in.weights.y+in.weights.z,0.0001); "
-                "float3 rawSnow=snow.sample(samp,in.texcoord).rgb; "
-                "float3 rawRock=rock.sample(samp,in.texcoord).rgb; "
-                "float3 rawIce=ice.sample(samp,in.texcoord).rgb; "
-                "float3 albedo=rawSnow*w.x+rawRock*w.y+rawIce*w.z; return float4(albedo,1.0); "
+                "float2 macroUV=in.texcoord; float2 detailUV=in.texcoord*5.75; "
+                "float3 snowMacro=snow.sample(samp,macroUV).rgb; float3 snowDetail=snow.sample(samp,detailUV).rgb; "
+                "float3 rockBase=rock.sample(samp,macroUV*0.85).rgb; float3 iceBase=ice.sample(samp,macroUV*1.15).rgb; "
+                "float snowVariation=dot(snowDetail,float3(0.3333)); "
+                "float3 snowMat=snowMacro*(0.86+0.18*snowVariation); "
+                "float3 rockMat=rockBase*float3(0.78,0.75,0.72); "
+                "float3 iceMat=iceBase*float3(0.82,0.93,1.08); "
+                "float3 albedo=snowMat*w.x+rockMat*w.y+iceMat*w.z; "
+                "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.28,-0.90,-0.32)); "
+                "float ndl=saturate(dot(n,-sunDir)); float hemi=0.60+0.40*saturate(n.y); "
+                "float3 ambient=float3(0.48,0.56,0.70)*hemi; float3 sun=float3(0.82,0.78,0.70)*ndl; "
+                "float snowSpark=pow(saturate(ndl),24.0)*w.x*0.10; "
+                "float iceGlint=pow(saturate(ndl),48.0)*w.z*0.24; "
+                "float3 lit=albedo*(ambient+sun)+float3(snowSpark)+float3(0.72,0.86,1.0)*iceGlint; "
+                "float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
+                "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d)*0.55; "
+                "float3 fogColor=float3(0.68,0.77,0.88); return float4(mix(lit,fogColor,fog),1.0); "
                 "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.30,-0.88,-0.36)); float ndl=saturate(dot(n,-sunDir)); "
                 "float hemi=0.65+0.35*saturate(n.y); float3 ambient=float3(0.58,0.63,0.72)*hemi; float3 sunlight=float3(0.78,0.74,0.66)*ndl; "
                 "float3 lit=albedo*(ambient+sunlight); float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
@@ -331,8 +344,8 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
              * the latter half of the visible course and approaches, but does
              * not fully reach, the camera's far clip.
              */
-            uniforms.cameraAndFogStart[3] = farClip * 0.58f;
-            uniforms.fogEndAndPad[0] = farClip * 0.94f;
+            uniforms.cameraAndFogStart[3] = farClip * 0.68f;
+            uniforms.fogEndAndPad[0] = farClip * 0.98f;
         }
         uniforms.fogEndAndPad[1] = uniforms.fogEndAndPad[2] = uniforms.fogEndAndPad[3] = 0.0f;
 
