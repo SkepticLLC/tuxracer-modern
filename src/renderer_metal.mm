@@ -1043,3 +1043,29 @@ void renderer_metal_draw_sphere( const double model[16],
         [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:count];
     }
 }
+
+
+void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
+                                         float radius_x, float radius_z,
+                                         float alpha )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,a; } shv_t;
+        const int segments=32;
+        shv_t verts[34];
+        int i;
+        if(g_frame_encoder==nil||g_shadow_pipeline==nil||g_camera_uniform_buffer==nil)return;
+        verts[0]=(shv_t){x,y,z,alpha};
+        for(i=0;i<=segments;++i){
+            float a=(float)(2.0*M_PI*i/segments);
+            verts[i+1]=(shv_t){x+cosf(a)*radius_x,y,z+sinf(a)*radius_z,0.0f};
+        }
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:verts length:sizeof(verts) options:MTLResourceStorageModeShared];
+        if(vb==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_shadow_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangleFan vertexStart:0 vertexCount:34];
+    }
+}
