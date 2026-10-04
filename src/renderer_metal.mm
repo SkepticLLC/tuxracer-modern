@@ -185,6 +185,29 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> objectVertex =
+                    [g_terrain_library newFunctionWithName:@"object_vertex"];
+                id<MTLFunction> objectFragment =
+                    [g_terrain_library newFunctionWithName:@"object_fragment"];
+                MTLRenderPipelineDescriptor *objectDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                objectDesc.vertexFunction = objectVertex;
+                objectDesc.fragmentFunction = objectFragment;
+                objectDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                objectDesc.colorAttachments[0].blendingEnabled = YES;
+                objectDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+                objectDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+                objectDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_billboard_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:objectDesc error:&error];
+                if ( g_billboard_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal object pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
