@@ -14,6 +14,8 @@ static id<MTLDevice> g_device = nil;
 static id<MTLCommandQueue> g_command_queue = nil;
 static id<MTLBuffer> g_course_vertex_buffer = nil;
 static id<MTLBuffer> g_last_index_buffer = nil;
+static id<MTLLibrary> g_terrain_library = nil;
+static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static char g_device_name[256] = {0};
 static size_t g_vertex_bytes = 0;
 static size_t g_last_index_bytes = 0;
@@ -51,7 +53,52 @@ int renderer_metal_initialize_resources( void )
         if ( g_command_queue == nil ) {
             g_command_queue = [g_device newCommandQueue];
         }
-        return g_command_queue != nil;
+
+        if ( g_terrain_library == nil ) {
+            NSString *source = @
+                "#include <metal_stdlib>\n"
+                "using namespace metal;\n"
+                "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; };\n"
+                "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; };\n"
+                "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]]) { "
+                "TerrainVarying o; o.position=float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; return o; }\n"
+                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]]) { "
+                "float l=0.35+0.65*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
+                "return float4(float3(l),1.0); }\n";
+
+            NSError *error = nil;
+            g_terrain_library = [g_device newLibraryWithSource:source
+                                                       options:nil
+                                                         error:&error];
+            if ( g_terrain_library == nil ) {
+                fprintf( stderr, "Tux Racer Modern: Metal shader compile failed: %s\n",
+                         error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                return 0;
+            }
+
+            id<MTLFunction> vertex =
+                [g_terrain_library newFunctionWithName:@"terrain_vertex"];
+            id<MTLFunction> fragment =
+                [g_terrain_library newFunctionWithName:@"terrain_fragment"];
+
+            MTLRenderPipelineDescriptor *desc =
+                [[MTLRenderPipelineDescriptor alloc] init];
+            desc.vertexFunction = vertex;
+            desc.fragmentFunction = fragment;
+            desc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+            g_terrain_pipeline =
+                [g_device newRenderPipelineStateWithDescriptor:desc error:&error];
+            if ( g_terrain_pipeline == nil ) {
+                fprintf( stderr, "Tux Racer Modern: Metal pipeline creation failed: %s\n",
+                         error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                return 0;
+            }
+
+            fprintf( stderr, "Tux Racer Modern: Metal terrain pipeline ready\n" );
+        }
+
+        return g_command_queue != nil && g_terrain_pipeline != nil;
     }
 }
 
@@ -60,6 +107,8 @@ void renderer_metal_shutdown_resources( void )
     @autoreleasepool {
         g_last_index_buffer = nil;
         g_course_vertex_buffer = nil;
+        g_terrain_pipeline = nil;
+        g_terrain_library = nil;
         g_command_queue = nil;
         g_vertex_bytes = 0;
         g_last_index_bytes = 0;
