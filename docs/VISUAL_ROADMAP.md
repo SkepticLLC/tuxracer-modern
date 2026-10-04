@@ -33,3 +33,22 @@ The classic experience is preserved. The modern renderer may now intentionally e
 ## North star
 
 **Preserve the game. Modernize the world. Keep Tux unmistakably Tux.**
+
+
+## Metal integration checkpoint
+
+The hybrid Metal-to-OpenGL CPU readback path successfully demonstrated a combined
+playable scene with Metal terrain and preserved OpenGL foreground objects. It is
+a diagnostic bridge only and must not become a production rendering path.
+
+Observed cost:
+- Retina BGRA frame: 3456 x 2168 x 4 bytes (~30 MB).
+- Synchronous Metal completion before each readback.
+- CPU texture copy followed by OpenGL pixel upload every frame.
+- Result: unacceptable latency/judder despite correct visual integration.
+
+Production direction:
+- Metal presents directly to a CAMetalLayer drawable.
+- No per-frame GPU -> CPU -> GPU image transfer.
+- Scene systems migrate to Metal behind the renderer abstraction.
+- Classic OpenGL remains a separately selectable preservation backend.
