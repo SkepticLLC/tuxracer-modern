@@ -185,6 +185,14 @@ void renderer_toggle_metal_compare( void )
 void renderer_toggle_metal_native( void )
 {
 #ifdef __APPLE__
+    if ( !g_metal_native_enabled ) {
+        /*
+         * F10 may be pressed after this frame already opened the offscreen
+         * encoder. Close that frame before changing targets; native rendering
+         * begins cleanly on the following world frame.
+         */
+        renderer_metal_end_offscreen_frame();
+    }
     g_metal_native_enabled = !g_metal_native_enabled;
     renderer_metal_set_native_visible( g_metal_native_enabled );
     fprintf( stderr, "Tux Racer Modern: native Metal %s\n",
