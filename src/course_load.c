@@ -345,6 +345,7 @@ void fill_gl_arrays()
                 terrain[y*nx+x] == Rock ? 1.0f : 0.0f;
             renderer_vertices[y*nx+x].terrain_weights[2] =
                 terrain[y*nx+x] == Ice ? 1.0f : 0.0f;
+            renderer_vertices[y*nx+x].terrain_weights[3] = 0.0f;
 
 #undef byteval
 
