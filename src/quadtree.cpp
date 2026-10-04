@@ -1071,6 +1071,24 @@ void	quadsquare::Render(const quadcornerdata& cd, GLubyte *vnc_array)
     /* Save fog state */
     fog_on = is_fog_on();
 
+    /*
+     * Modern renderer path: collect the currently visible adaptive terrain
+     * exactly once, independent of the legacy material passes.
+     */
+    InitArrayCounters();
+    RenderAux( cd, SomeClip, -2 );
+    if ( VertexArrayCounter > 0 ) {
+        tux_terrain_batch_t modern_batch;
+        modern_batch.terrain_index = -2;
+        modern_batch.indices = (const uint32_t *)VertexArrayIndices;
+        modern_batch.index_count = VertexArrayCounter;
+        modern_batch.min_vertex_index = VertexArrayMinIdx;
+        modern_batch.max_vertex_index = VertexArrayMaxIdx;
+        modern_batch.texture = TUX_INVALID_TEXTURE_HANDLE;
+        modern_batch.environment_pass = 0;
+        terrain_submit_batch( &modern_batch );
+    }
+
 
     /*
      * Draw the "normal" blended triangles ( <= 2 terrains textures )
@@ -1271,6 +1289,18 @@ inline void quadsquare::MakeTri( int a, int b, int c, int terrain )
 }
 
 
+inline void quadsquare::MakeUnifiedTri( int a, int b, int c, int terrain )
+{
+    (void)terrain;
+    VertexArrayIndices[VertexArrayCounter++] = VertexIndices[a];
+    update_min_max( VertexIndices[a] );
+    VertexArrayIndices[VertexArrayCounter++] = VertexIndices[b];
+    update_min_max( VertexIndices[b] );
+    VertexArrayIndices[VertexArrayCounter++] = VertexIndices[c];
+    update_min_max( VertexIndices[c] );
+}
+
+
 inline void quadsquare::MakeSpecialTri( int a, int b, int c, int terrain) 
 {
     /* terrain should be -1 */
@@ -1405,7 +1435,9 @@ void	quadsquare::RenderAux(const quadcornerdata& cd, clip_result_t vis,
 	if (flags & 8) tri_func(0, 8, 7, terrain); \
     }
 
-    if ( terrain == -1 ) {
+    if ( terrain == -2 ) {
+        make_tri_list(MakeUnifiedTri);
+    } else if ( terrain == -1 ) {
 	make_tri_list(MakeSpecialTri);
     } else if ( getparam_terrain_blending() ) {
 	make_tri_list(MakeTri);
