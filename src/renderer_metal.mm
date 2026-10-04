@@ -713,6 +713,15 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         }
 
         g_draw_count = 0;
+
+        /* Native scene background; terrain is encoded immediately after. */
+        if ( g_sky_pipeline != nil ) {
+            [g_frame_encoder setRenderPipelineState:g_sky_pipeline];
+            [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                                vertexStart:0
+                                vertexCount:3];
+        }
+
         g_native_frame_active = 1;
         return 1;
     }
