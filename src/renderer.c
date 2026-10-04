@@ -302,11 +302,17 @@ void renderer_present_metal_terrain( void )
 void renderer_end_frame( void )
 {
 #ifdef __APPLE__
-    renderer_metal_end_offscreen_frame();
-    /*
-     * Live hybrid presentation is intentionally disabled until Metal camera
-     * parity is exact.  Keep the bridge available for controlled testing.
-     */
+    if ( g_metal_native_enabled ) {
+        /*
+         * Native mode owns the drawable and must finish through the native
+         * lifecycle so presentDrawable and native state are cleared exactly
+         * once. The racing loop may already have presented it; this call is
+         * intentionally safe because end_native_frame is idempotent.
+         */
+        renderer_metal_end_native_frame();
+    } else {
+        renderer_metal_end_offscreen_frame();
+    }
 #endif
     winsys_swap_buffers();
 }
