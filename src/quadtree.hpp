@@ -92,6 +92,7 @@ struct quadsquare {
     static void MakeTri( int a, int b, int c, int terrain );
     static void MakeSpecialTri( int a, int b, int c, int terrain );
     static void MakeNoBlendTri( int a, int b, int c, int terrain );
+    static void MakeUnifiedTri( int a, int b, int c, int terrain );
 
     static void DrawTris();
     static void DrawEnvmapTris();
