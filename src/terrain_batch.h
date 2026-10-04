@@ -30,6 +30,7 @@ typedef void (*tux_terrain_batch_consumer_t)( const tux_terrain_batch_t *batch,
 void terrain_set_batch_consumer( tux_terrain_batch_consumer_t consumer,
                                  void *context );
 void terrain_submit_batch( const tux_terrain_batch_t *batch );
+const tux_terrain_batch_t *terrain_get_latest_unified_batch( void );
 
 #ifdef __cplusplus
 }
