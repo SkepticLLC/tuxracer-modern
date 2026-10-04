@@ -338,6 +338,25 @@ void draw_mountain_backdrop_metal( point_t eye )
     get_course_dimensions( &width, &length );
 
     /*
+     * Diagnostic proof card: place the far mountain texture 120 m directly
+     * down-course from the current eye. If this appears, texture/shader/card
+     * rendering is proven and only horizon placement remains.
+     */
+    if ( far_tex != TUX_INVALID_TEXTURE_HANDLE ) {
+        static int proof_reported = 0;
+        renderer_metal_draw_mountain_card(
+            (float)eye.x, (float)(eye.y - 18.0), (float)(eye.z - 120.0),
+            180.0f, 72.0f, 1.0f, far_tex );
+        if ( !proof_reported ) {
+            fprintf( stderr,
+                     "Tux Racer Modern: mountain proof card eye=(%.2f,%.2f,%.2f) card=(%.2f,%.2f,%.2f)\n",
+                     eye.x, eye.y, eye.z,
+                     eye.x, eye.y-18.0, eye.z-120.0 );
+            proof_reported = 1;
+        }
+    }
+
+    /*
      * Cards live beyond the end of the playable course. X follows the
      * course center only; it does not follow the camera. The enormous
      * distance naturally produces the tiny parallax we want.
