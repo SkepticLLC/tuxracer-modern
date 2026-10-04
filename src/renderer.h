@@ -40,7 +40,24 @@ void renderer_resize( int logical_width, int logical_height );
 void renderer_begin_frame( void );
 void renderer_end_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
+typedef struct {
+    double view_matrix[16];
+    double projection_fov_degrees;
+    double near_clip;
+    double far_clip;
+    double aspect_ratio;
+    double position[3];
+    double direction[3];
+    double up[3];
+    int valid;
+} tux_renderer_camera_state_t;
+
+void renderer_set_camera( const double view_matrix[16],
+                          double px, double py, double pz,
+                          double dx, double dy, double dz,
+                          double ux, double uy, double uz );
 const tux_renderer_frame_state_t *renderer_get_frame_state( void );
+const tux_renderer_camera_state_t *renderer_get_camera_state( void );
 
 #ifdef __cplusplus
 }
