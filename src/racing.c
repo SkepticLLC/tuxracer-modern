@@ -438,6 +438,14 @@ void racing_loop( scalar_t time_step )
 
     renderer_resize( width, height );
 
+    /*
+     * F10 development milestone: present terrain directly through
+     * CAMetalLayer with no CPU readback or OpenGL pixel upload.
+     */
+    if ( renderer_metal_native_enabled() ) {
+        renderer_present_native_metal_frame();
+    }
+
     renderer_end_frame();
 
     g_game.time += time_step;
@@ -534,6 +542,13 @@ START_KEYBOARD_CB( pause_cb )
 }
 END_KEYBOARD_CB
 
+START_KEYBOARD_CB( metal_native_cb )
+{
+    if ( release ) return;
+    renderer_toggle_metal_native();
+}
+END_KEYBOARD_CB
+
 START_KEYBOARD_CB( metal_compare_cb )
 {
     if ( release ) return;
@@ -589,6 +604,8 @@ void racing_register()
 				"r", getparam_reset_key, reset_cb );
     status |= add_keymap_entry( RACING, FIXED_KEY,
                                 "f9", NULL, metal_compare_cb );
+    status |= add_keymap_entry( RACING, FIXED_KEY,
+                                "f10", NULL, metal_native_cb );
     status |= add_keymap_entry( RACING, CONFIGURABLE_KEY, 
 				"i", getparam_jump_key, jump_cb );
 
