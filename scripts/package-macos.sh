@@ -24,8 +24,13 @@ cp "$ROOT/README.md" "$RESOURCES/README.md"
 
 sed "s/@TUXRACER_VERSION@/$VERSION/g"   "$ROOT/packaging/macos/Info.plist.in" > "$APP/Contents/Info.plist"
 
+# Finder/resource-fork extended attributes can be inherited while copying
+# historical assets. They are not valid inside a signed application bundle.
+xattr -cr "$APP"
+
 # Ad-hoc signing makes the local development bundle internally consistent.
 codesign --force --deep --sign - "$APP"
+codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "Created: $APP"
 echo "Launch with: open \"$APP\""
