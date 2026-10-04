@@ -7,9 +7,11 @@
  */
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 #include <stdio.h>
 #include <string.h>
 #include "renderer_metal.h"
+#include "metal_present.h"
 
 static id<MTLDevice> g_device = nil;
 static id<MTLCommandQueue> g_command_queue = nil;
@@ -31,6 +33,8 @@ static MTLRenderPassDescriptor *g_frame_pass = nil;
 static int g_offscreen_width = 0;
 static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
+static id<CAMetalDrawable> g_native_drawable = nil;
+static int g_native_frame_active = 0;
 
 static int g_capture_written = 0;
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
@@ -547,5 +551,77 @@ int renderer_metal_read_present_frame( unsigned char *rgba,
         if ( width ) *width = g_offscreen_width;
         if ( height ) *height = g_offscreen_height;
         return 1;
+    }
+}
+
+
+int renderer_metal_attach_native_window( void *sdl_window )
+{
+    @autoreleasepool {
+        if ( g_device == nil && !renderer_metal_probe() ) return 0;
+        return metal_present_attach_to_sdl_window(
+            sdl_window, (__bridge void *)g_device );
+    }
+}
+
+void renderer_metal_set_native_visible( int visible )
+{
+    metal_present_set_visible( visible );
+}
+
+int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera,
+                                       int width, int height )
+{
+    @autoreleasepool {
+        void *opaque;
+        if ( camera == NULL || !camera->valid || width <= 0 || height <= 0 ||
+             g_command_queue == nil || g_terrain_pipeline == nil ) return 0;
+
+        metal_present_resize( width, height );
+        opaque = metal_present_next_drawable();
+        if ( opaque == NULL ) return 0;
+        g_native_drawable = (__bridge_transfer id<CAMetalDrawable>)opaque;
+
+        /*
+         * Reuse the validated camera uniform setup by beginning the ordinary
+         * Metal frame, then redirect its render target to the drawable before
+         * encoding terrain. Native-specific consolidation follows after the
+         * first direct-presentation milestone.
+         */
+        renderer_metal_begin_offscreen_frame( camera, width, height );
+        if ( g_frame_encoder != nil ) {
+            [g_frame_encoder endEncoding];
+            g_frame_encoder = nil;
+        }
+        if ( g_frame_command_buffer == nil ) return 0;
+
+        g_frame_pass.colorAttachments[0].texture = g_native_drawable.texture;
+        g_frame_pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+        g_frame_pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        g_frame_encoder =
+            [g_frame_command_buffer renderCommandEncoderWithDescriptor:g_frame_pass];
+        g_draw_count = 0;
+        g_native_frame_active = 1;
+        return 1;
+    }
+}
+
+void renderer_metal_end_native_frame( void )
+{
+    @autoreleasepool {
+        if ( !g_native_frame_active || g_frame_command_buffer == nil ||
+             g_native_drawable == nil ) return;
+
+        if ( g_frame_encoder != nil ) {
+            [g_frame_encoder endEncoding];
+            g_frame_encoder = nil;
+        }
+        [g_frame_command_buffer presentDrawable:g_native_drawable];
+        [g_frame_command_buffer commit];
+
+        g_frame_command_buffer = nil;
+        g_frame_pass = nil;
+        g_native_drawable = nil;
+        g_native_frame_active = 0;
     }
 }
