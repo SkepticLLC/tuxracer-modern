@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include "renderer_resources.h"
 #include "terrain_batch.h"
+#include "renderer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,9 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
                                            void *context );
 size_t renderer_metal_vertex_bytes( void );
 size_t renderer_metal_last_index_bytes( void );
+void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *camera,
+                                           int width, int height );
+void renderer_metal_end_offscreen_frame( void );
 
 #ifdef __cplusplus
 }
