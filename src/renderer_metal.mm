@@ -51,6 +51,7 @@ static double g_pacing_sum_ms = 0.0;
 static double g_pacing_min_ms = 1000000.0;
 static double g_pacing_max_ms = 0.0;
 static unsigned int g_pacing_samples = 0;
+static float g_mountain_parallax_x = 0.0f;
 
 static uint64_t renderer_metal_now_ns( void )
 {
@@ -163,24 +164,29 @@ int renderer_metal_initialize_resources( void )
                 "o.position=float4(p.xy,p.w*0.9999,p.w); o.uv=float2(v[vid].uv0,v[vid].uv1); return o; }\n"
                 "fragment float4 skybox_fragment(SkyboxOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
                 "float4 c=tex.sample(samp,in.uv); return float4(c.rgb,1.0); }\n"
+                "struct MountainUniforms { float parallaxX; float pad0; float pad1; float pad2; };\n"
                 "struct MountainOut { float4 position [[position]]; float2 uv; };\n"
                 "vertex MountainOut mountain_vertex(uint vid [[vertex_id]]) { "
                 "float2 p[3]={float2(-1.0,-1.0),float2(3.0,-1.0),float2(-1.0,3.0)}; "
                 "MountainOut o; o.position=float4(p[vid],0.9998,1.0); o.uv=p[vid]*0.5+0.5; return o; }\n"
-                "float ridge(float x,float seed){ "
-                "return 0.20*sin(x*5.3+seed)+0.11*sin(x*11.7+seed*1.7)+0.055*sin(x*25.1+seed*2.3); }\n"
-                "fragment float4 mountain_fragment(MountainOut in [[stage_in]]) { "
-                "float x=in.uv.x; float y=in.uv.y; "
-                "float farH=0.48+ridge(x,1.2)*0.42; float midH=0.39+ridge(x,3.8)*0.58; "
-                "float3 farC=float3(0.36,0.47,0.60); float3 midC=float3(0.20,0.27,0.34); "
-                "float aFar=1.0-smoothstep(farH-0.006,farH+0.006,y); "
-                "float aMid=1.0-smoothstep(midH-0.006,midH+0.006,y); "
-                "float snowFar=smoothstep(farH-0.060,farH-0.010,y)*aFar; "
-                "float snowMid=smoothstep(midH-0.080,midH-0.014,y)*aMid; "
-                "float3 c=mix(farC,float3(0.82,0.86,0.90),snowFar*0.75); "
-                "c=mix(c,mix(midC,float3(0.90,0.92,0.94),snowMid*0.82),aMid); "
-                "float haze=smoothstep(0.18,0.62,y); c=mix(c,float3(0.58,0.68,0.79),haze*0.18); "
-                "float a=max(aFar*0.62,aMid*0.88); return float4(c,a); }\n"
+                "float triPeak(float x,float c,float w,float h){ return h*max(0.0,1.0-abs(x-c)/w); }\n"
+                "float rockyRidge(float x,float shift,float layer){ "
+                "x=fract(x+shift); float h=0.22; "
+                "h+=triPeak(x,0.08,0.12,0.22+layer*0.03); h+=triPeak(x,0.24,0.17,0.34); "
+                "h+=triPeak(x,0.43,0.10,0.28); h+=triPeak(x,0.59,0.19,0.40-layer*0.03); "
+                "h+=triPeak(x,0.78,0.13,0.31); h+=triPeak(x,0.93,0.18,0.25); "
+                "h+=0.018*sin(x*83.0+layer*7.0); return h; }\n"
+                "fragment float4 mountain_fragment(MountainOut in [[stage_in]], constant MountainUniforms &mu [[buffer(0)]]) { "
+                "float x=in.uv.x+mu.parallaxX; float y=in.uv.y; "
+                "float farH=rockyRidge(x*0.72,0.07,1.0); float midH=rockyRidge(x*0.90,0.31,0.0)-0.055; "
+                "float aFar=1.0-smoothstep(farH-0.004,farH+0.004,y); "
+                "float aMid=1.0-smoothstep(midH-0.004,midH+0.004,y); "
+                "float snowFar=smoothstep(farH-0.075,farH-0.012,y)*aFar; "
+                "float snowMid=smoothstep(midH-0.095,midH-0.014,y)*aMid; "
+                "float3 farC=float3(0.42,0.50,0.59); float3 midC=float3(0.24,0.29,0.34); "
+                "float3 c=mix(farC,float3(0.88,0.91,0.94),snowFar*0.82); "
+                "c=mix(c,mix(midC,float3(0.94,0.95,0.96),snowMid*0.88),aMid); "
+                "float a=max(aFar*0.62,aMid*0.90); return float4(c,a); }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -919,8 +925,15 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         }
 
         if ( g_mountain_pipeline != nil ) {
+            typedef struct { float parallaxX,p0,p1,p2; } mountain_uniform_t;
+            mountain_uniform_t mu;
+            const float *cam = (const float *)[g_camera_uniform_buffer contents];
+            float target = cam[16] * 0.0010f; /* deliberately distant: ~10% perceptual parallax */
+            g_mountain_parallax_x += (target - g_mountain_parallax_x) * 0.08f;
+            mu.parallaxX=g_mountain_parallax_x; mu.p0=mu.p1=mu.p2=0.0f;
             [g_frame_encoder setRenderPipelineState:g_mountain_pipeline];
             [g_frame_encoder setDepthStencilState:g_no_depth_state];
+            [g_frame_encoder setFragmentBytes:&mu length:sizeof(mu) atIndex:0];
             [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
                                 vertexStart:0
                                 vertexCount:3];
