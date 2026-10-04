@@ -158,6 +158,26 @@ int renderer_metal_initialize_resources( void )
                 return 0;
             }
 
+            {
+                id<MTLFunction> skyVertex =
+                    [g_terrain_library newFunctionWithName:@"sky_vertex"];
+                id<MTLFunction> skyFragment =
+                    [g_terrain_library newFunctionWithName:@"sky_fragment"];
+                MTLRenderPipelineDescriptor *skyDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                skyDesc.vertexFunction = skyVertex;
+                skyDesc.fragmentFunction = skyFragment;
+                skyDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                skyDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_sky_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:skyDesc error:&error];
+                if ( g_sky_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal sky pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
