@@ -19,6 +19,9 @@
 
 #include "quadtree.hpp"
 #include "terrain_batch.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 #include "quadgeom.hpp"
 
 /* Amount to scale terrain errors by in order to be comparable to
