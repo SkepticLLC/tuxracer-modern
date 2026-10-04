@@ -305,6 +305,50 @@ void render_course()
     draw_track_marks();
 }
 
+void draw_mountain_backdrop_metal( point_t eye )
+{
+#ifdef __APPLE__
+    tux_texture_handle_t far_tex=TUX_INVALID_TEXTURE_HANDLE;
+    tux_texture_handle_t mid_tex=TUX_INVALID_TEXTURE_HANDLE;
+    tux_texture_handle_t foothill_tex=TUX_INVALID_TEXTURE_HANDLE;
+    scalar_t width, length;
+
+    /*
+     * These bindings are intentionally optional. Until the generated
+     * transparent mountain assets are installed, Modern simply renders the
+     * atmospheric sky rather than falling back to fake screen-space peaks.
+     */
+    if ( !get_texture_handle_binding( "modern_mountains_far", &far_tex ) &&
+         !get_texture_handle_binding( "modern_mountains_mid", &mid_tex ) &&
+         !get_texture_handle_binding( "modern_mountains_foothills", &foothill_tex ) )
+        return;
+
+    get_course_dimensions( &width, &length );
+
+    /*
+     * Cards live beyond the end of the playable course. X follows the
+     * course center only; it does not follow the camera. The enormous
+     * distance naturally produces the tiny parallax we want.
+     */
+    if ( far_tex != TUX_INVALID_TEXTURE_HANDLE )
+        renderer_metal_draw_mountain_card(
+            (float)(width*0.50), -22.0f, (float)(-length-2400.0),
+            4200.0f, 1250.0f, 0.72f, far_tex );
+
+    if ( mid_tex != TUX_INVALID_TEXTURE_HANDLE )
+        renderer_metal_draw_mountain_card(
+            (float)(width*0.50), -28.0f, (float)(-length-1500.0),
+            3000.0f, 820.0f, 0.82f, mid_tex );
+
+    if ( foothill_tex != TUX_INVALID_TEXTURE_HANDLE )
+        renderer_metal_draw_mountain_card(
+            (float)(width*0.50), -34.0f, (float)(-length-850.0),
+            2100.0f, 430.0f, 0.72f, foothill_tex );
+
+    (void)eye;
+#endif
+}
+
 void draw_sky_metal()
 {
 #ifdef __APPLE__
