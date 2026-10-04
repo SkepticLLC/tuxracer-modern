@@ -184,6 +184,7 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
                                    texImage->sizeX, texImage->sizeY,
                                    texImage->sizeZ, texImage->data,
                                    repeatable );
+    renderer_metal_register_named_texture( texname, tex->handle );
 #endif
 
     free( texImage->data );
