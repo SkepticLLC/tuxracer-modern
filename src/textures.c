@@ -23,6 +23,9 @@
 #include "image.h"
 #include "hash.h"
 #include "list.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 static bool_t initialized = False;
 static hash_table_t texture_table;
@@ -175,6 +178,13 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
     gluBuild2DMipmaps( GL_TEXTURE_2D, texImage->sizeZ, texImage->sizeX,
 		       texImage->sizeY, texImage->sizeZ == 3 ? GL_RGB : GL_RGBA, 
 		       GL_UNSIGNED_BYTE, texImage->data );
+
+#ifdef __APPLE__
+    renderer_metal_upload_texture( tex->handle,
+                                   texImage->sizeX, texImage->sizeY,
+                                   texImage->sizeZ, texImage->data,
+                                   repeatable );
+#endif
 
     free( texImage->data );
     free( texImage );
