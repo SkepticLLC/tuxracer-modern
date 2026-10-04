@@ -195,10 +195,9 @@ void renderer_end_frame( void )
 #ifdef __APPLE__
     renderer_metal_end_offscreen_frame();
     /*
-     * Transitional live presentation bridge: Metal owns terrain pixels,
-     * OpenGL still owns the SDL window, classic HUD and Tux.
+     * Live hybrid presentation is intentionally disabled until Metal camera
+     * parity is exact.  Keep the bridge available for controlled testing.
      */
-    renderer_present_metal_terrain();
 #endif
     winsys_swap_buffers();
 }
