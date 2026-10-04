@@ -135,11 +135,11 @@ int renderer_metal_initialize_resources( void )
                 "float sun=exp(-distance(in.uv,float2(0.72,0.72))*18.0); "
                 "c+=float3(1.0,0.82,0.58)*sun*0.16; return float4(c,1.0); }\n"
                 "struct ObjectVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
-                "struct ObjectOut { float4 position [[position]]; float2 uv; };\n"
+                "struct ObjectOut { float4 position [[position]]; float2 uv; float alpha; };\n"
                 "vertex ObjectOut object_vertex(uint vid [[vertex_id]], const device ObjectVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
-                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); return o; }\n"
+                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); o.alpha=(v[vid].pad>0.0?v[vid].pad:1.0); return o; }\n"
                 "fragment float4 object_fragment(ObjectOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
-                "float4 c=tex.sample(samp,in.uv); if(c.a<0.18) discard_fragment(); return c; }\n"
+                "float4 c=tex.sample(samp,in.uv); c.a*=in.alpha; if(c.a<0.05) discard_fragment(); return c; }\n"
                 "struct SphereVertex { packed_float3 position; packed_float3 normal; };\n"
                 "struct SphereUniforms { float4x4 mvp; float4x4 model; float4 color; };\n"
                 "struct SphereOut { float4 position [[position]]; float3 normal; float4 color; };\n"
@@ -1232,7 +1232,7 @@ void renderer_metal_draw_textured_quad( const float positions[12],
         id<MTLTexture> tex=[g_textures objectForKey:@(texture)];
         if(tex==nil)return;
         for(i=0;i<6;++i){k=idx[i];v[i]=(qv_t){positions[k*3],positions[k*3+1],positions[k*3+2],
-                                               uvs[k*2],uvs[k*2+1],0.0f};}
+                                               uvs[k*2],uvs[k*2+1],alpha};}
         id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
         if(vb==nil)return;
         [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
@@ -1242,6 +1242,5 @@ void renderer_metal_draw_textured_quad( const float positions[12],
         [g_frame_encoder setFragmentTexture:tex atIndex:0];
         [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
         [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
-        (void)alpha;
     }
 }
