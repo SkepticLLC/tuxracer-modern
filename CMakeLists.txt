@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(tuxracer-modern VERSION 0.1.8 LANGUAGES C CXX)
+project(tuxracer-modern VERSION 0.1.9 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)

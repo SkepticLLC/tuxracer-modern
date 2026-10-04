@@ -28,7 +28,7 @@ The project begins with preservation: make the original game work correctly on m
 | Vulkan renderer | 🗺 Planned |
 | Visual overhaul | 🗺 v0.4+ |
 
-The first known-playable modern Apple Silicon milestone is **v0.1.8**.
+The first known-playable modern Apple Silicon milestone is **v0.1.8**. Active preservation polish is now **v0.1.9** on `develop`.
 
 ## Project principles
 
@@ -59,7 +59,7 @@ brew install cmake sdl2 sdl2_mixer tcl-tk
 ./build/tuxracer
 ```
 
-The primary reference machine is currently Apple Silicon ARM64 (M5 Max). See [`docs/BUILDING.md`](docs/BUILDING.md).
+The primary reference machine is currently Apple Silicon ARM64 (M5 Max). See [`docs/BUILDING.md`](docs/BUILDING.md). To create a double-clickable macOS application after building, run `./scripts/package-macos.sh`; see [`docs/MACOS.md`](docs/MACOS.md).
 
 ## Upstream baseline
 

@@ -44,7 +44,6 @@ static bool_t right_mouse_button_down = False;
 
 #define OFFSET_AMT 0.0;
 
-#define CURSOR_TEX_SIZE 32
 
 /*---------------------------------------------------------------------------*/
 /*! 
@@ -513,49 +512,10 @@ void ui_event_motion_func( int x, int y )
 }
 
 /*---------------------------------------------------------------------------*/
-/*! 
-  Draws the mouse cursor
-  \author  jfpatry
-  \date    Created:  2000-09-29
-  \date    Modified: 2000-09-29
+/*!
+  Native platforms now draw the system cursor.  The original software cursor
+  is intentionally not rendered in Tux Racer Modern.
 */
-static void ui_draw_cursor( void )
-{
-    GLuint texobj;
-    char *binding;
-
-    binding = "mouse_cursor";
-    if ( !get_texture_binding( binding, &texobj ) ) {
-	texobj = 0;
-    }
-
-    ui_setup_display();
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-
-    glBegin( GL_QUADS );
-    {
-	glTexCoord2f( 0, 1 );
-	glVertex2f( cursor_pos.x, 
-		    cursor_pos.y );
-
-	glTexCoord2f( 0, 0 );
-	glVertex2f( cursor_pos.x, 
-		    cursor_pos.y - CURSOR_TEX_SIZE );
-
-	glTexCoord2f( 1, 0 );
-	glVertex2f( cursor_pos.x + CURSOR_TEX_SIZE, 
-		    cursor_pos.y - CURSOR_TEX_SIZE );
-
-	glTexCoord2f( 1, 1 );
-	glVertex2f( cursor_pos.x + CURSOR_TEX_SIZE, 
-		    cursor_pos.y );
-
-    }
-    glEnd();
-}
-
-
 /*---------------------------------------------------------------------------*/
 /*! 
   Draws all UI widgets
@@ -578,8 +538,6 @@ void ui_draw( )
 			 "widget draw callback changed the mode" );
     }
     end_hash_scan( iter );
-
-    ui_draw_cursor();
 }
 
 
