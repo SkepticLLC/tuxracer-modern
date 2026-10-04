@@ -1,0 +1,40 @@
+/*
+ * Tux Racer Modern renderer abstraction
+ *
+ * Modern port maintained by Brian Clark (Skeptic) <jbrianclark@icloud.com>
+ * Based on the original Tux Racer by Jasmin F. Patry and contributors.
+ *
+ * This interface is intentionally small in v0.2.0.  It creates a stable
+ * boundary around frame lifecycle operations before individual legacy
+ * OpenGL drawing systems are migrated.
+ */
+#ifndef TUXRACER_RENDERER_H
+#define TUXRACER_RENDERER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    TUX_RENDERER_LEGACY_OPENGL = 0,
+    TUX_RENDERER_METAL
+} tux_renderer_backend_t;
+
+typedef struct {
+    tux_renderer_backend_t backend;
+    const char *name;
+    int initialized;
+} tux_renderer_info_t;
+
+int renderer_initialize( tux_renderer_backend_t backend );
+void renderer_shutdown( void );
+void renderer_resize( int logical_width, int logical_height );
+void renderer_begin_frame( void );
+void renderer_end_frame( void );
+const tux_renderer_info_t *renderer_get_info( void );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
