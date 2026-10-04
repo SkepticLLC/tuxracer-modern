@@ -24,6 +24,7 @@ extern "C"
 
 #include "tuxracer.h"
 #include "list.h"
+#include "renderer_resources.h"
 
 #ifndef _COURSE_LOAD_H_
 #define _COURSE_LOAD_H_
@@ -60,6 +61,7 @@ void          set_course_mirroring( bool_t state );
 bool_t        get_course_mirroring( );
 void          fill_gl_arrays();
 void          get_gl_arrays( GLubyte **vertex_normal_arr );
+const tux_vertex_t *get_renderer_course_vertices( size_t *vertex_count );
 
 void          register_course_load_tcl_callbacks( Tcl_Interp *interp );
 
