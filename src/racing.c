@@ -416,14 +416,16 @@ void racing_loop( scalar_t time_step )
     if ( !renderer_metal_compare_enabled() &&
          !renderer_metal_native_enabled() ) {
         renderer_present_metal_world_layer();
-    }
 
-    /*
-     * renderer_present_metal_world_layer() uses pixel-space matrices while
-     * compositing, so restore this frame's 3D view before foreground draws.
-     */
-    setup_view_matrix( plyr );
-    setup_course_lighting();
+        /*
+         * Only the hybrid glDrawPixels bridge disturbs the OpenGL matrix
+         * state. Restore it here. Native Metal must NOT call
+         * setup_view_matrix() a second time because that also begins the
+         * modern world frame.
+         */
+        setup_view_matrix( plyr );
+        setup_course_lighting();
+    }
 
     draw_trees();
 
