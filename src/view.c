@@ -23,6 +23,7 @@
 #include "phys_sim.h"
 #include "tux.h"
 #include "hier.h"
+#include "renderer.h"
 
 /* This defines the camera height "target" for all cameras; 
    cameras can go below this because of interpolation (m) */
@@ -316,6 +317,12 @@ void setup_view_matrix( player_data_t *plyr )
     view_mat[3][1] = -viewpt_in_view_frame.y;
     view_mat[3][2] = -viewpt_in_view_frame.z;
     
+    renderer_set_camera( (const double *)view_mat,
+                         plyr->view.pos.x, plyr->view.pos.y, plyr->view.pos.z,
+                         plyr->view.dir.x, plyr->view.dir.y, plyr->view.dir.z,
+                         plyr->view.up.x, plyr->view.up.y, plyr->view.up.z );
+
+    /* Preservation backend: consume the same matrix through legacy OpenGL. */
     glLoadIdentity();
     glMultMatrixd( (scalar_t *) view_mat );
 }
