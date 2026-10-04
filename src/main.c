@@ -322,7 +322,8 @@ int main( int argc, char **argv )
     init_keyboard();
     
 
-    winsys_show_cursor( False );
+    /* Modern desktop builds use the native system cursor in menus. */
+    winsys_show_cursor( True );
 
     /* We use this to "prime" the GLUT loop */
     winsys_set_idle_func( main_loop );
