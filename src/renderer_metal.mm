@@ -31,8 +31,7 @@ static MTLRenderPassDescriptor *g_frame_pass = nil;
 static int g_offscreen_width = 0;
 static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
-static float g_modern_fog_start = 45.0f;
-static float g_modern_fog_end = 180.0f;
+
 static int g_capture_written = 0;
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
 static id<MTLSamplerState> g_repeat_sampler = nil;
@@ -98,9 +97,9 @@ int renderer_metal_initialize_resources( void )
                 "float3 w=in.weights/max(in.weights.x+in.weights.y+in.weights.z,0.0001); "
                 "float3 albedo=snow.sample(samp,in.texcoord).rgb*w.x+rock.sample(samp,in.texcoord).rgb*w.y+ice.sample(samp,in.texcoord).rgb*w.z; "
                 "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.30,-0.88,-0.36)); float ndl=saturate(dot(n,-sunDir)); "
-                "float hemi=0.55+0.45*saturate(n.y); float3 ambient=float3(0.46,0.54,0.68)*hemi; float3 sunlight=float3(0.95,0.91,0.80)*ndl; "
+                "float hemi=0.65+0.35*saturate(n.y); float3 ambient=float3(0.58,0.63,0.72)*hemi; float3 sunlight=float3(0.78,0.74,0.66)*ndl; "
                 "float3 lit=albedo*(ambient+sunlight); float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
-                "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d); float3 fogColor=float3(0.70,0.79,0.88); "
+                "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d); float3 fogColor=float3(0.72,0.79,0.86); "
                 "return float4(mix(lit,fogColor,fog),1.0); }\n";
 
             NSError *error = nil;
@@ -322,8 +321,16 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         uniforms.cameraAndFogStart[0] = (float)camera->position[0];
         uniforms.cameraAndFogStart[1] = (float)camera->position[1];
         uniforms.cameraAndFogStart[2] = (float)camera->position[2];
-        uniforms.cameraAndFogStart[3] = g_modern_fog_start;
-        uniforms.fogEndAndPad[0] = g_modern_fog_end;
+        {
+            const float farClip = (float)camera->far_clip;
+            /*
+             * Keep nearby terrain crisp. Atmospheric perspective begins in
+             * the latter half of the visible course and approaches, but does
+             * not fully reach, the camera's far clip.
+             */
+            uniforms.cameraAndFogStart[3] = farClip * 0.58f;
+            uniforms.fogEndAndPad[0] = farClip * 0.94f;
+        }
         uniforms.fogEndAndPad[1] = uniforms.fogEndAndPad[2] = uniforms.fogEndAndPad[3] = 0.0f;
 
         g_camera_uniform_buffer =
@@ -334,7 +341,7 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         g_frame_pass.colorAttachments[0].texture = g_offscreen_color;
         g_frame_pass.colorAttachments[0].loadAction = MTLLoadActionClear;
         g_frame_pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-        g_frame_pass.colorAttachments[0].clearColor = MTLClearColorMake(0.08, 0.10, 0.14, 1.0);
+        g_frame_pass.colorAttachments[0].clearColor = MTLClearColorMake(0.36, 0.48, 0.64, 1.0);
         g_frame_pass.depthAttachment.texture = g_offscreen_depth;
         g_frame_pass.depthAttachment.loadAction = MTLLoadActionClear;
         g_frame_pass.depthAttachment.storeAction = MTLStoreActionDontCare;
