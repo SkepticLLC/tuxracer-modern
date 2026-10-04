@@ -408,6 +408,22 @@ void racing_loop( scalar_t time_step )
     set_course_eye_point( plyr->view.pos );
     setup_course_lighting();
     render_course();
+
+    /*
+     * Hybrid modernization milestone: Metal replaces the visible terrain
+     * color layer; preserved OpenGL continues with scene actors/objects.
+     */
+    if ( !renderer_metal_compare_enabled() ) {
+        renderer_present_metal_world_layer();
+    }
+
+    /*
+     * renderer_present_metal_world_layer() uses pixel-space matrices while
+     * compositing, so restore this frame's 3D view before foreground draws.
+     */
+    setup_view_matrix( plyr );
+    setup_course_lighting();
+
     draw_trees();
 
     if ( getparam_draw_particles() ) {
@@ -419,15 +435,6 @@ void racing_loop( scalar_t time_step )
     draw_tux_shadow();
 
     draw_hud( plyr );
-
-    /*
-     * Development parity view. F9 deliberately replaces the completed
-     * classic racing frame with Metal terrain so camera motion can be
-     * compared without making Metal the default presentation path.
-     */
-    if ( renderer_metal_compare_enabled() ) {
-        renderer_present_metal_terrain();
-    }
 
     renderer_resize( width, height );
 
