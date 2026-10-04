@@ -451,6 +451,61 @@ void draw_trees_metal()
 #endif
 }
 
+void draw_items_metal()
+{
+#ifdef __APPLE__
+    item_t *itemLocs = get_item_locs();
+    item_type_t *itemTypes = get_item_types();
+    int numItems = get_num_items();
+    int i;
+
+    for ( i = 0; i < numItems; ++i ) {
+        tux_texture_handle_t handle = TUX_INVALID_TEXTURE_HANDLE;
+        vector_t normal;
+        char *item_name;
+        scalar_t len;
+
+        if ( itemLocs[i].collectable == 0 || itemLocs[i].drawable == False )
+            continue;
+
+        if ( clip_course ) {
+            scalar_t fwd = getparam_forward_clip_distance();
+            scalar_t bwd = getparam_backward_clip_distance();
+            if ( eye_pt.z - itemLocs[i].ray.pt.z > fwd ) continue;
+            if ( itemLocs[i].ray.pt.z - eye_pt.z > bwd ) continue;
+        }
+
+        item_name = get_item_name( itemLocs[i].item_type );
+        if ( item_name == NULL ||
+             !get_texture_handle_binding( item_name, &handle ) ) continue;
+
+        if ( itemTypes[itemLocs[i].item_type].use_normal ) {
+            normal = itemTypes[itemLocs[i].item_type].normal;
+        } else {
+            normal = subtract_points( eye_pt, itemLocs[i].ray.pt );
+            normalize_vector( &normal );
+        }
+
+        if ( normal.y == 1.0 ) continue;
+        normal.y = 0.0;
+        len = sqrt( normal.x * normal.x + normal.z * normal.z );
+        if ( len <= 0.0001 ) continue;
+        normal.x /= len;
+        normal.z /= len;
+
+        renderer_metal_draw_billboard(
+            (float)itemLocs[i].ray.pt.x,
+            (float)itemLocs[i].ray.pt.y,
+            (float)itemLocs[i].ray.pt.z,
+            (float)(itemLocs[i].diam * 0.5),
+            (float)itemLocs[i].height,
+            (float)normal.x,
+            (float)normal.z,
+            handle );
+    }
+#endif
+}
+
 void draw_trees() 
 {
     tree_t    *treeLocs;
