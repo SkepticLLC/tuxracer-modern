@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
 project(tuxracer-modern VERSION 0.2.0 LANGUAGES C CXX)
 
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
@@ -33,7 +37,8 @@ target_link_libraries(tuxracer PRIVATE
 
 if(APPLE)
     target_compile_definitions(tuxracer PRIVATE GL_SILENCE_DEPRECATION=1)
-    target_link_libraries(tuxracer PRIVATE OpenGL::GLU)
+    target_link_libraries(tuxracer PRIVATE OpenGL::GLU "-framework Metal" "-framework Foundation")
+    set_source_files_properties(src/renderer_metal.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
 elseif(WIN32)
     target_link_libraries(tuxracer PRIVATE OpenGL::GLU)
 else()
