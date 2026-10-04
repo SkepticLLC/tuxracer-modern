@@ -172,7 +172,7 @@ int renderer_metal_initialize_resources( void )
                 "fragment float4 mountain_fragment(MountainOut in [[stage_in]]) { "
                 "float x=in.uv.x; float y=in.uv.y; "
                 "float farH=0.39+ridge(x,1.2)*0.32; float midH=0.31+ridge(x,3.8)*0.48; "
-                "float3 farC=float3(0.46,0.56,0.68); float3 midC=float3(0.24,0.32,0.40); "
+                "float3 farC=float3(1.0,0.0,0.75); float3 midC=float3(0.85,0.0,1.0); "
                 "float aFar=1.0-smoothstep(farH-0.006,farH+0.006,y); "
                 "float aMid=1.0-smoothstep(midH-0.006,midH+0.006,y); "
                 "float snowFar=smoothstep(farH-0.045,farH-0.008,y)*aFar; "
