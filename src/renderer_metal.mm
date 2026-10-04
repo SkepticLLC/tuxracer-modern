@@ -19,6 +19,7 @@ static id<MTLBuffer> g_course_vertex_buffer = nil;
 static id<MTLBuffer> g_last_index_buffer = nil;
 static id<MTLLibrary> g_terrain_library = nil;
 static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
+static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
@@ -177,6 +178,7 @@ void renderer_metal_shutdown_resources( void )
         g_camera_uniform_buffer = nil;
         g_depth_state = nil;
         g_terrain_pipeline = nil;
+        g_sky_pipeline = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
