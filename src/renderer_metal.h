@@ -29,6 +29,12 @@ size_t renderer_metal_last_index_bytes( void );
 void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *camera,
                                            int width, int height );
 void renderer_metal_end_offscreen_frame( void );
+int renderer_metal_attach_native_window( void *sdl_window );
+void renderer_metal_set_native_visible( int visible );
+int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera,
+                                       int width, int height );
+void renderer_metal_end_native_frame( void );
+
 int renderer_metal_read_present_frame( unsigned char *rgba,
                                        size_t rgba_bytes,
                                        int *width, int *height );
