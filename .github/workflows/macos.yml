@@ -1,0 +1,18 @@
+name: macOS Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install cmake sdl2 sdl2_mixer tcl-tk
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix tcl-tk);$(brew --prefix sdl2);$(brew --prefix sdl2_mixer)"
+      - name: Build
+        run: cmake --build build --parallel
