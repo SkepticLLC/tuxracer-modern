@@ -900,3 +900,65 @@ void renderer_metal_draw_billboard( float x, float y, float z,
                             vertexStart:0 vertexCount:6];
     }
 }
+
+
+void renderer_metal_draw_sphere( const double model[16],
+                                 int divisions,
+                                 float r, float g, float b, float a )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
+        typedef struct { float mvp[16], model[16], color[4]; } su_t;
+        int stacks = divisions < 3 ? 3 : divisions;
+        int slices = stacks * 2;
+        int count = stacks * slices * 6;
+        sv_t *verts;
+        int k = 0, i, j;
+        float mf[16], mvp[16];
+        su_t u;
+
+        if ( g_frame_encoder == nil || g_sphere_pipeline == nil ||
+             g_camera_uniform_buffer == nil || model == NULL ) return;
+
+        verts = (sv_t *)malloc( sizeof(sv_t) * count );
+        if ( verts == NULL ) return;
+
+        for ( i=0; i<stacks; ++i ) {
+            float p0 = (float)(-M_PI_2 + M_PI * i / stacks);
+            float p1 = (float)(-M_PI_2 + M_PI * (i+1) / stacks);
+            for ( j=0; j<slices; ++j ) {
+                float t0=(float)(2*M_PI*j/slices), t1=(float)(2*M_PI*(j+1)/slices);
+                float x00=cosf(p0)*cosf(t0), y00=sinf(p0), z00=cosf(p0)*sinf(t0);
+                float x10=cosf(p0)*cosf(t1), y10=sinf(p0), z10=cosf(p0)*sinf(t1);
+                float x11=cosf(p1)*cosf(t1), y11=sinf(p1), z11=cosf(p1)*sinf(t1);
+                float x01=cosf(p1)*cosf(t0), y01=sinf(p1), z01=cosf(p1)*sinf(t0);
+                verts[k++]={x00,y00,z00,x00,y00,z00}; verts[k++]={x10,y10,z10,x10,y10,z10}; verts[k++]={x11,y11,z11,x11,y11,z11};
+                verts[k++]={x00,y00,z00,x00,y00,z00}; verts[k++]={x11,y11,z11,x11,y11,z11}; verts[k++]={x01,y01,z01,x01,y01,z01};
+            }
+        }
+
+        for(i=0;i<16;++i) mf[i]=(float)model[i];
+        /*
+         * Camera uniform begins with the already validated Metal
+         * view-projection matrix.
+         */
+        const float *vp=(const float *)[g_camera_uniform_buffer contents];
+        for(int col=0;col<4;++col) for(int row=0;row<4;++row) {
+            float v=0;
+            for(int q=0;q<4;++q) v += vp[q*4+row]*mf[col*4+q];
+            mvp[col*4+row]=v;
+        }
+        memcpy(u.mvp,mvp,sizeof(mvp)); memcpy(u.model,mf,sizeof(mf));
+        u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
+
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:verts length:sizeof(sv_t)*count options:MTLResourceStorageModeShared];
+        id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+        free(verts);
+        if(vb==nil||ub==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:count];
+    }
+}
