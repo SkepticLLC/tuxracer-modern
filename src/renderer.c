@@ -119,7 +119,14 @@ void renderer_begin_frame( void )
         g_frame.drawable_height = drawable_h;
         g_frame.aspect_ratio = logical_h > 0 ? (double)logical_w / (double)logical_h : 1.0;
     }
+    clear_rendering_context();
+}
+
+void renderer_begin_world_frame( void )
+{
 #ifdef __APPLE__
+    if ( g_game.mode != RACING ) return;
+
     if ( renderer_metal_vertex_bytes() == 0 ) {
         size_t vertex_count = 0;
         const tux_vertex_t *vertices = get_renderer_course_vertices( &vertex_count );
@@ -127,6 +134,7 @@ void renderer_begin_frame( void )
             renderer_metal_upload_course_vertices( vertices, vertex_count );
         }
     }
+
     {
         const tux_renderer_camera_state_t *camera = renderer_get_camera_state();
         if ( camera != NULL && camera->valid ) {
@@ -135,7 +143,6 @@ void renderer_begin_frame( void )
         }
     }
 #endif
-    clear_rendering_context();
 }
 
 void renderer_present_metal_terrain( void )
