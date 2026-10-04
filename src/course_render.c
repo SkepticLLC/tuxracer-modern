@@ -454,25 +454,6 @@ void draw_trees_metal()
         if ( tree_name == NULL ||
              !get_texture_handle_binding( tree_name, &handle ) ) continue;
 
-        if ( fabs( eye_pt.z - treeLocs[i].ray.pt.z ) > 35.0 ) {
-            scalar_t gy = get_renderer_course_height(
-                treeLocs[i].ray.pt.x, treeLocs[i].ray.pt.z );
-            /* Tiny bright fish-texture marker exactly at computed ground. */
-            tux_texture_handle_t marker = TUX_INVALID_TEXTURE_HANDLE;
-            if ( get_texture_handle_binding( "herring", &marker ) ) {
-                vector_t n = subtract_points( eye_pt, treeLocs[i].ray.pt );
-                scalar_t len;
-                n.y=0.0; len=sqrt(n.x*n.x+n.z*n.z);
-                if(len>0.0001) {
-                    n.x/=len; n.z/=len;
-                    renderer_metal_draw_billboard(
-                        (float)treeLocs[i].ray.pt.x,(float)(gy+0.03),
-                        (float)treeLocs[i].ray.pt.z,0.35f,0.35f,
-                        (float)n.x,(float)n.z,marker );
-                }
-            }
-        }
-
         renderer_metal_draw_billboard_cross(
             (float)treeLocs[i].ray.pt.x,
             (float)(get_renderer_course_height( treeLocs[i].ray.pt.x,
