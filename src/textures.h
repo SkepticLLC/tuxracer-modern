@@ -27,8 +27,11 @@ extern "C"
 
 #define TEX_SCALE 6
 
+#include "renderer_resources.h"
+
 typedef struct {
-    GLuint texture_id;
+    GLuint texture_id;              /* Legacy OpenGL backend object. */
+    tux_texture_handle_t handle;    /* Backend-neutral renderer identity. */
     int    repeatable;
     int    ref_count;
 } texture_node_t;
@@ -43,6 +46,7 @@ bool_t del_texture( char *texname );
 
 bool_t bind_texture( char *binding, char *texname );
 bool_t get_texture_binding( char *binding, GLuint *texid );
+bool_t get_texture_handle_binding( char *binding, tux_texture_handle_t *handle );
 bool_t unbind_texture( char *binding );
 
 void get_current_texture_dimensions( int *width, int *height );
