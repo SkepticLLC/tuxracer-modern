@@ -1101,3 +1101,48 @@ void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
         [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:(32 * 3)];
     }
 }
+
+
+void renderer_metal_draw_skybox( const tux_texture_handle_t faces[6] )
+{
+    @autoreleasepool {
+        typedef struct { float x,y,z,u,v,pad; } sv_t;
+        typedef struct { float vp[16]; } su_t;
+        static const float face_pos[6][4][3] = {
+            {{-1,-1,-1},{ 1,-1,-1},{ 1, 1,-1},{-1, 1,-1}},
+            {{-1, 1,-1},{ 1, 1,-1},{ 1, 1, 1},{-1, 1, 1}},
+            {{-1,-1, 1},{ 1,-1, 1},{ 1,-1,-1},{-1,-1,-1}},
+            {{-1,-1, 1},{-1,-1,-1},{-1, 1,-1},{-1, 1, 1}},
+            {{ 1,-1,-1},{ 1,-1, 1},{ 1, 1, 1},{ 1, 1,-1}},
+            {{ 1,-1, 1},{-1,-1, 1},{-1, 1, 1},{ 1, 1, 1}}
+        };
+        static const int tri[6]={0,1,2,0,2,3};
+        su_t u;
+        int f,i,k;
+        if(g_frame_encoder==nil||g_skybox_pipeline==nil||g_camera_uniform_buffer==nil||faces==NULL)return;
+        memcpy(u.vp,[g_camera_uniform_buffer contents],sizeof(u.vp));
+        /* Remove camera translation: skybox follows eye position infinitely. */
+        u.vp[12]=u.vp[13]=u.vp[14]=0.0f;
+
+        [g_frame_encoder setRenderPipelineState:g_skybox_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        for(f=0;f<6;++f){
+            id<MTLTexture> tex=[g_textures objectForKey:@(faces[f])];
+            sv_t verts[6];
+            if(tex==nil)continue;
+            for(i=0;i<6;++i){
+                k=tri[i];
+                verts[i]=(sv_t){face_pos[f][k][0],face_pos[f][k][1],face_pos[f][k][2],
+                                (k==1||k==2)?1.0f:0.0f,(k>=2)?1.0f:0.0f,0.0f};
+            }
+            id<MTLBuffer> vb=[g_device newBufferWithBytes:verts length:sizeof(verts) options:MTLResourceStorageModeShared];
+            id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+            if(vb==nil||ub==nil)continue;
+            [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+            [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+            [g_frame_encoder setFragmentTexture:tex atIndex:0];
+            [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+            [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+        }
+    }
+}
