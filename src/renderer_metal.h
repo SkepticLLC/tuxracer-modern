@@ -54,6 +54,13 @@ void renderer_metal_draw_sphere( const double model[16],
                                  int divisions,
                                  float r, float g, float b, float a );
 
+void renderer_metal_draw_billboard_uv( float x,float y,float z,
+                                       float radius,float height,
+                                       float nx,float nz,
+                                       float u0,float v0,float u1,float v1,
+                                       float alpha,
+                                       tux_texture_handle_t texture );
+
 void renderer_metal_draw_billboard( float x, float y, float z,
                                     float radius, float height,
                                     float nx, float nz,
