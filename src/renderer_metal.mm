@@ -25,6 +25,7 @@ static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
+static id<MTLRenderPipelineState> g_mountain_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
@@ -161,6 +162,23 @@ int renderer_metal_initialize_resources( void )
                 "o.position=float4(p.xy,p.w*0.9999,p.w); o.uv=float2(v[vid].uv0,v[vid].uv1); return o; }\n"
                 "fragment float4 skybox_fragment(SkyboxOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
                 "float4 c=tex.sample(samp,in.uv); return float4(c.rgb,1.0); }\n"
+                "struct MountainOut { float4 position [[position]]; float2 uv; };\n"
+                "vertex MountainOut mountain_vertex(uint vid [[vertex_id]]) { "
+                "float2 p[3]={float2(-1.0,-1.0),float2(3.0,-1.0),float2(-1.0,3.0)}; "
+                "MountainOut o; o.position=float4(p[vid],0.9998,1.0); o.uv=p[vid]*0.5+0.5; return o; }\n"
+                "float ridge(float x,float seed){ "
+                "return 0.20*sin(x*5.3+seed)+0.11*sin(x*11.7+seed*1.7)+0.055*sin(x*25.1+seed*2.3); }\n"
+                "fragment float4 mountain_fragment(MountainOut in [[stage_in]]) { "
+                "float x=in.uv.x; float y=in.uv.y; "
+                "float farH=0.39+ridge(x,1.2)*0.32; float midH=0.31+ridge(x,3.8)*0.48; "
+                "float3 farC=float3(0.46,0.56,0.68); float3 midC=float3(0.24,0.32,0.40); "
+                "float aFar=1.0-smoothstep(farH-0.006,farH+0.006,y); "
+                "float aMid=1.0-smoothstep(midH-0.006,midH+0.006,y); "
+                "float snowFar=smoothstep(farH-0.045,farH-0.008,y)*aFar; "
+                "float snowMid=smoothstep(midH-0.060,midH-0.012,y)*aMid; "
+                "float3 c=mix(farC,float3(0.82,0.86,0.90),snowFar*0.75); "
+                "c=mix(c,mix(midC,float3(0.90,0.92,0.94),snowMid*0.82),aMid); "
+                "float a=max(aFar*0.70,aMid*0.92); return float4(c,a); }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -354,6 +372,7 @@ void renderer_metal_shutdown_resources( void )
         g_sphere_pipeline = nil;
         g_shadow_pipeline = nil;
         g_skybox_pipeline = nil;
+        g_mountain_pipeline = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
