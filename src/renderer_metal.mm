@@ -351,6 +351,18 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         g_frame_encoder =
             [g_frame_command_buffer renderCommandEncoderWithDescriptor:g_frame_pass];
         g_draw_count = 0;
+
+        /*
+         * The quadtree selects visible terrain during the game render pass.
+         * Consume its latest stable unified surface only after this Metal
+         * frame has a camera, command buffer and encoder.
+         */
+        {
+            const tux_terrain_batch_t *batch = terrain_get_latest_unified_batch();
+            if ( batch != NULL ) {
+                renderer_metal_consume_terrain_batch( batch, NULL );
+            }
+        }
     }
 }
 
