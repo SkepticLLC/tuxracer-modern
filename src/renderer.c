@@ -9,6 +9,9 @@
 #include "renderer.h"
 #include "render_util.h"
 #include "winsys.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 static tux_renderer_info_t g_renderer = {
     TUX_RENDERER_LEGACY_OPENGL,
@@ -43,6 +46,19 @@ int renderer_initialize( tux_renderer_backend_t backend )
     g_renderer.backend = backend;
     g_renderer.name = "Legacy OpenGL";
     g_renderer.initialized = 1;
+
+#ifdef __APPLE__
+    /*
+     * Probe Metal in parallel while OpenGL remains the presenting backend.
+     * This is intentionally diagnostic during the first v0.2 milestone.
+     */
+    if ( renderer_metal_probe() ) {
+        fprintf( stderr, "Tux Racer Modern: Metal device available: %s\n",
+                 renderer_metal_device_name() );
+    } else {
+        fprintf( stderr, "Tux Racer Modern: Metal device unavailable\n" );
+    }
+#endif
     return 1;
 }
 
