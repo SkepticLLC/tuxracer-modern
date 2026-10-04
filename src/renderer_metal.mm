@@ -625,3 +625,9 @@ void renderer_metal_end_native_frame( void )
         g_native_frame_active = 0;
     }
 }
+
+
+void renderer_metal_draw_full_grid( const tux_terrain_batch_t *batch )
+{
+    renderer_metal_consume_terrain_batch( batch, NULL );
+}
