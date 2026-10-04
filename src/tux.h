@@ -30,6 +30,7 @@ void adjust_tux_joints( scalar_t turnFact, bool_t isBraking,
 			vector_t net_force, scalar_t jump_factor );
 void  load_tux();
 void  draw_tux();
+void  draw_tux_metal();
 char* get_tux_root_node();
 char* get_tux_left_shoulder_joint();
 char* get_tux_right_shoulder_joint();
