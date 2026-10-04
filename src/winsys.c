@@ -73,6 +73,11 @@ void winsys_get_drawable_size( int *w, int *h )
     if ( h ) *h = dh;
 }
 
+void *winsys_get_native_window( void )
+{
+    return (void *)window;
+}
+
 void winsys_get_window_size( int *w, int *h )
 {
     int ww = getparam_x_resolution();
