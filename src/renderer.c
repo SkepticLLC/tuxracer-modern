@@ -62,8 +62,7 @@ int renderer_initialize( tux_renderer_backend_t backend )
      * This is intentionally diagnostic during the first v0.2 milestone.
      */
     if ( renderer_metal_probe() && renderer_metal_initialize_resources() ) {
-        fprintf( stderr, "Tux Racer Modern: Metal device available: %s\n",
-                 renderer_metal_device_name() );
+        fprintf( stderr, "Tux Racer Modern: Metal device available: Apple Silicon\n" );
         if ( !renderer_metal_attach_native_window( winsys_get_native_window() ) ) {
             fprintf( stderr, "Tux Racer Modern: native Metal layer unavailable\n" );
         }
