@@ -31,6 +31,8 @@ static int g_offscreen_width = 0;
 static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
 static int g_capture_written = 0;
+static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
+static id<MTLSamplerState> g_repeat_sampler = nil;
 
 int renderer_metal_probe( void )
 {
@@ -64,6 +66,18 @@ int renderer_metal_initialize_resources( void )
         if ( g_command_queue == nil ) {
             g_command_queue = [g_device newCommandQueue];
         }
+        if ( g_textures == nil ) {
+            g_textures = [[NSMutableDictionary alloc] init];
+        }
+        if ( g_repeat_sampler == nil ) {
+            MTLSamplerDescriptor *sd = [[MTLSamplerDescriptor alloc] init];
+            sd.minFilter = MTLSamplerMinMagFilterLinear;
+            sd.magFilter = MTLSamplerMinMagFilterLinear;
+            sd.mipFilter = MTLSamplerMipFilterNotMipmapped;
+            sd.sAddressMode = MTLSamplerAddressModeRepeat;
+            sd.tAddressMode = MTLSamplerAddressModeRepeat;
+            g_repeat_sampler = [g_device newSamplerStateWithDescriptor:sd];
+        }
 
         if ( g_terrain_library == nil ) {
             NSString *source = @
@@ -74,9 +88,9 @@ int renderer_metal_initialize_resources( void )
                 "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; };\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant CameraUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; return o; }\n"
-                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]]) { "
-                "float l=0.35+0.65*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
-                "return float4(float3(l),1.0); }\n";
+                "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
+                "float l=0.45+0.55*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
+                "float4 a=tex.sample(samp,in.texcoord); return float4(a.rgb*l,a.a); }\n";
 
             NSError *error = nil;
             g_terrain_library = [g_device newLibraryWithSource:source
@@ -138,6 +152,9 @@ void renderer_metal_shutdown_resources( void )
         g_depth_state = nil;
         g_terrain_pipeline = nil;
         g_terrain_library = nil;
+        [g_textures removeAllObjects];
+        g_textures = nil;
+        g_repeat_sampler = nil;
         g_command_queue = nil;
         g_vertex_bytes = 0;
         g_last_index_bytes = 0;
@@ -196,6 +213,11 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
                 [g_frame_encoder setDepthStencilState:g_depth_state];
                 [g_frame_encoder setVertexBuffer:g_course_vertex_buffer offset:0 atIndex:0];
                 [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+                id<MTLTexture> texture = [g_textures objectForKey:@(batch->texture)];
+                if ( texture != nil ) {
+                    [g_frame_encoder setFragmentTexture:texture atIndex:0];
+                    [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+                }
                 [g_frame_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                             indexCount:batch->index_count
                                              indexType:MTLIndexTypeUInt32
@@ -356,5 +378,52 @@ void renderer_metal_end_offscreen_frame( void )
         g_frame_encoder = nil;
         g_frame_command_buffer = nil;
         g_frame_pass = nil;
+    }
+}
+
+
+int renderer_metal_upload_texture( tux_texture_handle_t handle,
+                                   int width, int height, int channels,
+                                   const unsigned char *pixels,
+                                   int repeatable )
+{
+    (void)repeatable;
+    @autoreleasepool {
+        if ( handle == TUX_INVALID_TEXTURE_HANDLE || width <= 0 || height <= 0 ||
+             pixels == NULL || !renderer_metal_initialize_resources() ) {
+            return 0;
+        }
+
+        const size_t count = (size_t)width * (size_t)height;
+        unsigned char *rgba = (unsigned char *)malloc( count * 4 );
+        if ( rgba == NULL ) return 0;
+
+        for ( size_t i = 0; i < count; ++i ) {
+            if ( channels >= 3 ) {
+                rgba[i*4+0] = pixels[i*channels+0];
+                rgba[i*4+1] = pixels[i*channels+1];
+                rgba[i*4+2] = pixels[i*channels+2];
+                rgba[i*4+3] = channels >= 4 ? pixels[i*channels+3] : 255;
+            } else {
+                unsigned char v = pixels[i*channels];
+                rgba[i*4+0] = v; rgba[i*4+1] = v; rgba[i*4+2] = v;
+                rgba[i*4+3] = channels >= 2 ? pixels[i*channels+1] : 255;
+            }
+        }
+
+        MTLTextureDescriptor *td =
+            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                               width:(NSUInteger)width
+                                                              height:(NSUInteger)height
+                                                           mipmapped:NO];
+        td.usage = MTLTextureUsageShaderRead;
+        id<MTLTexture> texture = [g_device newTextureWithDescriptor:td];
+        if ( texture != nil ) {
+            MTLRegion region = MTLRegionMake2D( 0, 0, (NSUInteger)width, (NSUInteger)height );
+            [texture replaceRegion:region mipmapLevel:0 withBytes:rgba bytesPerRow:(NSUInteger)width*4];
+            [g_textures setObject:texture forKey:@(handle)];
+        }
+        free( rgba );
+        return texture != nil;
     }
 }
