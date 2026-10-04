@@ -305,6 +305,20 @@ void render_course()
     draw_track_marks();
 }
 
+void draw_sky_metal()
+{
+#ifdef __APPLE__
+    tux_texture_handle_t faces[6];
+    if ( !get_texture_handle_binding( "sky_front", &faces[0] ) ||
+         !get_texture_handle_binding( "sky_top", &faces[1] ) ||
+         !get_texture_handle_binding( "sky_bottom", &faces[2] ) ||
+         !get_texture_handle_binding( "sky_left", &faces[3] ) ||
+         !get_texture_handle_binding( "sky_right", &faces[4] ) ||
+         !get_texture_handle_binding( "sky_back", &faces[5] ) ) return;
+    renderer_metal_draw_skybox( faces );
+#endif
+}
+
 void draw_sky(point_t pos)
 {
   GLuint texture_id[6];
