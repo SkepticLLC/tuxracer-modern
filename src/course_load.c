@@ -390,6 +390,31 @@ void fill_gl_arrays()
 	}
     }
 
+#ifdef __APPLE__
+    {
+        double sums[3] = { 0.0, 0.0, 0.0 };
+        float mins[3] = { 1.0f, 1.0f, 1.0f };
+        float maxs[3] = { 0.0f, 0.0f, 0.0f };
+        int count = nx * ny;
+        int vi, mi;
+        for ( vi = 0; vi < count; ++vi ) {
+            for ( mi = 0; mi < 3; ++mi ) {
+                float value = renderer_vertices[vi].terrain_weights[mi];
+                sums[mi] += value;
+                if ( value < mins[mi] ) mins[mi] = value;
+                if ( value > maxs[mi] ) maxs[mi] = value;
+            }
+        }
+        if ( count > 0 ) {
+            fprintf( stderr,
+                     "Tux Racer Modern: terrain weights snow %.3f rock %.3f ice %.3f "
+                     "(ranges %.2f-%.2f / %.2f-%.2f / %.2f-%.2f)\n",
+                     sums[0]/count, sums[1]/count, sums[2]/count,
+                     mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2] );
+        }
+    }
+#endif
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer( 3, GL_FLOAT, STRIDE_GL_ARRAY, vnc_array );
 
