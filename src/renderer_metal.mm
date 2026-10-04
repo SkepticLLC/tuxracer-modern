@@ -16,6 +16,8 @@ static id<MTLBuffer> g_course_vertex_buffer = nil;
 static id<MTLBuffer> g_last_index_buffer = nil;
 static id<MTLLibrary> g_terrain_library = nil;
 static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
+static id<MTLDepthStencilState> g_depth_state = nil;
+static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
 static size_t g_vertex_bytes = 0;
 static size_t g_last_index_bytes = 0;
@@ -67,9 +69,10 @@ int renderer_metal_initialize_resources( void )
                 "#include <metal_stdlib>\n"
                 "using namespace metal;\n"
                 "struct TerrainVertex { float3 position; float3 normal; float2 texcoord; };\n"
+                "struct CameraUniforms { float4x4 viewProjection; };\n"
                 "struct TerrainVarying { float4 position [[position]]; float3 normal; float2 texcoord; };\n"
-                "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]]) { "
-                "TerrainVarying o; o.position=float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; return o; }\n"
+                "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant CameraUniforms &u [[buffer(1)]]) { "
+                "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]]) { "
                 "float l=0.35+0.65*saturate(dot(normalize(in.normal),normalize(float3(0.25,0.9,0.35)))); "
                 "return float4(float3(l),1.0); }\n";
@@ -104,6 +107,15 @@ int renderer_metal_initialize_resources( void )
                 return 0;
             }
 
+            MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
+            depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
+            depthDesc.depthWriteEnabled = YES;
+            g_depth_state = [g_device newDepthStencilStateWithDescriptor:depthDesc];
+            if ( g_depth_state == nil ) {
+                fprintf( stderr, "Tux Racer Modern: Metal depth state creation failed\n" );
+                return 0;
+            }
+
             fprintf( stderr, "Tux Racer Modern: Metal terrain pipeline ready\n" );
         }
 
@@ -121,6 +133,8 @@ void renderer_metal_shutdown_resources( void )
         g_offscreen_color = nil;
         g_last_index_buffer = nil;
         g_course_vertex_buffer = nil;
+        g_camera_uniform_buffer = nil;
+        g_depth_state = nil;
         g_terrain_pipeline = nil;
         g_terrain_library = nil;
         g_command_queue = nil;
@@ -178,7 +192,9 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
             if ( g_frame_encoder != nil && g_course_vertex_buffer != nil &&
                  g_terrain_pipeline != nil ) {
                 [g_frame_encoder setRenderPipelineState:g_terrain_pipeline];
+                [g_frame_encoder setDepthStencilState:g_depth_state];
                 [g_frame_encoder setVertexBuffer:g_course_vertex_buffer offset:0 atIndex:0];
+                [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
                 [g_frame_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                             indexCount:batch->index_count
                                              indexType:MTLIndexTypeUInt32
@@ -204,10 +220,9 @@ size_t renderer_metal_last_index_bytes( void ) { return g_last_index_bytes; }
 void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *camera,
                                            int width, int height )
 {
-    (void)camera;
     @autoreleasepool {
-        if ( width <= 0 || height <= 0 || g_command_queue == nil ||
-             g_terrain_pipeline == nil ) {
+        if ( camera == NULL || !camera->valid || width <= 0 || height <= 0 ||
+             g_command_queue == nil || g_terrain_pipeline == nil ) {
             return;
         }
 
@@ -238,6 +253,21 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
         if ( g_offscreen_color == nil || g_offscreen_depth == nil ) {
             return;
         }
+
+        /*
+         * Convert the preserved OpenGL clip-space Z range [-w,+w] to Metal's
+         * [0,+w] while retaining X/Y and the original camera transform.
+         */
+        float vp[16];
+        int i;
+        for ( i = 0; i < 16; ++i ) vp[i] = (float)camera->view_projection_matrix[i];
+        for ( i = 0; i < 4; ++i ) {
+            vp[i*4 + 2] = 0.5f * ((float)camera->view_projection_matrix[i*4 + 2] +
+                                  (float)camera->view_projection_matrix[i*4 + 3]);
+        }
+        g_camera_uniform_buffer =
+            [g_device newBufferWithBytes:vp length:sizeof(vp)
+                                 options:MTLResourceStorageModeShared];
 
         g_frame_pass = [MTLRenderPassDescriptor renderPassDescriptor];
         g_frame_pass.colorAttachments[0].texture = g_offscreen_color;
