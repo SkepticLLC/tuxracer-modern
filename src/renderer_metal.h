@@ -44,6 +44,11 @@ void renderer_metal_draw_textured_quad( const float positions[12],
                                        float alpha,
                                        tux_texture_handle_t texture );
 
+void renderer_metal_draw_mountain_card( float center_x, float base_y, float center_z,
+                                        float width, float height,
+                                        float alpha,
+                                        tux_texture_handle_t texture );
+
 void renderer_metal_draw_skybox( const tux_texture_handle_t faces[6] );
 
 void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
