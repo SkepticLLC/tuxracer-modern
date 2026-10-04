@@ -318,10 +318,22 @@ void draw_mountain_backdrop_metal( point_t eye )
      * transparent mountain assets are installed, Modern simply renders the
      * atmospheric sky rather than falling back to fake screen-space peaks.
      */
-    if ( !get_texture_handle_binding( "modern_mountains_far", &far_tex ) &&
-         !get_texture_handle_binding( "modern_mountains_mid", &mid_tex ) &&
-         !get_texture_handle_binding( "modern_mountains_foothills", &foothill_tex ) )
-        return;
+    {
+        static int reported = 0;
+        bool_t have_far = get_texture_handle_binding( "modern_mountains_far", &far_tex );
+        bool_t have_mid = get_texture_handle_binding( "modern_mountains_mid", &mid_tex );
+        bool_t have_foothills = get_texture_handle_binding( "modern_mountains_foothills", &foothill_tex );
+        if ( !reported ) {
+            fprintf( stderr,
+                     "Tux Racer Modern: mountain bindings far=%d mid=%d foothills=%d handles=%llu/%llu/%llu\n",
+                     have_far, have_mid, have_foothills,
+                     (unsigned long long)far_tex,
+                     (unsigned long long)mid_tex,
+                     (unsigned long long)foothill_tex );
+            reported = 1;
+        }
+        if ( !have_far && !have_mid && !have_foothills ) return;
+    }
 
     get_course_dimensions( &width, &length );
 
