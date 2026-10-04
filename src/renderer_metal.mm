@@ -784,3 +784,43 @@ void renderer_metal_draw_full_grid( const tux_terrain_batch_t *batch )
 {
     renderer_metal_consume_terrain_batch( batch, NULL );
 }
+
+
+void renderer_metal_draw_billboard_cross( float x, float y, float z,
+                                          float radius, float height,
+                                          tux_texture_handle_t texture )
+{
+    @autoreleasepool {
+        typedef struct {
+            float px, py, pz;
+            float u, v;
+        } object_vertex_t;
+
+        const object_vertex_t verts[12] = {
+            {x-radius,y,z, 0,0}, {x+radius,y,z, 1,0}, {x+radius,y+height,z, 1,1},
+            {x-radius,y,z, 0,0}, {x+radius,y+height,z, 1,1}, {x-radius,y+height,z, 0,1},
+            {x,y,z-radius, 0,0}, {x,y,z+radius, 1,0}, {x,y+height,z+radius, 1,1},
+            {x,y,z-radius, 0,0}, {x,y+height,z+radius, 1,1}, {x,y+height,z-radius, 0,1}
+        };
+
+        if ( g_frame_encoder == nil || g_billboard_pipeline == nil ||
+             g_camera_uniform_buffer == nil ) return;
+
+        id<MTLTexture> tex = [g_textures objectForKey:@(texture)];
+        if ( tex == nil ) return;
+
+        id<MTLBuffer> vb =
+            [g_device newBufferWithBytes:verts length:sizeof(verts)
+                                 options:MTLResourceStorageModeShared];
+        if ( vb == nil ) return;
+
+        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+        [g_frame_encoder setFragmentTexture:tex atIndex:0];
+        [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                            vertexStart:0 vertexCount:12];
+    }
+}
