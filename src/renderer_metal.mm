@@ -33,6 +33,9 @@ static unsigned long long g_draw_count = 0;
 static int g_capture_written = 0;
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
 static id<MTLSamplerState> g_repeat_sampler = nil;
+static tux_texture_handle_t g_snow_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_rock_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_ice_handle = TUX_INVALID_TEXTURE_HANDLE;
 
 int renderer_metal_probe( void )
 {
@@ -221,9 +224,9 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
                  * pass. Bind known terrain resources by their handles below;
                  * missing slots safely retain no texture until all are loaded.
                  */
-                id<MTLTexture> snow = [g_textures objectForKey:@(1)];
-                id<MTLTexture> rock = [g_textures objectForKey:@(2)];
-                id<MTLTexture> ice  = [g_textures objectForKey:@(3)];
+                id<MTLTexture> snow = [g_textures objectForKey:@(g_snow_handle)];
+                id<MTLTexture> rock = [g_textures objectForKey:@(g_rock_handle)];
+                id<MTLTexture> ice  = [g_textures objectForKey:@(g_ice_handle)];
                 if ( snow != nil ) [g_frame_encoder setFragmentTexture:snow atIndex:0];
                 if ( rock != nil ) [g_frame_encoder setFragmentTexture:rock atIndex:1];
                 if ( ice  != nil ) [g_frame_encoder setFragmentTexture:ice  atIndex:2];
@@ -436,4 +439,14 @@ int renderer_metal_upload_texture( tux_texture_handle_t handle,
         free( rgba );
         return texture != nil;
     }
+}
+
+
+void renderer_metal_set_terrain_texture_handles( tux_texture_handle_t snow,
+                                                 tux_texture_handle_t rock,
+                                                 tux_texture_handle_t ice )
+{
+    g_snow_handle = snow;
+    g_rock_handle = rock;
+    g_ice_handle = ice;
 }
