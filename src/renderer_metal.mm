@@ -30,6 +30,7 @@ static MTLRenderPassDescriptor *g_frame_pass = nil;
 static int g_offscreen_width = 0;
 static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
+static int g_capture_written = 0;
 
 int renderer_metal_probe( void )
 {
@@ -234,7 +235,8 @@ void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *ca
                                                                   height:(NSUInteger)height
                                                                mipmapped:NO];
             color.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-            color.storageMode = MTLStorageModePrivate;
+            /* Shared storage enables a one-shot diagnostic CPU readback. */
+            color.storageMode = MTLStorageModeShared;
             g_offscreen_color = [g_device newTextureWithDescriptor:color];
 
             MTLTextureDescriptor *depth =
@@ -296,6 +298,44 @@ void renderer_metal_end_offscreen_frame( void )
         [g_frame_encoder endEncoding];
         [g_frame_command_buffer commit];
         [g_frame_command_buffer waitUntilCompleted];
+
+        if ( !g_capture_written &&
+             g_frame_command_buffer.status == MTLCommandBufferStatusCompleted &&
+             g_offscreen_color != nil && g_draw_count > 0 ) {
+            const NSUInteger width = (NSUInteger)g_offscreen_width;
+            const NSUInteger height = (NSUInteger)g_offscreen_height;
+            const NSUInteger bytesPerRow = width * 4;
+            const size_t byteCount = (size_t)bytesPerRow * (size_t)height;
+            unsigned char *pixels = (unsigned char *)malloc( byteCount );
+
+            if ( pixels != NULL ) {
+                MTLRegion region = MTLRegionMake2D( 0, 0, width, height );
+                [g_offscreen_color getBytes:pixels
+                                bytesPerRow:bytesPerRow
+                                 fromRegion:region
+                                mipmapLevel:0];
+
+                FILE *fp = fopen( "metal-terrain-frame.ppm", "wb" );
+                if ( fp != NULL ) {
+                    fprintf( fp, "P6\\n%lu %lu\\n255\\n",
+                             (unsigned long)width, (unsigned long)height );
+                    for ( NSUInteger y = 0; y < height; ++y ) {
+                        for ( NSUInteger x = 0; x < width; ++x ) {
+                            const unsigned char *bgra =
+                                pixels + y * bytesPerRow + x * 4;
+                            fputc( bgra[2], fp );
+                            fputc( bgra[1], fp );
+                            fputc( bgra[0], fp );
+                        }
+                    }
+                    fclose( fp );
+                    g_capture_written = 1;
+                    fprintf( stderr,
+                             "Tux Racer Modern: wrote Metal diagnostic frame: metal-terrain-frame.ppm\\n" );
+                }
+                free( pixels );
+            }
+        }
 
         static int reported = 0;
         if ( !reported ) {
