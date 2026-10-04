@@ -21,6 +21,9 @@
 #include "hier.h"
 #include "hier_util.h"
 #include "alglib.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 /*
  * These hash tables map from names to node pointers and material data, resp.
@@ -416,6 +419,46 @@ void initialize_scene_graph()
 
     Tcl_InitHashTable(&g_hier_node_table,TCL_STRING_KEYS);
     Tcl_InitHashTable(&g_hier_material_table,TCL_STRING_KEYS);
+}
+
+#ifdef __APPLE__
+static void traverse_dag_metal( scene_node_t *node, material_t *mat,
+                                matrixgl_t parent )
+{
+    scene_node_t *child;
+    matrixgl_t world;
+
+    if ( node == NULL ) return;
+    multiply_matrices( world, parent, node->trans );
+    if ( node->mat != NULL ) mat = node->mat;
+
+    if ( node->geom == Sphere ) {
+        renderer_metal_draw_sphere(
+            (const double *)world,
+            node->param.sphere.divisions,
+            (float)mat->diffuse.r, (float)mat->diffuse.g,
+            (float)mat->diffuse.b, (float)mat->diffuse.a );
+    }
+
+    child = node->child;
+    while ( child != NULL ) {
+        traverse_dag_metal( child, mat, world );
+        child = child->next;
+    }
+}
+#endif
+
+void draw_scene_graph_metal( char *node )
+{
+#ifdef __APPLE__
+    scene_node_t *nodePtr;
+    matrixgl_t identity;
+    if ( get_scene_node( node, &nodePtr ) != TCL_OK || nodePtr == NULL ) return;
+    make_identity_matrix( identity );
+    traverse_dag_metal( nodePtr, &g_hier_default_material, identity );
+#else
+    (void)node;
+#endif
 }
 
 void draw_scene_graph( char *node )
