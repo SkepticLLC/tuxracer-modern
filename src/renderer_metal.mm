@@ -338,6 +338,24 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> mv=[g_terrain_library newFunctionWithName:@"mountain_vertex"];
+                id<MTLFunction> mf=[g_terrain_library newFunctionWithName:@"mountain_fragment"];
+                MTLRenderPipelineDescriptor *md=[[MTLRenderPipelineDescriptor alloc] init];
+                md.vertexFunction=mv; md.fragmentFunction=mf;
+                md.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
+                md.colorAttachments[0].blendingEnabled=YES;
+                md.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+                md.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+                md.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;
+                g_mountain_pipeline=[g_device newRenderPipelineStateWithDescriptor:md error:&error];
+                if(g_mountain_pipeline==nil){
+                    fprintf(stderr,"Tux Racer Modern: Metal mountain pipeline creation failed: %s\n",
+                            error?[[error localizedDescription] UTF8String]:"unknown error");
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
@@ -884,6 +902,13 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         /* Native scene background; terrain is encoded immediately after. */
         if ( g_sky_pipeline != nil ) {
             [g_frame_encoder setRenderPipelineState:g_sky_pipeline];
+            [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                                vertexStart:0
+                                vertexCount:3];
+        }
+
+        if ( g_mountain_pipeline != nil ) {
+            [g_frame_encoder setRenderPipelineState:g_mountain_pipeline];
             [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
                                 vertexStart:0
                                 vertexCount:3];
