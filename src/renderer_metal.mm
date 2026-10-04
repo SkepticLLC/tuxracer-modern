@@ -300,6 +300,26 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> skyboxVertex =
+                    [g_terrain_library newFunctionWithName:@"skybox_vertex"];
+                id<MTLFunction> skyboxFragment =
+                    [g_terrain_library newFunctionWithName:@"skybox_fragment"];
+                MTLRenderPipelineDescriptor *skyboxDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                skyboxDesc.vertexFunction = skyboxVertex;
+                skyboxDesc.fragmentFunction = skyboxFragment;
+                skyboxDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                skyboxDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_skybox_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:skyboxDesc error:&error];
+                if ( g_skybox_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal skybox pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
