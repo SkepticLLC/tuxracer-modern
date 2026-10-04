@@ -109,17 +109,22 @@ tux_bind_texture splash_screen_bl splash_screen_bl
 tux_load_texture snow_particle courses/common/snowparticles.rgb 0
 tux_bind_texture snow_particle snow_particle
 
-# Tux Racer Modern: optional world-space Rocky Mountain backdrop layers.
-# Runtime assets remain SGI RGBA for compatibility with the classic loader.
+# Tux Racer Modern: world-space Rocky Mountain backdrop layers.
+# Keep this deliberately explicit while the Modern asset path is stabilized.
 foreach {binding file} {
     modern_mountains_far textures/modern_mountains_far.rgb
     modern_mountains_mid textures/modern_mountains_mid.rgb
     modern_mountains_foothills textures/modern_mountains_foothills.rgb
 } {
-    if {[file exists [file join $::tux_data_dir $file]]} {
-        if {![catch {tux_load_texture $binding $file 0}]} {
+    if {[file exists $file]} {
+        if {[tux_load_texture $binding $file 0]} {
             tux_bind_texture $binding $binding
+            puts "Tux Racer Modern: loaded mountain layer $binding from $file"
+        } else {
+            puts "Tux Racer Modern: FAILED to load mountain layer $binding from $file"
         }
+    } else {
+        puts "Tux Racer Modern: MISSING mountain layer $binding at $file"
     }
 }
 
