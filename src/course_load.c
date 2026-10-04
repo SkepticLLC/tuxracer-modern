@@ -454,6 +454,34 @@ void fill_gl_arrays()
         }
     }
 
+#ifdef __APPLE__
+    if ( renderer_grid_indices != NULL && nx > 1 && ny > 1 ) {
+        const uint32_t ia = renderer_grid_indices[0];
+        const uint32_t ib = renderer_grid_indices[1];
+        const uint32_t ic = renderer_grid_indices[2];
+        const uint32_t id = renderer_grid_indices[5];
+        fprintf( stderr,
+                 "Tux Racer Modern: modern grid %dx%d, vertices=%d, indices=%zu, "
+                 "first=[%u,%u,%u ... %u], "
+                 "A=(%.2f,%.2f,%.2f) B=(%.2f,%.2f,%.2f) "
+                 "C=(%.2f,%.2f,%.2f) D=(%.2f,%.2f,%.2f)\n",
+                 nx, ny, nx*ny, renderer_grid_index_count,
+                 ia, ib, ic, id,
+                 renderer_vertices[ia].position[0],
+                 renderer_vertices[ia].position[1],
+                 renderer_vertices[ia].position[2],
+                 renderer_vertices[ib].position[0],
+                 renderer_vertices[ib].position[1],
+                 renderer_vertices[ib].position[2],
+                 renderer_vertices[ic].position[0],
+                 renderer_vertices[ic].position[1],
+                 renderer_vertices[ic].position[2],
+                 renderer_vertices[id].position[0],
+                 renderer_vertices[id].position[1],
+                 renderer_vertices[id].position[2] );
+    }
+#endif
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer( 3, GL_FLOAT, STRIDE_GL_ARRAY, vnc_array );
 
