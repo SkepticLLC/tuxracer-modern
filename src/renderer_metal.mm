@@ -924,21 +924,8 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
                                 vertexCount:3];
         }
 
-        if ( g_mountain_pipeline != nil ) {
-            typedef struct { float parallaxX,p0,p1,p2; } mountain_uniform_t;
-            mountain_uniform_t mu;
-            const float *cam = (const float *)[g_camera_uniform_buffer contents];
-            float target = cam[16] * 0.0010f; /* deliberately distant: ~10% perceptual parallax */
-            g_mountain_parallax_x += (target - g_mountain_parallax_x) * 0.08f;
-            mu.parallaxX=g_mountain_parallax_x; mu.p0=mu.p1=mu.p2=0.0f;
-            [g_frame_encoder setRenderPipelineState:g_mountain_pipeline];
-            [g_frame_encoder setDepthStencilState:g_no_depth_state];
-            [g_frame_encoder setFragmentBytes:&mu length:sizeof(mu) atIndex:0];
-            [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
-                                vertexStart:0
-                                vertexCount:3];
-            [g_frame_encoder setDepthStencilState:g_depth_state];
-        }
+        /* Procedural mountain shader retained for diagnostics only.
+         * Production Modern uses world-space textured mountain cards. */
 
         g_native_frame_active = 1;
         return 1;
@@ -1264,6 +1251,46 @@ void renderer_metal_draw_billboard_uv( float x,float y,float z,
         id<MTLTexture> tex=[g_textures objectForKey:@(texture)];
         if(tex==nil)return;
         id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+        if(vb==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+        [g_frame_encoder setFragmentTexture:tex atIndex:0];
+        [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+    }
+}
+
+
+void renderer_metal_draw_mountain_card( float center_x, float base_y, float center_z,
+                                        float width, float height,
+                                        float alpha,
+                                        tux_texture_handle_t texture )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,u,v,pad; } ov_t;
+        ov_t v[6];
+        float hw=width*0.5f;
+        if(g_frame_encoder==nil||g_billboard_pipeline==nil||
+           g_camera_uniform_buffer==nil||texture==TUX_INVALID_TEXTURE_HANDLE)return;
+        id<MTLTexture> tex=[g_textures objectForKey:@(texture)];
+        if(tex==nil)return;
+
+        /*
+         * Backdrop cards span world X and stand vertically in Y at a fixed
+         * distant Z. They are not camera-facing billboards: the world owns
+         * their orientation, which keeps the horizon visually stable.
+         */
+        v[0]=(ov_t){center_x-hw,base_y,center_z,0,0,alpha};
+        v[1]=(ov_t){center_x+hw,base_y,center_z,1,0,alpha};
+        v[2]=(ov_t){center_x+hw,base_y+height,center_z,1,1,alpha};
+        v[3]=(ov_t){center_x-hw,base_y,center_z,0,0,alpha};
+        v[4]=(ov_t){center_x+hw,base_y+height,center_z,1,1,alpha};
+        v[5]=(ov_t){center_x-hw,base_y+height,center_z,0,1,alpha};
+
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v)
+                                              options:MTLResourceStorageModeShared];
         if(vb==nil)return;
         [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
         [g_frame_encoder setDepthStencilState:g_depth_state];
