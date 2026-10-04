@@ -21,6 +21,7 @@ static id<MTLLibrary> g_terrain_library = nil;
 static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
+static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
@@ -112,6 +113,15 @@ int renderer_metal_initialize_resources( void )
                 "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); return o; }\n"
                 "fragment float4 object_fragment(ObjectOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
                 "float4 c=tex.sample(samp,in.uv); if(c.a<0.18) discard_fragment(); return c; }\n"
+                "struct SphereVertex { packed_float3 position; packed_float3 normal; };\n"
+                "struct SphereUniforms { float4x4 mvp; float4x4 model; float4 color; };\n"
+                "struct SphereOut { float4 position [[position]]; float3 normal; float4 color; };\n"
+                "vertex SphereOut sphere_vertex(uint vid [[vertex_id]], const device SphereVertex *v [[buffer(0)]], constant SphereUniforms &u [[buffer(1)]]) { "
+                "SphereOut o; o.position=u.mvp*float4(float3(v[vid].position),1.0); "
+                "o.normal=normalize((u.model*float4(float3(v[vid].normal),0.0)).xyz); o.color=u.color; return o; }\n"
+                "fragment float4 sphere_fragment(SphereOut in [[stage_in]]) { "
+                "float3 L=normalize(float3(-0.35,0.82,0.44)); float d=max(dot(normalize(in.normal),L),0.0); "
+                "float light=0.34+0.66*d; return float4(in.color.rgb*light,in.color.a); }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -239,6 +249,7 @@ void renderer_metal_shutdown_resources( void )
         g_terrain_pipeline = nil;
         g_sky_pipeline = nil;
         g_billboard_pipeline = nil;
+        g_sphere_pipeline = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
