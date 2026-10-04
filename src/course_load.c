@@ -85,6 +85,7 @@ static int           num_items;
 
 /* Interleaved vertex, normal, and color data */
 static GLubyte      *vnc_array = NULL;
+static tux_vertex_t *renderer_vertices = NULL;
 
 scalar_t     *get_course_elev_data()    { return elevation; }
 terrain_t    *get_course_terrain_data() { return terrain; }
@@ -107,6 +108,14 @@ item_type_t  *get_item_types()          { return item_types; }
 void get_gl_arrays( GLubyte **vnc_arr )
 {
     *vnc_arr = vnc_array;
+}
+
+const tux_vertex_t *get_renderer_course_vertices( size_t *vertex_count )
+{
+    if ( vertex_count != NULL ) {
+        *vertex_count = ( nx > 0 && ny > 0 ) ? (size_t)nx * (size_t)ny : 0;
+    }
+    return renderer_vertices;
 }
 
 void get_course_dimensions( scalar_t *width, scalar_t *length )
@@ -210,6 +219,7 @@ static void reset_course()
     free( terrain ); terrain = NULL;
 
     free( vnc_array ); vnc_array = NULL;
+    free( renderer_vertices ); renderer_vertices = NULL;
 
     for ( i = 0; i < num_tree_types; i++) {
 	unbind_texture( tree_types[i].name );
@@ -287,6 +297,9 @@ void fill_gl_arrays()
 
     /* Align vertices and normals on 16-byte intervals (Q3A does this) */
     vnc_array = (GLubyte*) malloc( STRIDE_GL_ARRAY * nx * ny );
+    renderer_vertices = (tux_vertex_t*) malloc( sizeof(tux_vertex_t) * nx * ny );
+    check_assertion( vnc_array != NULL && renderer_vertices != NULL,
+                     "out of memory allocating course vertex data" );
 
     for (x=0; x<nx; x++) {
 	for (y=0; y<ny; y++) {
@@ -312,6 +325,19 @@ void fill_gl_arrays()
 	    byteval(1) = 255;
 	    byteval(2) = 255;
 	    byteval(3) = 255;
+
+            renderer_vertices[y*nx+x].position[0] =
+                (float)x / (nx-1.) * (float)course_width;
+            renderer_vertices[y*nx+x].position[1] = (float)ELEV(x,y);
+            renderer_vertices[y*nx+x].position[2] =
+                -(float)y / (ny-1.) * (float)course_length;
+            renderer_vertices[y*nx+x].normal[0] = (float)nml.x;
+            renderer_vertices[y*nx+x].normal[1] = (float)nml.y;
+            renderer_vertices[y*nx+x].normal[2] = (float)nml.z;
+            renderer_vertices[y*nx+x].texcoord[0] =
+                renderer_vertices[y*nx+x].position[0] / (float)TEX_SCALE;
+            renderer_vertices[y*nx+x].texcoord[1] =
+                renderer_vertices[y*nx+x].position[2] / (float)TEX_SCALE;
 
 #undef byteval
 
