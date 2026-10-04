@@ -23,6 +23,7 @@ static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
+static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
 static char g_device_name[256] = {0};
@@ -144,6 +145,13 @@ int renderer_metal_initialize_resources( void )
                 "fragment float4 sphere_fragment(SphereOut in [[stage_in]]) { "
                 "float3 L=normalize(float3(-0.35,0.82,0.44)); float d=max(dot(normalize(in.normal),L),0.0); "
                 "float light=0.34+0.66*d; return float4(in.color.rgb*light,in.color.a); }\n"
+                "struct ShadowVertex { packed_float3 position; float alpha; };\n"
+                "struct ShadowOut { float4 position [[position]]; float alpha; float radial; };\n"
+                "vertex ShadowOut shadow_vertex(uint vid [[vertex_id]], const device ShadowVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
+                "ShadowOut o; float3 p=float3(v[vid].position); o.position=u.viewProjection*float4(p,1.0); "
+                "o.alpha=v[vid].alpha; o.radial=(vid==0)?0.0:1.0; return o; }\n"
+                "fragment float4 shadow_fragment(ShadowOut in [[stage_in]]) { "
+                "float a=in.alpha*(1.0-smoothstep(0.15,1.0,in.radial)); return float4(0.02,0.03,0.04,a); }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -292,6 +300,7 @@ void renderer_metal_shutdown_resources( void )
         g_sky_pipeline = nil;
         g_billboard_pipeline = nil;
         g_sphere_pipeline = nil;
+        g_shadow_pipeline = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
