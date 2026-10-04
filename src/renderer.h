@@ -42,6 +42,8 @@ void renderer_end_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
 typedef struct {
     double view_matrix[16];
+    double projection_matrix[16];
+    double view_projection_matrix[16];
     double projection_fov_degrees;
     double near_clip;
     double far_clip;
