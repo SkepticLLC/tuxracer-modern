@@ -173,8 +173,6 @@ void intro_loop( scalar_t time_step )
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
-
-#endif
         draw_tux_shadow_metal();
         draw_tux_metal();
     }
