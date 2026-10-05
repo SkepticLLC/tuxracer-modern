@@ -18,6 +18,7 @@
  */
 
 #include "tuxracer.h"
+#include "renderer.h"
 #include "loop.h"
 #include "ui_mgr.h"
 
@@ -156,6 +157,12 @@ void main_loop()
 	g_game.prev_mode = g_game.mode;
 
 	g_game.mode = new_mode;
+
+        /*
+         * Keep the native Metal layer from covering legacy 2.0 menus/results.
+         * This is the renderer boundary for level enter/exit.
+         */
+        renderer_sync_mode_visibility( g_game.mode );
 	
 	if ( mode_funcs[ g_game.mode ].init_func != NULL ) {
 	    ( mode_funcs[ g_game.mode ].init_func )( );
