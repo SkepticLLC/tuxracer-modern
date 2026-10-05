@@ -1351,32 +1351,69 @@ static void modern_hud_box2d(float x,float y,float w,float h,
     [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
-static void modern_hud_digit(float x,float y,float scale,int digit,float alpha)
+static const unsigned char *modern_hud_glyph(char c)
 {
-    static const unsigned char seg[10]={
-      0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
-    const float t=4.0f*scale,l=19.0f*scale,g=3.0f*scale;
-    unsigned char s=(digit>=0&&digit<=9)?seg[digit]:0;
-    float r=0.94f,gg=0.98f,b=1.0f;
-    if(s&0x01)modern_hud_box2d(x+t,y+2*l+2*g,l,t,r,gg,b,alpha);
-    if(s&0x02)modern_hud_box2d(x+l+t,y+l+g+t,t,l,r,gg,b,alpha);
-    if(s&0x04)modern_hud_box2d(x+l+t,y+t,t,l,r,gg,b,alpha);
-    if(s&0x08)modern_hud_box2d(x+t,y,l,t,r,gg,b,alpha);
-    if(s&0x10)modern_hud_box2d(x,y+t,t,l,r,gg,b,alpha);
-    if(s&0x20)modern_hud_box2d(x,y+l+g+t,t,l,r,gg,b,alpha);
-    if(s&0x40)modern_hud_box2d(x+t,y+l+g,l,t,r,gg,b,alpha);
+    /* 5x7 compact uppercase HUD alphabet / numerals. MSB-left, 5 useful bits. */
+    static const unsigned char blank[7]={0,0,0,0,0,0,0};
+    static const unsigned char A[7]={14,17,17,31,17,17,17};
+    static const unsigned char D[7]={30,17,17,17,17,17,30};
+    static const unsigned char E[7]={31,16,16,30,16,16,31};
+    static const unsigned char H[7]={17,17,17,31,17,17,17};
+    static const unsigned char I[7]={31,4,4,4,4,4,31};
+    static const unsigned char M[7]={17,27,21,21,17,17,17};
+    static const unsigned char P[7]={30,17,17,30,16,16,16};
+    static const unsigned char S[7]={15,16,16,14,1,1,30};
+    static const unsigned char T[7]={31,4,4,4,4,4,4};
+    static const unsigned char zero[7]={14,17,19,21,25,17,14};
+    static const unsigned char one[7]={4,12,4,4,4,4,14};
+    static const unsigned char two[7]={14,17,1,2,4,8,31};
+    static const unsigned char three[7]={30,1,1,14,1,1,30};
+    static const unsigned char four[7]={2,6,10,18,31,2,2};
+    static const unsigned char five[7]={31,16,16,30,1,1,30};
+    static const unsigned char six[7]={14,16,16,30,17,17,14};
+    static const unsigned char seven[7]={31,1,2,4,8,8,8};
+    static const unsigned char eight[7]={14,17,17,14,17,17,14};
+    static const unsigned char nine[7]={14,17,17,15,1,1,14};
+    switch(c){
+      case 'A':return A; case 'D':return D; case 'E':return E; case 'H':return H;
+      case 'I':return I; case 'M':return M; case 'P':return P; case 'S':return S;
+      case 'T':return T;
+      case '0':return zero; case '1':return one; case '2':return two; case '3':return three;
+      case '4':return four; case '5':return five; case '6':return six; case '7':return seven;
+      case '8':return eight; case '9':return nine;
+      default:return blank;
+    }
 }
 
-static float modern_hud_number(float x,float y,float scale,int value,int min_digits,float alpha)
+static float modern_hud_text(float x,float y,float px,const char *text,
+                             float r,float g,float b,float alpha)
 {
-    char buf[16]; int i,n;
-    snprintf(buf,sizeof(buf),"%0*d",min_digits,value);
-    n=(int)strlen(buf);
-    for(i=0;i<n;i++){
-        modern_hud_digit(x,y,scale,buf[i]-'0',alpha);
-        x+=29.0f*scale;
+    int i,row,col;
+    float start=x;
+    for(i=0;text[i];++i){
+        char c=text[i];
+        if(c==' '){ x+=4.0f*px; continue; }
+        if(c==':'){
+            modern_hud_box2d(x+px,y+2*px,px,px,r,g,b,alpha);
+            modern_hud_box2d(x+px,y+5*px,px,px,r,g,b,alpha);
+            x+=4.0f*px; continue;
+        }
+        if(c=='.'){
+            modern_hud_box2d(x+px,y,px,px,r,g,b,alpha);
+            x+=3.0f*px; continue;
+        }
+        const unsigned char *glyph=modern_hud_glyph(c);
+        for(row=0;row<7;++row){
+            for(col=0;col<5;++col){
+                if(glyph[6-row]&(1u<<(4-col))){
+                    modern_hud_box2d(x+col*px,y+row*px,px*0.82f,px*0.82f,
+                                     r,g,b,alpha);
+                }
+            }
+        }
+        x+=6.0f*px;
     }
-    return x;
+    return x-start;
 }
 
 void renderer_metal_draw_hud( float speed_kmh, float race_time,
@@ -1386,38 +1423,34 @@ void renderer_metal_draw_hud( float speed_kmh, float race_time,
         int mins=(int)(race_time/60.0f);
         int secs=((int)race_time)%60;
         int hundredths=(int)((race_time-(float)((int)race_time))*100.0f);
-        int speed=(int)(speed_kmh+0.5f);
-        float sx=(float)g_native_width-245.0f;
-        float sy=24.0f;
-        float tx=24.0f, ty=(float)g_native_height-86.0f;
-        float x;
+        int mph=(int)(speed_kmh*0.621371f+0.5f);
+        char time_buf[32],speed_buf[32];
+        const float margin=50.0f;
+        float top=(float)g_native_height-31.0f;
+
+        (void)energy;
+        (void)herring;
 
         if(g_frame_encoder==nil||g_native_width<=0||g_native_height<=0)return;
 
-        /* Glass panels. */
-        modern_hud_box2d(sx,sy,221,102,0.018f,0.035f,0.055f,0.56f);
-        modern_hud_box2d(tx,ty,210,62,0.018f,0.035f,0.055f,0.50f);
+        snprintf(time_buf,sizeof(time_buf),"%d:%02d.%02d",mins,secs,hundredths);
+        snprintf(speed_buf,sizeof(speed_buf),"%d MPH",mph);
 
-        /* Speed. */
-        modern_hud_number(sx+22,sy+42,1.05f,speed,2,0.94f);
+        /*
+         * Modern 2.0 HUD: intentionally no panel/chrome.  The alpine world
+         * remains the visual focus; labels are quiet and values are bright.
+         * Coordinates mirror the approved mock: TIME and SPEED stacked
+         * tightly in the upper-left safe area.
+         */
+        modern_hud_text(margin,top-9.0f,1.75f,"TIME",
+                        0.73f,0.82f,0.92f,0.72f);
+        modern_hud_text(margin,top-42.0f,3.35f,time_buf,
+                        0.92f,0.96f,1.00f,0.94f);
 
-        /* Charge / energy line. */
-        modern_hud_box2d(sx+20,sy+18,181,5,0.45f,0.60f,0.72f,0.20f);
-        modern_hud_box2d(sx+20,sy+18,181*energy,5,0.72f,0.90f,1.0f,0.82f);
-
-        /* Race timer MM:SS.hh */
-        x=modern_hud_number(tx+18,ty+18,0.58f,mins,2,0.90f);
-        modern_hud_box2d(x+2,ty+35,4,4,0.94f,0.98f,1.0f,0.90f);
-        modern_hud_box2d(x+2,ty+48,4,4,0.94f,0.98f,1.0f,0.90f);
-        x=modern_hud_number(x+12,ty+18,0.58f,secs,2,0.90f);
-        modern_hud_box2d(x+3,ty+18,4,4,0.94f,0.98f,1.0f,0.72f);
-        modern_hud_number(x+11,ty+18,0.36f,hundredths,2,0.72f);
-
-        /* Small herring count as numeric badge until general Metal text lands. */
-        modern_hud_box2d((float)g_native_width-105.0f,(float)g_native_height-62.0f,
-                         81,38,0.018f,0.035f,0.055f,0.44f);
-        modern_hud_number((float)g_native_width-91.0f,(float)g_native_height-53.0f,
-                          0.34f,herring,2,0.76f);
+        modern_hud_text(margin,top-76.0f,1.75f,"SPEED",
+                        0.73f,0.82f,0.92f,0.72f);
+        modern_hud_text(margin,top-109.0f,3.35f,speed_buf,
+                        0.92f,0.96f,1.00f,0.94f);
     }
 }
 
