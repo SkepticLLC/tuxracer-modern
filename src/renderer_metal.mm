@@ -64,6 +64,9 @@ static float g_mountain_parallax_x = 0.0f;
 static tux_texture_handle_t g_mountain_far_handle = TUX_INVALID_TEXTURE_HANDLE;
 static tux_texture_handle_t g_mountain_mid_handle = TUX_INVALID_TEXTURE_HANDLE;
 static tux_texture_handle_t g_mountain_foothill_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_menu_mountain_far_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_menu_mountain_mid_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_menu_mountain_foothill_handle = TUX_INVALID_TEXTURE_HANDLE;
 
 static uint64_t renderer_metal_now_ns( void )
 {
@@ -1015,6 +1018,9 @@ void renderer_metal_set_mountain_layers( tux_texture_handle_t far_tex,
     g_mountain_far_handle = far_tex;
     g_mountain_mid_handle = mid_tex;
     g_mountain_foothill_handle = foothill_tex;
+    if ( far_tex != TUX_INVALID_TEXTURE_HANDLE ) g_menu_mountain_far_handle = far_tex;
+    if ( mid_tex != TUX_INVALID_TEXTURE_HANDLE ) g_menu_mountain_mid_handle = mid_tex;
+    if ( foothill_tex != TUX_INVALID_TEXTURE_HANDLE ) g_menu_mountain_foothill_handle = foothill_tex;
 }
 
 static void renderer_metal_draw_background_mountain_layer(
@@ -1468,9 +1474,9 @@ void renderer_metal_draw_home_menu( int selected )
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
         menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
         menu_box(0,0,g_native_width,g_native_height*.18f,.78f,.88f,.96f,.08f);
 
         /* Centered, restrained readability field -- no vertical bands. */
@@ -1513,9 +1519,9 @@ void renderer_metal_draw_results_menu( const char *headline,
         if(!headline)headline="RACE COMPLETE"; if(!message)message=""; if(!time_text)time_text="";
         snprintf(fish,sizeof(fish),"%d",herring); snprintf(points,sizeof(points),"%d",score);
         menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+        renderer_metal_draw_background_mountain_layer(g_menu_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
         menu_box(g_native_width*.27f,g_native_height*.20f,g_native_width*.46f,g_native_height*.60f,
                  .006f,.018f,.034f,.48f);
         cx=g_native_width*.5f;x=cx-235.0f*ui;y=g_native_height-410.0f*ui;
@@ -1547,11 +1553,11 @@ void renderer_metal_draw_event_menu( const char *event_name,
 
         menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
         renderer_metal_draw_background_mountain_layer(
-            g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+            g_menu_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
         renderer_metal_draw_background_mountain_layer(
-            g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+            g_menu_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
         renderer_metal_draw_background_mountain_layer(
-            g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+            g_menu_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
         menu_box(0,0,g_native_width,g_native_height*.22f,.78f,.88f,.96f,.10f);
         menu_box(0,0,g_native_width*.28f,g_native_height,.006f,.018f,.034f,.48f);
         menu_box(g_native_width*.28f,0,g_native_width*.14f,g_native_height,.006f,.018f,.034f,.24f);
