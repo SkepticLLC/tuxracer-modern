@@ -98,7 +98,13 @@ static void modern_tree_impact_visual( point_t tree_loc,
      * distribution. 6..34 m/s spans the expected useful range, with a mild
      * curve that preserves separation without crushing low-energy hits.
      */
-    energy = min( 1.0, max( 0.0, (impact_speed - 6.0) / 28.0 ) );
+    /*
+     * Snow-loaded branches should react to a brush, not only a hard trunk
+     * impact. Start the useful range at ~2 m/s and reach full shedding by
+     * ~26 m/s. The square-root response gives low/medium contacts visible
+     * feedback while preserving headroom for hard impacts.
+     */
+    energy = min( 1.0, max( 0.0, (impact_speed - 2.0) / 24.0 ) );
     energy = sqrt( energy );
 
     count = (int)( 18 + energy * 20 );
@@ -114,7 +120,7 @@ static void modern_tree_impact_visual( point_t tree_loc,
               tree_height * 0.58;
     create_new_particles( burst, velocity, (int)(10 + energy * 18) );
 
-    if ( energy > 0.48 ) {
+    if ( energy > 0.62 ) {
         burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
                   tree_height * 0.74;
         create_new_particles( burst, velocity, (int)(8 + energy * 18) );
@@ -124,8 +130,8 @@ static void modern_tree_impact_visual( point_t tree_loc,
              "Tux Racer Modern: tree impact speed=%.2f m/s height=%.2f diam=%.2f energy=%.2f particles=%d%s\\n",
              impact_speed, tree_height, tree_diam, energy,
              count + (int)(10 + energy * 18) +
-             (energy > 0.48 ? (int)(8 + energy * 18) : 0),
-             energy > 0.48 ? " (3 bands)" : " (2 bands)" );
+             (energy > 0.62 ? (int)(8 + energy * 18) : 0),
+             energy > 0.62 ? " (3 bands)" : " (2 bands)" );
 
     last_tree_snow_loc = tree_loc;
     last_tree_snow_time = g_game.time;
