@@ -635,6 +635,19 @@ void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
     }
 }
 
+void renderer_metal_reset_course_resources( void )
+{
+    @autoreleasepool {
+        g_course_vertex_buffer = nil;
+        g_last_index_buffer = nil;
+        g_vertex_bytes = 0;
+        g_last_index_bytes = 0;
+        g_batch_count = 0;
+        g_draw_count = 0;
+        fprintf( stderr, "Tux Racer Modern: reset Metal course resources\n" );
+    }
+}
+
 size_t renderer_metal_vertex_bytes( void ) { return g_vertex_bytes; }
 size_t renderer_metal_last_index_bytes( void ) { return g_last_index_bytes; }
 
