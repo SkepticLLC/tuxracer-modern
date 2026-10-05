@@ -564,49 +564,66 @@ void draw_start_scene_metal( int light_phase )
 {
 #ifdef __APPLE__
     point2d_t sp=get_start_pt();
-    const float tower_x[2]={(float)sp.x-4.55f,(float)sp.x+4.55f};
+    const float tower_x[2]={(float)sp.x-4.25f,(float)sp.x+4.25f};
     int t,row,pair;
+
     draw_start_line_metal();
 
     for(t=0;t<2;++t){
         float x=tower_x[t];
-        float z=(float)sp.y+0.05f;
+        float z=(float)sp.y+0.02f;
         float gy=(float)get_renderer_course_height(x,z);
 
-        /* Dark alpine timing mast + compact top cap. */
-        renderer_metal_draw_colored_box(x,gy+1.35f,z,0.34f,2.70f,0.34f,
-                                        0.055f,0.065f,0.075f,1.0f);
-        renderer_metal_draw_colored_box(x,gy+2.78f,z,1.22f,0.34f,0.42f,
-                                        0.075f,0.085f,0.100f,1.0f);
-        renderer_metal_draw_colored_box(x,gy+2.98f,z,1.08f,0.08f,0.48f,
-                                        0.93f,0.96f,0.99f,1.0f);
+        /* Heavy base and mast: reads as one timing-tree assembly. */
+        renderer_metal_draw_colored_box(x,gy+0.18f,z,0.82f,0.34f,0.72f,
+                                        0.035f,0.040f,0.050f,1.0f);
+        renderer_metal_draw_colored_box(x,gy+1.54f,z,0.40f,2.55f,0.44f,
+                                        0.045f,0.050f,0.060f,1.0f);
 
+        /* Three stacked lamp housings. */
         for(row=0;row<3;++row){
+            float panel_y=gy+0.92f+row*0.58f;
+            renderer_metal_draw_colored_box(x,panel_y,z-0.035f,
+                                            1.18f,0.44f,0.28f,
+                                            0.025f,0.030f,0.038f,1.0f);
+
             for(pair=0;pair<2;++pair){
                 double model[16];
-                float px=x+(pair?0.24f:-0.24f);
-                float py=gy+0.95f+row*0.56f;
-                float rr=0.045f,gg=0.050f,bb=0.055f;
+                float px=x+(pair?0.255f:-0.255f);
+                float py=panel_y;
+                float rr=0.028f,gg=0.032f,bb=0.038f;
                 int active=(row==2&&light_phase==0)||
                            (row==1&&light_phase==1)||
                            (row==0&&light_phase==2);
+
                 if(active){
-                    if(row==2){rr=0.98f;gg=0.055f;bb=0.035f;}
-                    if(row==1){rr=1.00f;gg=0.56f;bb=0.025f;}
-                    if(row==0){rr=0.055f;gg=0.95f;bb=0.14f;}
+                    if(row==2){rr=1.00f;gg=0.050f;bb=0.028f;}
+                    if(row==1){rr=1.00f;gg=0.54f;bb=0.020f;}
+                    if(row==0){rr=0.045f;gg=0.98f;bb=0.12f;}
+                } else {
+                    if(row==2){rr=0.16f;gg=0.025f;bb=0.022f;}
+                    if(row==1){rr=0.16f;gg=0.095f;bb=0.018f;}
+                    if(row==0){rr=0.018f;gg=0.15f;bb=0.038f;}
                 }
-                model[0]=0.19;model[1]=0;model[2]=0;model[3]=0;
-                model[4]=0;model[5]=0.19;model[6]=0;model[7]=0;
-                model[8]=0;model[9]=0;model[10]=0.19;model[11]=0;
+
+                model[0]=0.155;model[1]=0;model[2]=0;model[3]=0;
+                model[4]=0;model[5]=0.155;model[6]=0;model[7]=0;
+                model[8]=0;model[9]=0;model[10]=0.105;model[11]=0;
                 model[12]=px;model[13]=py;model[14]=z-0.20f;model[15]=1;
-                renderer_metal_draw_sphere(model,12,rr,gg,bb,1.0f);
+                renderer_metal_draw_sphere(model,14,rr,gg,bb,1.0f);
             }
         }
 
-        /* Small red course-side panel anchors each tower visually. */
-        renderer_metal_draw_colored_box(x+(t?0.65f:-0.65f),gy+0.52f,z+0.12f,
-                                        0.88f,0.76f,0.16f,
-                                        0.60f,0.045f,0.040f,1.0f);
+        /* Header block with snow cap. */
+        renderer_metal_draw_colored_box(x,gy+2.72f,z,1.44f,0.46f,0.52f,
+                                        0.060f,0.070f,0.085f,1.0f);
+        renderer_metal_draw_colored_box(x,gy+2.98f,z,1.34f,0.10f,0.58f,
+                                        0.94f,0.965f,0.99f,1.0f);
+
+        /* Red event panel beside the tower, matching the approved scene. */
+        renderer_metal_draw_colored_box(x+(t?0.72f:-0.72f),gy+0.58f,z+0.10f,
+                                        1.02f,0.92f,0.18f,
+                                        0.64f,0.045f,0.040f,1.0f);
     }
 #endif
 }
