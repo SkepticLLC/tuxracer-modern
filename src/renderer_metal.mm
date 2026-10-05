@@ -47,6 +47,8 @@ static int g_offscreen_height = 0;
 static unsigned long long g_draw_count = 0;
 static id<CAMetalDrawable> g_native_drawable = nil;
 static int g_native_frame_active = 0;
+static int g_native_width = 0;
+static int g_native_height = 0;
 static int g_pacing_log_enabled = 1;
 static uint64_t g_pacing_last_present_ns = 0;
 static uint64_t g_pacing_drawable_start_ns = 0;
@@ -1049,6 +1051,8 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         opaque = metal_present_next_drawable();
         if ( opaque == NULL ) return 0;
         g_native_drawable = (__bridge_transfer id<CAMetalDrawable>)opaque;
+        g_native_width = width;
+        g_native_height = height;
 
         if ( g_offscreen_depth == nil ||
              width != g_offscreen_width || height != g_offscreen_height ) {
@@ -1065,6 +1069,7 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         }
         if ( g_offscreen_depth == nil ) {
             g_native_drawable = nil;
+            g_native_width = g_native_height = 0;
             return 0;
         }
 
@@ -1083,6 +1088,7 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
         if ( g_frame_command_buffer == nil ) {
             g_frame_pass = nil;
             g_native_drawable = nil;
+            g_native_width = g_native_height = 0;
             return 0;
         }
 
@@ -1092,6 +1098,7 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
             g_frame_command_buffer = nil;
             g_frame_pass = nil;
             g_native_drawable = nil;
+            g_native_width = g_native_height = 0;
             return 0;
         }
 
