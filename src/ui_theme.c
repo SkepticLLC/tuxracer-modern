@@ -54,7 +54,8 @@ static void draw_quad(int x, int y, int w, int h)
 void ui_draw_menu_decorations()
 {
     int w=getparam_x_resolution(),h=getparam_y_resolution();
-    set_gl_options(GUI); glDisable(GL_TEXTURE_2D); glEnable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_QUADS);
     glColor4f(.035f,.085f,.15f,1);glVertex2f(0,0);glVertex2f(w,0);
