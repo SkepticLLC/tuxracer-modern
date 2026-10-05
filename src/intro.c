@@ -131,7 +131,12 @@ void intro_loop( scalar_t time_step )
 
     update_audio();
 
-    update_key_frame( plyr, time_step );
+    /*
+     * Modern level entry: slow only the scripted walk-out/keyframe.
+     * Audio, rendering, particles, and the rest of the game clock remain
+     * real-time so the scene feels deliberate rather than slow-motion.
+     */
+    update_key_frame( plyr, time_step * 0.78 );
 
     renderer_begin_frame();
 
