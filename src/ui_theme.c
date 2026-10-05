@@ -21,9 +21,9 @@
 #include "ui_theme.h"
 #include "textures.h"
 
-colour_t ui_background_colour = { 0.48, 0.63, 0.90, 1.0 };
+colour_t ui_background_colour = { 0.055, 0.105, 0.17, 1.0 };
 colour_t ui_foreground_colour = { 1.0, 1.0, 1.0, 1.0 }; 
-colour_t ui_highlight_colour = { 1.0, 0.89, 0.01, 1.0 };
+colour_t ui_highlight_colour = { 0.72, 0.90, 1.0, 1.0 };
 colour_t ui_disabled_colour = { 1.0, 1.0, 1.0, 0.6 };
 
 static void draw_quad(int x, int y, int w, int h)
@@ -52,56 +52,20 @@ static void draw_quad(int x, int y, int w, int h)
 
 void ui_draw_menu_decorations()
 {
-    GLuint texobj;
-    char *bl = "menu_bottom_left";
-    char *br = "menu_bottom_right";
-    char *tl = "menu_top_left";
-    char *tr = "menu_top_right";
-    char *title = "menu_title";
-    int w = getparam_x_resolution();
-    int h = getparam_y_resolution();
-
-    glEnable( GL_TEXTURE_2D );
-    glColor4f( 1., 1., 1., 1. );
-
-    /* bottom left */
-    if ( !get_texture_binding( bl, &texobj ) ) {
-	texobj = 0;
-    }
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-    draw_quad( 0, 0, 256, 256 );
-
-    /* bottom right */
-    if ( !get_texture_binding( br, &texobj ) ) {
-	texobj = 0;
-    }
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-    draw_quad( w-256, 0, 256, 256 );
-
-    /* top left */
-    if ( !get_texture_binding( tl, &texobj ) ) {
-	texobj = 0;
-    }
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-    draw_quad( 0, h-256, 256, 256 );
-
-    /* top right */
-    if ( !get_texture_binding( tr, &texobj ) ) {
-	texobj = 0;
-    }
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-    draw_quad( w-256, h-256, 256, 256 );
-
-    /* title */
-    if ( !get_texture_binding( title, &texobj ) ) {
-	texobj = 0;
-    }
-
-    glBindTexture( GL_TEXTURE_2D, texobj );
-    draw_quad( w/2-128, h-128, 256, 128 );
+    int w=getparam_x_resolution(),h=getparam_y_resolution();
+    set_gl_options(GUI); glDisable(GL_TEXTURE_2D); glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glBegin(GL_QUADS);
+    glColor4f(.035f,.085f,.15f,1);glVertex2f(0,0);glVertex2f(w,0);
+    glColor4f(.16f,.34f,.55f,1);glVertex2f(w,h);glVertex2f(0,h);
+    glEnd();
+    glColor4f(.018f,.040f,.068f,.50f);glBegin(GL_QUADS);
+    glVertex2f(w*.25f,h*.15f);glVertex2f(w*.75f,h*.15f);
+    glVertex2f(w*.75f,h*.82f);glVertex2f(w*.25f,h*.82f);glEnd();
+    glColor4f(.72f,.90f,1,.22f);glBegin(GL_QUADS);
+    glVertex2f(w*.25f,h*.82f);glVertex2f(w*.75f,h*.82f);
+    glVertex2f(w*.75f,h*.825f);glVertex2f(w*.25f,h*.825f);glEnd();
+    glColor4f(.82f,.91f,.99f,.11f);glBegin(GL_QUADS);
+    glVertex2f(0,0);glVertex2f(w,0);glVertex2f(w,h*.16f);glVertex2f(0,h*.10f);glEnd();
 }
 /* EOF */
