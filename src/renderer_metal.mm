@@ -1420,38 +1420,4 @@ void renderer_metal_draw_mountain_card( float center_x, float base_y, float cent
 }
 
 
-void renderer_metal_draw_colored_box( float cx,float cy,float cz,
-                                      float sx,float sy,float sz,
-                                      float r,float g,float b,float a )
-{
-    @autoreleasepool {
-        typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
-        typedef struct { float mvp[16], model[16], color[4]; } su_t;
-        static const sv_t v[36]={
-            {-1,-1, 1,0,0,1},{ 1,-1, 1,0,0,1},{ 1, 1, 1,0,0,1},{-1,-1, 1,0,0,1},{ 1, 1, 1,0,0,1},{-1, 1, 1,0,0,1},
-            { 1,-1,-1,0,0,-1},{-1,-1,-1,0,0,-1},{-1, 1,-1,0,0,-1},{ 1,-1,-1,0,0,-1},{-1, 1,-1,0,0,-1},{ 1, 1,-1,0,0,-1},
-            {-1,-1,-1,-1,0,0},{-1,-1, 1,-1,0,0},{-1, 1, 1,-1,0,0},{-1,-1,-1,-1,0,0},{-1, 1, 1,-1,0,0},{-1, 1,-1,-1,0,0},
-            { 1,-1, 1,1,0,0},{ 1,-1,-1,1,0,0},{ 1, 1,-1,1,0,0},{ 1,-1, 1,1,0,0},{ 1, 1,-1,1,0,0},{ 1, 1, 1,1,0,0},
-            {-1, 1, 1,0,1,0},{ 1, 1, 1,0,1,0},{ 1, 1,-1,0,1,0},{-1, 1, 1,0,1,0},{ 1, 1,-1,0,1,0},{-1, 1,-1,0,1,0},
-            {-1,-1,-1,0,-1,0},{ 1,-1,-1,0,-1,0},{ 1,-1, 1,0,-1,0},{-1,-1,-1,0,-1,0},{ 1,-1, 1,0,-1,0},{-1,-1, 1,0,-1,0}
-        };
-        float mf[16]={sx*0.5f,0,0,0, 0,sy*0.5f,0,0, 0,0,sz*0.5f,0, cx,cy,cz,1};
-        float mvp[16]; su_t u; int col,row,q;
-        if(g_frame_encoder==nil||g_sphere_pipeline==nil||g_camera_uniform_buffer==nil)return;
-        const float *vp=(const float *)[g_camera_uniform_buffer contents];
-        for(col=0;col<4;++col)for(row=0;row<4;++row){
-            float vv=0;for(q=0;q<4;++q)vv+=vp[q*4+row]*mf[col*4+q];
-            mvp[col*4+row]=vv;
-        }
-        memcpy(u.mvp,mvp,sizeof(mvp));memcpy(u.model,mf,sizeof(mf));
-        u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
-        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
-        id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
-        if(vb==nil||ub==nil)return;
-        [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
-        [g_frame_encoder setDepthStencilState:g_depth_state];
-        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
-        [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
-        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:36];
-    }
-}
+
