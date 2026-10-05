@@ -540,6 +540,15 @@ void draw_trees_metal()
 #endif
 }
 
+void draw_start_line_metal()
+{
+#ifdef __APPLE__
+    point2d_t sp=get_start_pt();
+    renderer_metal_draw_ground_strip((float)sp.x,(float)sp.y,7.2f,0.18f,
+                                     0.93f,0.95f,0.97f,1.0f);
+#endif
+}
+
 void draw_items_metal()
 {
 #ifdef __APPLE__
@@ -583,14 +592,7 @@ void draw_items_metal()
         normal.z /= len;
 
         if ( strcmp( item_name, "start" ) == 0 ) {
-            renderer_metal_draw_start_banner(
-                (float)itemLocs[i].ray.pt.x,
-                (float)(get_renderer_course_height( itemLocs[i].ray.pt.x,
-                                             itemLocs[i].ray.pt.z ) + 0.015),
-                (float)itemLocs[i].ray.pt.z,
-                (float)(itemLocs[i].diam * 0.5),
-                (float)itemLocs[i].height,
-                (float)normal.x, (float)normal.z, handle );
+            continue; /* Modern replaces the legacy START banner with staging. */
         } else {
         renderer_metal_draw_billboard(
             (float)itemLocs[i].ray.pt.x,
@@ -723,6 +725,10 @@ void draw_trees()
 	if (itemLocs[i].item_type != item_type) {
 	    item_type = itemLocs[i].item_type;
 	    item_name = get_item_name(item_type);
+            if ( renderer_metal_native_enabled() &&
+                 item_name != NULL && strcmp(item_name,"start")==0 ) {
+                continue;
+            }
 	    if (!get_texture_binding( item_name, &texture_id ) ) {
 		texture_id = 0;
 	    }
