@@ -186,80 +186,15 @@ void intro_loop( scalar_t time_step )
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
-        draw_start_line_metal();
 
-#ifdef __APPLE__
-        if ( staging_lights_active ) {
-            /*
-             * Place the drag tree in the player's local start frame, not
-             * global course X. This keeps it visually beside Tux regardless
-             * of course orientation or intro camera angle.
-             */
-            vector_t fwd = plyr->view.dir;
-            vector_t side;
-            point_t tree_base;
-            float side_len;
-            int lamp, pair;
-
-            fwd.y = 0.0;
-            if ( MAG_SQD(fwd) < 0.0001 ) fwd = make_vector(0,0,-1);
-            normalize_vector( &fwd );
-            side = make_vector( fwd.z, 0.0, -fwd.x );
-            side_len = 2.05f;
-
-            tree_base = move_point( plyr->pos, scale_vector(side_len, side) );
-            tree_base = move_point( tree_base, scale_vector(0.10, fwd) );
-            tree_base.y = find_y_coord( tree_base.x, tree_base.z );
-
-            {
-                static bool_t logged_staging_frame = False;
-                double proof_tux[16] = {
-                    0.34,0,0,0, 0,0.34,0,0, 0,0,0.34,0,
-                    plyr->pos.x, plyr->pos.y + 2.2, plyr->pos.z, 1
-                };
-                double proof_tree[16] = {
-                    0.34,0,0,0, 0,0.34,0,0, 0,0,0.34,0,
-                    tree_base.x, tree_base.y + 2.2, tree_base.z, 1
-                };
-                if ( !logged_staging_frame ) {
-                    point2d_t sp = get_start_pt();
-                    fprintf(stderr,
-                      "Tux Racer Modern: staging debug tux=(%.2f,%.2f,%.2f) start=(%.2f,%.2f) camera=(%.2f,%.2f,%.2f) dir=(%.3f,%.3f,%.3f) side=(%.3f,%.3f) tree=(%.2f,%.2f,%.2f)\\n",
-                      plyr->pos.x,plyr->pos.y,plyr->pos.z,sp.x,sp.y,
-                      plyr->view.pos.x,plyr->view.pos.y,plyr->view.pos.z,
-                      plyr->view.dir.x,plyr->view.dir.y,plyr->view.dir.z,
-                      side.x,side.z,tree_base.x,tree_base.y,tree_base.z);
-                    logged_staging_frame=True;
-                }
-                renderer_metal_draw_sphere(proof_tux,10,1.0f,0.0f,1.0f,1.0f);
-                renderer_metal_draw_sphere(proof_tree,10,0.0f,1.0f,1.0f,1.0f);
+        {
+            int light_phase=-1;
+            if(staging_lights_active){
+                if(staging_lights_time<0.75) light_phase=0;
+                else if(staging_lights_time<1.50) light_phase=1;
+                else light_phase=2;
             }
-
-            for ( lamp=0; lamp<3; ++lamp ) {
-                for ( pair=0; pair<2; ++pair ) {
-                    point_t lp = tree_base;
-                    float pair_offset = pair ? 0.13f : -0.13f;
-                    double model[16];
-                    float rr=0.045f, gg=0.050f, bb=0.055f;
-                    int active = (staging_lights_time < 0.75 && lamp==2) ||
-                                 (staging_lights_time >= 0.75 && staging_lights_time < 1.50 && lamp==1) ||
-                                 (staging_lights_time >= 1.50 && lamp==0);
-
-                    lp = move_point( lp, scale_vector(pair_offset, fwd) );
-                    model[0]=0.145;model[1]=0;model[2]=0;model[3]=0;
-                    model[4]=0;model[5]=0.145;model[6]=0;model[7]=0;
-                    model[8]=0;model[9]=0;model[10]=0.145;model[11]=0;
-                    model[12]=lp.x;model[13]=tree_base.y+0.72+lamp*0.39;
-                    model[14]=lp.z;model[15]=1;
-
-                    if ( active ) {
-                        if ( lamp==2 ) { rr=0.95f; gg=0.07f; bb=0.045f; }
-                        if ( lamp==1 ) { rr=1.00f; gg=0.58f; bb=0.035f; }
-                        if ( lamp==0 ) { rr=0.08f; gg=0.92f; bb=0.16f; }
-                    }
-                    renderer_metal_draw_sphere( model, 10, rr,gg,bb,1.0f );
-                }
-            }
+            draw_start_scene_metal(light_phase);
         }
 #endif
         draw_tux_shadow_metal();
