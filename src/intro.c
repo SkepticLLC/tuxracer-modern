@@ -185,24 +185,51 @@ void intro_loop( scalar_t time_step )
 
 #ifdef __APPLE__
         if ( staging_lights_active ) {
-            point2d_t sp = get_start_pt();
-            float base_y = (float)find_y_coord( sp.x, sp.y );
-            int lamp;
+            /*
+             * Place the drag tree in the player's local start frame, not
+             * global course X. This keeps it visually beside Tux regardless
+             * of course orientation or intro camera angle.
+             */
+            vector_t fwd = plyr->view.dir;
+            vector_t side;
+            point_t tree_base;
+            float side_len;
+            int lamp, pair;
+
+            fwd.y = 0.0;
+            if ( MAG_SQD(fwd) < 0.0001 ) fwd = make_vector(0,0,-1);
+            normalize_vector( &fwd );
+            side = make_vector( fwd.z, 0.0, -fwd.x );
+            side_len = 2.05f;
+
+            tree_base = move_point( plyr->pos, scale_vector(side_len, side) );
+            tree_base = move_point( tree_base, scale_vector(0.10, fwd) );
+            tree_base.y = find_y_coord( tree_base.x, tree_base.z );
+
             for ( lamp=0; lamp<3; ++lamp ) {
-                double model[16] = {
-                    0.18,0,0,0, 0,0.18,0,0, 0,0,0.18,0,
-                    sp.x + 3.25, base_y + 0.78 + lamp*0.46, sp.y - 0.18, 1
-                };
-                float rr=0.055f, gg=0.060f, bb=0.065f;
-                int active = (staging_lights_time < 0.75 && lamp==2) ||
-                             (staging_lights_time >= 0.75 && staging_lights_time < 1.50 && lamp==1) ||
-                             (staging_lights_time >= 1.50 && lamp==0);
-                if ( active ) {
-                    if ( lamp==2 ) { rr=0.95f; gg=0.08f; bb=0.05f; }
-                    if ( lamp==1 ) { rr=1.00f; gg=0.62f; bb=0.04f; }
-                    if ( lamp==0 ) { rr=0.10f; gg=0.90f; bb=0.18f; }
+                for ( pair=0; pair<2; ++pair ) {
+                    point_t lp = tree_base;
+                    float pair_offset = pair ? 0.13f : -0.13f;
+                    double model[16];
+                    float rr=0.045f, gg=0.050f, bb=0.055f;
+                    int active = (staging_lights_time < 0.75 && lamp==2) ||
+                                 (staging_lights_time >= 0.75 && staging_lights_time < 1.50 && lamp==1) ||
+                                 (staging_lights_time >= 1.50 && lamp==0);
+
+                    lp = move_point( lp, scale_vector(pair_offset, fwd) );
+                    model[0]=0.145;model[1]=0;model[2]=0;model[3]=0;
+                    model[4]=0;model[5]=0.145;model[6]=0;model[7]=0;
+                    model[8]=0;model[9]=0;model[10]=0.145;model[11]=0;
+                    model[12]=lp.x;model[13]=tree_base.y+0.72+lamp*0.39;
+                    model[14]=lp.z;model[15]=1;
+
+                    if ( active ) {
+                        if ( lamp==2 ) { rr=0.95f; gg=0.07f; bb=0.045f; }
+                        if ( lamp==1 ) { rr=1.00f; gg=0.58f; bb=0.035f; }
+                        if ( lamp==0 ) { rr=0.08f; gg=0.92f; bb=0.16f; }
+                    }
+                    renderer_metal_draw_sphere( model, 10, rr,gg,bb,1.0f );
                 }
-                renderer_metal_draw_sphere( model, 10, rr,gg,bb,1.0f );
             }
         }
 #endif
