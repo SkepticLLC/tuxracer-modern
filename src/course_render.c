@@ -592,7 +592,6 @@ void draw_items_metal()
             (float)normal.x,
             (float)normal.z,
             handle );
-        }
     }
 #endif
 }
