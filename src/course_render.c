@@ -311,71 +311,10 @@ void draw_mountain_backdrop_metal( point_t eye )
     tux_texture_handle_t far_tex=TUX_INVALID_TEXTURE_HANDLE;
     tux_texture_handle_t mid_tex=TUX_INVALID_TEXTURE_HANDLE;
     tux_texture_handle_t foothill_tex=TUX_INVALID_TEXTURE_HANDLE;
-    scalar_t width, length;
-
-    /*
-     * These bindings are intentionally optional. Until the generated
-     * transparent mountain assets are installed, Modern simply renders the
-     * atmospheric sky rather than falling back to fake screen-space peaks.
-     */
-    {
-        static int reported = 0;
-        bool_t have_far = get_texture_handle_binding( "modern_mountains_far", &far_tex );
-        bool_t have_mid = get_texture_handle_binding( "modern_mountains_mid", &mid_tex );
-        bool_t have_foothills = get_texture_handle_binding( "modern_mountains_foothills", &foothill_tex );
-        if ( !reported ) {
-            fprintf( stderr,
-                     "Tux Racer Modern: mountain bindings far=%d mid=%d foothills=%d handles=%llu/%llu/%llu\n",
-                     have_far, have_mid, have_foothills,
-                     (unsigned long long)far_tex,
-                     (unsigned long long)mid_tex,
-                     (unsigned long long)foothill_tex );
-            reported = 1;
-        }
-        if ( !have_far && !have_mid && !have_foothills ) return;
-    }
-
-    get_course_dimensions( &width, &length );
-
-    /*
-     * Diagnostic proof card: place the far mountain texture 120 m directly
-     * down-course from the current eye. If this appears, texture/shader/card
-     * rendering is proven and only horizon placement remains.
-     */
-    if ( far_tex != TUX_INVALID_TEXTURE_HANDLE ) {
-        static int proof_reported = 0;
-        renderer_metal_draw_mountain_card(
-            (float)eye.x, (float)(eye.y - 18.0), (float)(eye.z - 120.0),
-            180.0f, 72.0f, 1.0f, far_tex );
-        if ( !proof_reported ) {
-            fprintf( stderr,
-                     "Tux Racer Modern: mountain proof card eye=(%.2f,%.2f,%.2f) card=(%.2f,%.2f,%.2f)\n",
-                     eye.x, eye.y, eye.z,
-                     eye.x, eye.y-18.0, eye.z-120.0 );
-            proof_reported = 1;
-        }
-    }
-
-    /*
-     * Cards live beyond the end of the playable course. X follows the
-     * course center only; it does not follow the camera. The enormous
-     * distance naturally produces the tiny parallax we want.
-     */
-    if ( far_tex != TUX_INVALID_TEXTURE_HANDLE )
-        renderer_metal_draw_mountain_card(
-            (float)(width*0.50), -22.0f, (float)(-length-2400.0),
-            4200.0f, 1250.0f, 0.72f, far_tex );
-
-    if ( mid_tex != TUX_INVALID_TEXTURE_HANDLE )
-        renderer_metal_draw_mountain_card(
-            (float)(width*0.50), -28.0f, (float)(-length-1500.0),
-            3000.0f, 820.0f, 0.82f, mid_tex );
-
-    if ( foothill_tex != TUX_INVALID_TEXTURE_HANDLE )
-        renderer_metal_draw_mountain_card(
-            (float)(width*0.50), -34.0f, (float)(-length-850.0),
-            2100.0f, 430.0f, 0.72f, foothill_tex );
-
+    get_texture_handle_binding( "modern_mountains_far", &far_tex );
+    get_texture_handle_binding( "modern_mountains_mid", &mid_tex );
+    get_texture_handle_binding( "modern_mountains_foothills", &foothill_tex );
+    renderer_metal_set_mountain_layers( far_tex, mid_tex, foothill_tex );
     (void)eye;
 #endif
 }
