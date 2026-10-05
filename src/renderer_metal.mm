@@ -1000,11 +1000,12 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
 
         /* Stable distant scenery: screen-space depth layers behind terrain. */
         renderer_metal_draw_background_mountain_layer(
-            g_mountain_far_handle, -0.38f, 0.36f, 0.68f );
-        renderer_metal_draw_background_mountain_layer(
-            g_mountain_mid_handle, -0.48f, 0.22f, 0.78f );
-        renderer_metal_draw_background_mountain_layer(
-            g_mountain_foothill_handle, -0.58f, 0.06f, 0.82f );
+            g_mountain_far_handle, -0.46f, 0.34f, 0.82f );
+        /*
+         * Do not stack duplicate photographic source art. Mid/foothill
+         * layers are re-enabled when their mountain-only alpha assets are
+         * installed.
+         */
 
         /* Procedural mountain shader retained for diagnostics only.
          * Production Modern uses world-space textured mountain cards. */
