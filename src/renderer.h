@@ -47,6 +47,7 @@ int renderer_metal_compare_enabled( void );
 void renderer_toggle_metal_native( void );
 int renderer_metal_native_enabled( void );
 void renderer_sync_mode_visibility( int mode );
+void renderer_set_hud_state( float speed_kmh, float race_time, float energy, int herring );
 void renderer_present_native_metal_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
 typedef struct {
