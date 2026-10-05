@@ -12,6 +12,7 @@
 #include <string.h>
 #include <mach/mach_time.h>
 #include "renderer_metal.h"
+#include "course_load.h"
 #include "metal_present.h"
 
 static id<MTLDevice> g_device = nil;
