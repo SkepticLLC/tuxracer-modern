@@ -55,6 +55,15 @@ void      set_tux_pos( player_data_t *plyr, point_t newPos );
 void      update_player_pos( player_data_t *plyr, scalar_t dtime );
 void      init_physical_simulation();
 
+/*
+ * Modern visual-only tree impact hook.
+ * Physics/collision behavior remains authoritative in phys_sim.c.
+ */
+typedef void (*tree_impact_visual_callback_t)( point_t tree_loc,
+                                               scalar_t tree_diam,
+                                               scalar_t impact_speed );
+void set_tree_impact_visual_callback( tree_impact_visual_callback_t callback );
+
 #endif /* _PHYS_SIM_H_ */
 
 #ifdef __cplusplus
