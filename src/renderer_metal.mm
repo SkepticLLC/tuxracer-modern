@@ -1418,3 +1418,36 @@ void renderer_metal_draw_mountain_card( float center_x, float base_y, float cent
         [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
     }
 }
+
+
+void renderer_metal_draw_colored_box( float cx,float cy,float cz,
+                                      float sx,float sy,float sz,
+                                      float r,float g,float b,float a )
+{
+    @autoreleasepool {
+        static const float unit[36][3]={
+            {-1,-1, 1},{ 1,-1, 1},{ 1, 1, 1},{-1,-1, 1},{ 1, 1, 1},{-1, 1, 1},
+            { 1,-1,-1},{-1,-1,-1},{-1, 1,-1},{ 1,-1,-1},{-1, 1,-1},{ 1, 1,-1},
+            {-1,-1,-1},{-1,-1, 1},{-1, 1, 1},{-1,-1,-1},{-1, 1, 1},{-1, 1,-1},
+            { 1,-1, 1},{ 1,-1,-1},{ 1, 1,-1},{ 1,-1, 1},{ 1, 1,-1},{ 1, 1, 1},
+            {-1, 1, 1},{ 1, 1, 1},{ 1, 1,-1},{-1, 1, 1},{ 1, 1,-1},{-1, 1,-1},
+            {-1,-1,-1},{ 1,-1,-1},{ 1,-1, 1},{-1,-1,-1},{ 1,-1, 1},{-1,-1, 1}
+        };
+        typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
+        sv_t v[36]; int i;
+        double model[16]={sx*0.5,0,0,0, 0,sy*0.5,0,0, 0,0,sz*0.5,0, cx,cy,cz,1};
+        for(i=0;i<36;i++){
+            float x=unit[i][0],y=unit[i][1],z=unit[i][2];
+            float ax=fabsf(x),ay=fabsf(y),az=fabsf(z);
+            float nx=0,ny=0,nz=0;
+            if(ay>=ax&&ay>=az)ny=(y>0?1:-1);
+            else if(ax>=az)nx=(x>0?1:-1); else nz=(z>0?1:-1);
+            v[i]=(sv_t){x,y,z,nx,ny,nz};
+        }
+        if(g_frame_encoder==nil||g_sphere_pipeline==nil)return;
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+        if(vb==nil)return;
+        renderer_metal_draw_sphere(model,6,r,g,b,a);
+        (void)vb;
+    }
+}
