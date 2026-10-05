@@ -582,6 +582,16 @@ void draw_items_metal()
         normal.x /= len;
         normal.z /= len;
 
+        if ( strcmp( item_name, "start" ) == 0 ) {
+            renderer_metal_draw_start_banner(
+                (float)itemLocs[i].ray.pt.x,
+                (float)(get_renderer_course_height( itemLocs[i].ray.pt.x,
+                                             itemLocs[i].ray.pt.z ) + 0.015),
+                (float)itemLocs[i].ray.pt.z,
+                (float)(itemLocs[i].diam * 0.5),
+                (float)itemLocs[i].height,
+                (float)normal.x, (float)normal.z, handle );
+        } else {
         renderer_metal_draw_billboard(
             (float)itemLocs[i].ray.pt.x,
             (float)(get_renderer_course_height( itemLocs[i].ray.pt.x,
@@ -592,6 +602,7 @@ void draw_items_metal()
             (float)normal.x,
             (float)normal.z,
             handle );
+        }
     }
 #endif
 }
