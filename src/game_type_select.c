@@ -31,221 +31,43 @@
 #include "ui_snow.h"
 #include "joystick.h"
 
-static button_t *enter_event_btn = NULL;
-static button_t *practice_btn = NULL;
-static button_t *credits_btn = NULL;
-static button_t *quit_btn = NULL;
+static int modern_home_selected=0;
 
-
-void enter_event_click_cb( button_t* button, void *userdata )
+static void modern_home_activate(void)
 {
-    check_assertion( userdata == NULL, "userdata is not null" );
-
-    g_game.current_event = NULL;
-    g_game.current_cup = NULL;
-    g_game.current_race = -1;
-    g_game.practicing = False;
-
-    set_game_mode( EVENT_SELECT );
-
-    ui_set_dirty();
-}
-
-void practice_click_cb( button_t *button, void *userdata )
-{
-    check_assertion( userdata == NULL, "userdata is not null" );
-
-    g_game.current_event = NULL;
-    g_game.current_cup = NULL;
-    g_game.current_race = -1;
-    g_game.practicing = True;
-
-    set_game_mode( RACE_SELECT );
-
-    ui_set_dirty();
-}
-
-void credits_click_cb( button_t *button, void *userdata )
-{
-    check_assertion( userdata == NULL, "userdata is not null" );
-
-    set_game_mode( CREDITS );
-
-    ui_set_dirty();
-}
-
-void quit_click_cb( button_t *button, void *userdata )
-{
-    check_assertion( userdata == NULL, "userdata is not null" );
-
-    winsys_exit( 0 );
-}
-
-static void set_widget_positions()
-{
-    button_t **button_list[] = { &practice_btn,
-                                  &enter_event_btn,
-                                  &credits_btn,
-                                  &quit_btn };
-    int w = getparam_x_resolution();
-    int h = getparam_y_resolution();
-    int box_height;
-    int box_max_y;
-    int top_y;
-    int bottom_y;
-    int num_buttons = sizeof( button_list ) / sizeof( button_list[0] );
-    int i;
-    int tot_button_height = 0;
-    int button_sep =0;
-    int cur_y_pos;
-
-    box_height = 330;
-    box_max_y = h - 120;
-
-    bottom_y = 0.50*h - box_height/2;
-
-    if ( bottom_y + box_height > box_max_y ) {
-	bottom_y = box_max_y - box_height;
-    }
-
-    top_y = bottom_y + box_height;
-
-    for (i=0; i<num_buttons; i++) {
-	tot_button_height += button_get_height( *button_list[i] );
-    }
-
-    if ( num_buttons > 1 ) {
-	button_sep = ( top_y - bottom_y - tot_button_height ) / 
-	    ( num_buttons - 1 );
-	button_sep = max( 0, button_sep );
-    }
-
-    cur_y_pos = top_y;
-    for (i=0; i<num_buttons; i++) {
-	cur_y_pos -= button_get_height( *button_list[i] );
-	button_set_position( 
-	    *button_list[i],
-	    make_point2d( w*0.095,
-                          cur_y_pos ) );
-	cur_y_pos -= button_sep;
+    g_game.current_event=NULL;g_game.current_cup=NULL;g_game.current_race=-1;
+    switch(modern_home_selected){
+    case 0:g_game.practicing=False;set_game_mode(EVENT_SELECT);break;
+    case 1:g_game.practicing=True;set_game_mode(RACE_SELECT);break;
+    case 2:set_game_mode(CREDITS);break;
+    case 3:winsys_exit(0);break;
     }
 }
-
 static void game_type_select_init(void)
 {
-    point2d_t dummy_pos = {0, 0};
-
-    winsys_set_display_func( main_loop );
-    winsys_set_idle_func( main_loop );
-    winsys_set_reshape_func( reshape );
-    winsys_set_mouse_func( ui_event_mouse_func );
-    winsys_set_motion_func( ui_event_motion_func );
-    winsys_set_passive_motion_func( ui_event_motion_func );
-
-    enter_event_btn = button_create( dummy_pos,
-				     430, 58, 
-				     "button_label", 
-				     "RACE" );
-    button_set_hilit_font_binding( enter_event_btn, "button_label_hilit" );
-    button_set_visible( enter_event_btn, True );
-    button_set_click_event_cb( enter_event_btn, enter_event_click_cb, NULL );
-
-    practice_btn = button_create( dummy_pos,
-				  430, 58,
-				  "button_label",
-				  "PRACTICE" );
-    button_set_hilit_font_binding( practice_btn, "button_label_hilit" );
-    button_set_visible( practice_btn, True );
-    button_set_click_event_cb( practice_btn, practice_click_cb, NULL );
-
-    credits_btn = button_create( dummy_pos,
-				  430, 58,
-				  "button_label",
-				  "CREDITS" );
-    button_set_hilit_font_binding( credits_btn, "button_label_hilit" );
-    button_set_visible( credits_btn, True );
-    button_set_click_event_cb( credits_btn, credits_click_cb, NULL );
-
-    quit_btn = button_create( dummy_pos,
-			      430, 58,
-			      "button_label",
-			      "QUIT" );
-    button_set_hilit_font_binding( quit_btn, "button_label_hilit" );
-    button_set_visible( quit_btn, True );
-    button_set_click_event_cb( quit_btn, quit_click_cb, NULL );
-
-    play_music( "start_screen" );
+    winsys_set_display_func(main_loop);winsys_set_idle_func(main_loop);winsys_set_reshape_func(reshape);
+    modern_home_selected=0;play_music("start_screen");
 }
-
-static void game_type_select_loop( scalar_t time_step )
+static void game_type_select_loop(scalar_t time_step)
 {
-    check_gl_error();
-
-    update_audio();
-
-    set_gl_options( GUI );
-
-    clear_rendering_context();
-
-    set_widget_positions();
-
-    ui_setup_display();
-
-    ui_draw_menu_decorations();
-
-    ui_draw();
-
-    reshape( getparam_x_resolution(), getparam_y_resolution() );
-
-    winsys_swap_buffers();
+    int w=getparam_x_resolution(),h=getparam_y_resolution();(void)time_step;update_audio();
+#ifdef __APPLE__
+    if(renderer_metal_begin_menu_frame(w,h)){renderer_metal_draw_home_menu(modern_home_selected);renderer_metal_end_menu_frame();}
+#else
+    clear_rendering_context();ui_setup_display();ui_draw_menu_decorations();reshape(w,h);winsys_swap_buffers();
+#endif
 }
-
-static void game_type_select_term(void)
+static void game_type_select_term(void){}
+START_KEYBOARD_CB(game_type_select_cb)
 {
-    button_delete( enter_event_btn );
-    enter_event_btn = NULL;
-
-    button_delete( practice_btn );
-    practice_btn = NULL;
-
-    button_delete( credits_btn );
-    credits_btn = NULL;
-
-    button_delete( quit_btn );
-    quit_btn = NULL;
-}
-
-START_KEYBOARD_CB( game_type_select_cb )
-{
-    if (release) return;
-
-    if ( !special ) {
-	key = (int) tolower( (char) key );
-
-	switch( key ) {
-	case 'q':
-	case 27: /* Esc */
-	    winsys_exit(0);
-	    break;
-	case 'e':
-	case 13: /* Enter */
-	    if ( enter_event_btn ) {
-		button_simulate_mouse_click( enter_event_btn );
-	    }
-	    break;
-	case 'p':
-	    if ( practice_btn ) {
-		button_simulate_mouse_click( practice_btn );
-	    }
-	    break;
-	case 'c':
-	    if ( credits_btn ) {
-		button_simulate_mouse_click( credits_btn );
-	    }
-	    break;
-	}
+    if(release)return;
+    if(special){
+        if(key==WSK_UP)modern_home_selected=(modern_home_selected+3)%4;
+        else if(key==WSK_DOWN)modern_home_selected=(modern_home_selected+1)%4;
+    }else{
+        if(key==13)modern_home_activate();
+        else if(key==27||tolower((char)key)=='q')winsys_exit(0);
     }
-
     winsys_post_redisplay();
 }
 END_KEYBOARD_CB
