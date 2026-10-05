@@ -173,11 +173,8 @@ void update_race_data( void )
 
 	g_game.race.time_req[0] = data->par_time;
 
-	g_game.race.mirrored = (bool_t) ssbutton_get_state( mirror_ssbtn );
-	g_game.race.conditions = (race_conditions_t) ssbutton_get_state(
-	    conditions_ssbtn );
-	g_game.race.windy = (bool_t) ssbutton_get_state( wind_ssbtn );
-	g_game.race.snowing = (bool_t) ssbutton_get_state( snow_ssbtn );
+        /* Modern Practice owns these values directly; no hidden UI widgets. */
+        g_game.race.snowing = False;
     } else {
 	race_data_t *data;
 	data = (race_data_t*) get_list_elem_data( cur_elem );
@@ -633,8 +630,8 @@ static void modern_draw_race_select( void )
 
     if(g_game.practicing){
         snprintf(line,sizeof(line),"CONDITIONS   %s",
-                 g_game.race.conditions==RACE_CONDITIONS_SUNNY?"CLEAR":
-                 g_game.race.conditions==RACE_CONDITIONS_CLOUDY?"CLOUDY":"NIGHT");
+                 g_game.race.conditions==0?"CLEAR":
+                 g_game.race.conditions==1?"CLOUDY":"NIGHT");
         modern_draw_text("modern_screen_meta",line,w*.065,h*.445);
         snprintf(line,sizeof(line),"WIND         %s",g_game.race.windy?"ON":"OFF");
         modern_draw_text("modern_screen_meta",line,w*.065,h*.395);
@@ -973,6 +970,13 @@ static void race_select_init(void)
 	}
     }
 
+    if ( g_game.practicing ) {
+        /* Modern Practice is a standalone screen: no legacy widgets. */
+        update_race_data();
+        play_music( "start_screen" );
+        return;
+    }
+
     back_btn = button_create( dummy_pos,
 			      150, 40, 
 			      "button_label", 
@@ -1210,7 +1214,9 @@ static void race_select_term(void)
     }
     mirror_ssbtn = NULL;
 
-    textarea_delete( desc_ta );
+    if ( desc_ta ) {
+        textarea_delete( desc_ta );
+    }
     desc_ta = NULL;
 }
 
@@ -1260,10 +1266,84 @@ void toggle_wind( void )
 }
 
 
+static void modern_practice_select_prev( void )
+{
+    list_elem_t prev;
+    if ( cur_elem == NULL ) return;
+    prev = get_prev_list_elem( race_list, cur_elem );
+    if ( prev == NULL ) prev = get_list_tail( race_list );
+    cur_elem = prev;
+    update_race_data();
+}
+
+static void modern_practice_select_next( void )
+{
+    list_elem_t next;
+    if ( cur_elem == NULL ) return;
+    next = get_next_list_elem( race_list, cur_elem );
+    if ( next == NULL ) next = get_list_head( race_list );
+    cur_elem = next;
+    update_race_data();
+}
+
+static void modern_practice_cycle_conditions( void )
+{
+    int c=(int)g_game.race.conditions;
+    c=(c+1)%3;
+    g_game.race.conditions=(race_conditions_t)c;
+}
+
+static void modern_practice_toggle_wind( void )
+{
+    g_game.race.windy = g_game.race.windy ? False : True;
+}
+
+static void modern_practice_toggle_mirror( void )
+{
+    g_game.race.mirrored = g_game.race.mirrored ? False : True;
+}
+
 START_KEYBOARD_CB( race_select_key_cb )
 {
     if ( release ) {
 	return;
+    }
+
+    if ( g_game.practicing ) {
+        if ( special ) {
+            switch ( key ) {
+            case WSK_UP:
+            case WSK_LEFT:
+                modern_practice_select_prev();
+                break;
+            case WSK_RIGHT:
+            case WSK_DOWN:
+                modern_practice_select_next();
+                break;
+            }
+        } else {
+            key=(int)tolower((char)key);
+            switch(key) {
+            case 13:
+                update_race_data();
+                set_game_mode( LOADING );
+                break;
+            case 27:
+                set_game_mode( GAME_TYPE_SELECT );
+                break;
+            case 'c':
+                modern_practice_cycle_conditions();
+                break;
+            case 'w':
+                modern_practice_toggle_wind();
+                break;
+            case 'm':
+                modern_practice_toggle_mirror();
+                break;
+            }
+        }
+        ui_set_dirty();
+        return;
     }
 
     if ( special ) {
