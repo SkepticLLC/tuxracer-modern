@@ -611,7 +611,8 @@ void set_tux_pos( player_data_t *plyr, point_t new_pos )
 } 
 
 bool_t check_tree_collisions( player_data_t *plyr, point_t pos, 
-			      point_t *tree_loc, scalar_t *tree_diam )
+			      point_t *tree_loc, scalar_t *tree_diam,
+                              scalar_t *tree_height )
 {
     tree_t *trees;
     int num_trees, i;
@@ -630,6 +631,7 @@ bool_t check_tree_collisions( player_data_t *plyr, point_t pos,
     static bool_t last_collision = False;
     static point_t last_collision_tree_loc = { -999, -999, -999 };
     static scalar_t last_collision_tree_diam = 0;
+    static scalar_t last_collision_tree_height = 0;
     static point_t last_collision_pos = { -999, -999, -999 };
 
     /* If we haven't moved very much since the last call, we re-use
@@ -643,6 +645,9 @@ bool_t check_tree_collisions( player_data_t *plyr, point_t pos,
 	    if ( tree_diam != NULL ) {
 		*tree_diam = last_collision_tree_diam;
 	    }
+            if ( tree_height != NULL ) {
+                *tree_height = last_collision_tree_height;
+            }
 	    return True;
 	} else {
 	    return False;
@@ -697,7 +702,9 @@ bool_t check_tree_collisions( player_data_t *plyr, point_t pos,
 	    if ( tree_diam != NULL ) {
 		*tree_diam = diam;
 	    }
-
+            if ( tree_height != NULL ) {
+                *tree_height = height;
+            }
 
             break;
         } 
@@ -705,6 +712,7 @@ bool_t check_tree_collisions( player_data_t *plyr, point_t pos,
 
     last_collision_tree_loc = loc;
     last_collision_tree_diam = diam;
+    last_collision_tree_height = height;
     last_collision_pos = pos;
 
     if ( hit ) {
@@ -805,8 +813,9 @@ static void adjust_for_tree_collision( player_data_t *plyr,
     scalar_t speed;
     scalar_t costheta;
     scalar_t tree_diam;
+    scalar_t tree_height;
 
-    treeHit = check_tree_collisions( plyr, pos, &treeLoc, &tree_diam );
+    treeHit = check_tree_collisions( plyr, pos, &treeLoc, &tree_diam, &tree_height );
     if (treeHit) {
 	/*
 	 * Calculate the normal vector to the tree; here we model the tree
@@ -820,7 +829,7 @@ static void adjust_for_tree_collision( player_data_t *plyr,
 	/* Reduce speed by a minimum of 30% */
         speed = normalize_vector( vel );
         if ( tree_impact_visual_callback != NULL ) {
-            tree_impact_visual_callback( treeLoc, tree_diam, speed );
+            tree_impact_visual_callback( treeLoc, tree_diam, tree_height, speed );
         }
         speed *= 0.7;
 
