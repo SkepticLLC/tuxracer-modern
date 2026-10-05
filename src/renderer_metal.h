@@ -69,6 +69,10 @@ void renderer_metal_draw_billboard( float x, float y, float z,
                                     float radius, float height,
                                     float nx, float nz,
                                     tux_texture_handle_t texture );
+void renderer_metal_draw_start_banner( float x, float y, float z,
+                                      float radius, float height,
+                                      float nx, float nz,
+                                      tux_texture_handle_t texture );
 
 int renderer_metal_read_present_frame( unsigned char *rgba,
                                        size_t rgba_bytes,
