@@ -73,6 +73,7 @@ static scalar_t last_tree_snow_time = -999.0;
 
 static void modern_tree_impact_visual( point_t tree_loc,
                                       scalar_t tree_diam,
+                                      scalar_t tree_height,
                                       scalar_t impact_speed )
 {
     point_t burst;
@@ -87,18 +88,36 @@ static void modern_tree_impact_visual( point_t tree_loc,
     if ( g_game.time - last_tree_snow_time < 0.30 &&
          MAG_SQD( delta ) < 1.0 ) return;
 
-    energy = min( 1.0, max( 0.18, impact_speed / 22.0 ) );
-    count = (int)( 18 + energy * 54 );
+    /*
+     * Typical race speeds are high enough that the old /22 mapping
+     * saturated almost every collision. Map 4..38 m/s across the useful
+     * range and square it so grazes remain subtle while hard impacts pop.
+     */
+    energy = min( 1.0, max( 0.0, (impact_speed - 4.0) / 34.0 ) );
+    energy = energy * energy;
+
+    /*
+     * Shed from several branch bands instead of the crown. The existing
+     * particle emitter supplies natural radial jitter around each band.
+     */
+    count = (int)( 5 + energy * 23 );
 
     burst = tree_loc;
     burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
-              max( 1.2, tree_diam * 1.8 );
-
-    velocity = make_vector( 0.0,
-                            1.8 + energy * 3.2,
-                            -0.7 - energy * 1.5 );
-
+              tree_height * 0.36;
+    velocity = make_vector( 0.0, 0.7 + energy * 2.0, -0.3 - energy * 0.8 );
     create_new_particles( burst, velocity, count );
+
+    if ( energy > 0.12 ) {
+        burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
+                  tree_height * 0.55;
+        create_new_particles( burst, velocity, (int)(4 + energy * 18) );
+    }
+    if ( energy > 0.42 ) {
+        burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
+                  tree_height * 0.72;
+        create_new_particles( burst, velocity, (int)(3 + energy * 14) );
+    }
 
     last_tree_snow_loc = tree_loc;
     last_tree_snow_time = g_game.time;
