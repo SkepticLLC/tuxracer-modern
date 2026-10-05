@@ -1483,15 +1483,7 @@ void renderer_metal_draw_home_menu( int selected )
         int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
-        menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
-        renderer_metal_draw_background_mountain_layer(g_menu_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
-        renderer_metal_draw_background_mountain_layer(g_menu_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
-        renderer_metal_draw_background_mountain_layer(g_menu_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
-        menu_box(0,0,g_native_width,g_native_height*.18f,.78f,.88f,.96f,.08f);
-
-        /* Centered, restrained readability field -- no vertical bands. */
-        menu_box(g_native_width*.28f,g_native_height*.13f,g_native_width*.44f,g_native_height*.74f,
-                 .006f,.018f,.034f,.18f);
+        modern_menu_backdrop();
 
         cx=(float)g_native_width*.5f;
         title_x=cx-205.0f*ui;
@@ -1513,6 +1505,51 @@ void renderer_metal_draw_home_menu( int selected )
             modern_metal_text(item_x,y,"modern_hud_speed",items[i],.88f*ui,alpha);
             y-=90.0f*ui;
         }
+    }
+}
+
+static void modern_menu_backdrop(void)
+{
+    menu_box(0,0,g_native_width,g_native_height,.075f,.20f,.34f,1.0f);
+    renderer_metal_draw_background_mountain_layer(g_menu_mountain_far_handle,-.18f,.72f,.98f,-.015f,1.015f);
+    renderer_metal_draw_background_mountain_layer(g_menu_mountain_mid_handle,-.30f,.53f,.86f,.01f,.99f);
+    renderer_metal_draw_background_mountain_layer(g_menu_mountain_foothill_handle,-.48f,.30f,.80f,.025f,.975f);
+    /* Cinematic edge treatments, not layout panels. */
+    menu_box(0,0,g_native_width,g_native_height*.12f,.005f,.012f,.020f,.20f);
+    menu_box(0,g_native_height*.88f,g_native_width,g_native_height*.12f,.005f,.012f,.020f,.12f);
+}
+
+void renderer_metal_draw_course_menu( const char *course_name,
+                                      const char *description,
+                                      const char *progress,
+                                      const char *requirements,
+                                      int can_start )
+{
+    @autoreleasepool {
+        float ui=(float)g_native_height/2168.0f,x,y;
+        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
+        if(!course_name)course_name="COURSE"; if(!description)description="";
+        if(!progress)progress=""; if(!requirements)requirements="";
+        modern_menu_backdrop();
+
+        /* Bottom cinematic information shelf; artwork remains the hero. */
+        menu_box(0,0,g_native_width,g_native_height*.35f,.004f,.012f,.022f,.64f);
+        x=100.0f*ui; y=g_native_height*.30f;
+        modern_metal_text(x,y,"modern_hud_small","COURSE",.90f*ui,.66f);
+        y-=62.0f*ui;
+        modern_metal_text(x,y,"modern_hud_speed",course_name,1.08f*ui,1.0f);
+        y-=72.0f*ui;
+        modern_metal_text(x,y,"modern_hud_small",description,.78f*ui,.76f);
+
+        x=g_native_width-610.0f*ui; y=g_native_height*.27f;
+        modern_metal_text(x,y,"modern_hud_small",progress,.86f*ui,.72f);
+        y-=68.0f*ui;
+        modern_metal_text(x,y,"modern_hud_small",requirements,.76f*ui,.62f);
+        y-=82.0f*ui;
+        modern_metal_text(x,y,"modern_hud_speed",can_start?"START RACE":"LOCKED",.82f*ui,can_start?1.0f:.48f);
+
+        modern_metal_text(100.0f*ui,g_native_height-92.0f*ui,
+                          "modern_hud_small","TUX RACER MODERN",.76f*ui,.58f);
     }
 }
 
