@@ -197,7 +197,7 @@ int renderer_metal_initialize_resources( void )
                 "struct TextVertex { packed_float2 position; packed_float2 uv; };\n"
                 "struct TextOut { float4 position [[position]]; float2 uv; };\n"
                 "vertex TextOut text_vertex(uint vid [[vertex_id]], const device TextVertex *v [[buffer(0)]]) { TextOut o; o.position=float4(float2(v[vid].position),0,1); o.uv=float2(v[vid].uv); return o; }\n"
-                "fragment float4 text_fragment(TextOut in [[stage_in]], constant OverlayUniforms &u [[buffer(0)]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { float4 s=tex.sample(samp,in.uv); float a=max(s.a,max(s.r,max(s.g,s.b))); return float4(u.color.rgb,u.color.a*a); }\n"
+                "fragment float4 text_fragment(TextOut in [[stage_in]], constant OverlayUniforms &u [[buffer(0)]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { float4 s=tex.sample(samp,in.uv); float lum=max(s.r,max(s.g,s.b)); float a=s.a<0.999? s.a : lum; return float4(u.color.rgb,u.color.a*a); }\n"
                 "struct OverlayOut { float4 position [[position]]; };\n"
                 "vertex OverlayOut overlay_vertex(uint vid [[vertex_id]], const device OverlayVertex *v [[buffer(0)]]) { "
                 "OverlayOut o; o.position=float4(float2(v[vid].position),0.0,1.0); return o; }\n"
