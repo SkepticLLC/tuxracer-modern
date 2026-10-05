@@ -228,7 +228,7 @@ void renderer_toggle_metal_native( void )
 #endif
 }
 
-void renderer_sync_mode_visibility( game_mode_t mode )
+void renderer_sync_mode_visibility( int mode )
 {
 #ifdef __APPLE__
     /*
