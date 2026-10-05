@@ -19,6 +19,9 @@
 
 
 #include "tuxracer.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 #include "course_load.h"
 #include "course_render.h"
 #include "course_quad.h"
@@ -278,6 +281,10 @@ static void reset_course()
     free( renderer_vertices ); renderer_vertices = NULL;
     free( renderer_grid_indices ); renderer_grid_indices = NULL;
     renderer_grid_index_count = 0;
+#ifdef __APPLE__
+    /* A new course must never reuse the previous course's GPU geometry. */
+    renderer_metal_reset_course_resources();
+#endif
 
     for ( i = 0; i < num_tree_types; i++) {
 	unbind_texture( tree_types[i].name );
