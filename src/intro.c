@@ -38,6 +38,9 @@
 #include "course_load.h"
 #include "joystick.h"
 #include "renderer.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 static bool_t staging_lights_active = False;
 static scalar_t staging_lights_time = 0.0;
@@ -178,6 +181,30 @@ void intro_loop( scalar_t time_step )
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
+
+#ifdef __APPLE__
+        if ( staging_lights_active ) {
+            point2d_t sp = get_start_pt();
+            float base_y = (float)find_y_coord( sp.x, sp.y );
+            int lamp;
+            for ( lamp=0; lamp<3; ++lamp ) {
+                double model[16] = {
+                    0.22,0,0,0, 0,0.22,0,0, 0,0,0.22,0,
+                    sp.x + 3.9, base_y + 1.05 + lamp*0.52, sp.y - 0.35, 1
+                };
+                float rr=0.055f, gg=0.060f, bb=0.065f;
+                int active = (staging_lights_time < 0.75 && lamp==2) ||
+                             (staging_lights_time >= 0.75 && staging_lights_time < 1.50 && lamp==1) ||
+                             (staging_lights_time >= 1.50 && lamp==0);
+                if ( active ) {
+                    if ( lamp==2 ) { rr=0.95f; gg=0.08f; bb=0.05f; }
+                    if ( lamp==1 ) { rr=1.00f; gg=0.62f; bb=0.04f; }
+                    if ( lamp==0 ) { rr=0.10f; gg=0.90f; bb=0.18f; }
+                }
+                renderer_metal_draw_sphere( model, 10, rr,gg,bb,1.0f );
+            }
+        }
+#endif
         draw_tux_shadow_metal();
         draw_tux_metal();
     }
