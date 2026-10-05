@@ -1440,7 +1440,7 @@ int renderer_metal_begin_menu_frame( int width, int height )
         void *opaque;
         if(width<=0||height<=0||g_command_queue==nil||g_overlay_pipeline==nil)return 0;
         renderer_metal_set_native_visible(1);
-        opaque=tux_metal_present_next_drawable(); if(!opaque)return 0;
+        opaque=metal_present_next_drawable(); if(!opaque)return 0;
         g_native_drawable=(__bridge_transfer id<CAMetalDrawable>)opaque;
         g_native_width=width;g_native_height=height;
         g_frame_command_buffer=[g_command_queue commandBuffer];if(!g_frame_command_buffer)return 0;
