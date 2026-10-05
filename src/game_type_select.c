@@ -30,6 +30,9 @@
 #include "multiplayer.h"
 #include "ui_snow.h"
 #include "joystick.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 static int modern_home_selected=0;
 
@@ -74,16 +77,12 @@ END_KEYBOARD_CB
 
 void game_type_select_register()
 {
-    int status = 0;
-
-    status |=
-	add_keymap_entry( GAME_TYPE_SELECT,
-			  DEFAULT_CALLBACK, NULL, NULL, game_type_select_cb );
-    register_loop_funcs( GAME_TYPE_SELECT, 
-			 game_type_select_init,
-			 game_type_select_loop,
-			 game_type_select_term );
-
+    add_keymap_entry( GAME_TYPE_SELECT,
+                      DEFAULT_CALLBACK, NULL, NULL, game_type_select_cb );
+    register_loop_funcs( GAME_TYPE_SELECT,
+                         game_type_select_init,
+                         game_type_select_loop,
+                         game_type_select_term );
 }
 
 
