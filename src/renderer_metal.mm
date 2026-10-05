@@ -1283,6 +1283,40 @@ void renderer_metal_draw_sphere( const double model[16],
 }
 
 
+void renderer_metal_draw_ground_strip( float cx,float cz,float width,float depth,
+                                      float r,float g,float b,float a )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
+        typedef struct { float mvp[16], model[16], color[4]; } su_t;
+        const int seg=24; sv_t v[24*6]; int i,k=0;
+        su_t u; float ident[16]={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+        const float *vp;
+        if(g_frame_encoder==nil||g_sphere_pipeline==nil||g_camera_uniform_buffer==nil)return;
+        for(i=0;i<seg;i++){
+            float x0=cx-width*0.5f+width*i/seg, x1=cx-width*0.5f+width*(i+1)/seg;
+            float z0=cz-depth*0.5f, z1=cz+depth*0.5f;
+            float y00=(float)get_renderer_course_height(x0,z0)+0.018f;
+            float y10=(float)get_renderer_course_height(x1,z0)+0.018f;
+            float y11=(float)get_renderer_course_height(x1,z1)+0.018f;
+            float y01=(float)get_renderer_course_height(x0,z1)+0.018f;
+            v[k++]={x0,y00,z0,0,1,0};v[k++]={x1,y10,z0,0,1,0};v[k++]={x1,y11,z1,0,1,0};
+            v[k++]={x0,y00,z0,0,1,0};v[k++]={x1,y11,z1,0,1,0};v[k++]={x0,y01,z1,0,1,0};
+        }
+        vp=(const float *)[g_camera_uniform_buffer contents];
+        memcpy(u.mvp,vp,sizeof(u.mvp));memcpy(u.model,ident,sizeof(u.model));
+        u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+        id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+        if(vb==nil||ub==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:seg*6];
+    }
+}
+
 void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
                                          float radius_x, float radius_z,
                                          float alpha )
