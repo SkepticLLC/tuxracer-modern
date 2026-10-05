@@ -1329,8 +1329,8 @@ void renderer_metal_draw_mountain_card( float center_x, float base_y, float cent
         id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v)
                                               options:MTLResourceStorageModeShared];
         if(vb==nil)return;
-        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
-        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setRenderPipelineState:g_mountain_card_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_readonly_state];
         [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
         [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
         [g_frame_encoder setFragmentTexture:tex atIndex:0];
