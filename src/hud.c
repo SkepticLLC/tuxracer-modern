@@ -71,94 +71,57 @@ static GLfloat energy_foreground_color[] = { 0.54, 0.59, 1.00, 0.5 };
 static GLfloat speedbar_background_color[] = { 0.2, 0.2, 0.2, 0.5 };
 static GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
 
+static void draw_modern_panel( scalar_t x, scalar_t y,
+                               scalar_t w, scalar_t h )
+{
+    set_gl_options( GUI );
+    glDisable( GL_TEXTURE_2D );
+    glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glColor4f( 0.025f, 0.045f, 0.070f, 0.48f );
+    glBegin( GL_QUADS );
+    glVertex2f( x, y );
+    glVertex2f( x+w, y );
+    glVertex2f( x+w, y+h );
+    glVertex2f( x, y+h );
+    glEnd();
+}
+
 static void draw_time()
 {
-    font_t *font;
+    font_t *value_font, *small_font;
     int minutes, seconds, hundredths;
-    char *string;
     int w, asc, desc;
-    char *binding;
     char buff[BUFF_LEN];
-    scalar_t time_y_refval;
+    char hundredths_buff[16];
 
     get_time_components( g_game.time, &minutes, &seconds, &hundredths );
-
-    binding = "time_label";
-
-    if ( ! get_font_binding( binding, &font ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get font for binding %s", binding );
-	return;
-    }
-
-    bind_font_texture( font );
-    set_gl_options( TEXFONT );
-    glColor3f( 1, 1, 1 );
-
-    string = "Time";
-
-    get_font_metrics( font, string, &w, &asc, &desc );
-
-    glPushMatrix();
-    {
-	glTranslatef( TIME_LABEL_X_OFFSET, 
-		      getparam_y_resolution() - TIME_LABEL_Y_OFFSET - 
-		      asc, 
-		      0 );
-	draw_string( font, string );
-    }
-    glPopMatrix();
-
-
-    time_y_refval = getparam_y_resolution() - TIME_LABEL_Y_OFFSET - asc;
-
-    binding = "time_value";
-
-    if ( ! get_font_binding( binding, &font ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get font for binding %s", binding );
-	return;
-    }
-
-    bind_font_texture( font );
+    if ( !get_font_binding( "modern_hud_value", &value_font ) ||
+         !get_font_binding( "modern_hud_small", &small_font ) ) return;
 
     sprintf( buff, "%02d:%02d", minutes, seconds );
+    sprintf( hundredths_buff, ".%02d", hundredths );
 
-    string = buff;
+    draw_modern_panel( 18.0, getparam_y_resolution()-91.0, 210.0, 65.0 );
 
-    get_font_metrics( font, string, &w, &asc, &desc );
-
+    bind_font_texture( small_font );
+    set_gl_options( TEXFONT );
     glPushMatrix();
-    {
-	glTranslatef( TIME_X_OFFSET, 
-		      time_y_refval - TIME_Y_OFFSET - asc, 
-		      0 );
-	draw_string( font, string );
-    }
+    glTranslatef( 31.0, getparam_y_resolution()-48.0, 0 );
+    draw_string( small_font, "TIME" );
     glPopMatrix();
 
-    binding = "time_hundredths";
-
-    if ( ! get_font_binding( binding, &font ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get font for binding %s", binding );
-	return;
-    }
-
-    bind_font_texture( font );
-
-    sprintf( buff, "%02d", hundredths );
-    string = buff;
-
+    get_font_metrics( value_font, buff, &w, &asc, &desc );
+    bind_font_texture( value_font );
     glPushMatrix();
-    {
-	glTranslatef( TIME_X_OFFSET + w + 5, 
-		      time_y_refval - TIME_Y_OFFSET,  
-		      0 );
-	get_font_metrics( font, string, &w, &asc, &desc );
-	glTranslatef( 0, -asc-2, 0 );
-	draw_string( font, string );
-    }
+    glTranslatef( 82.0, getparam_y_resolution()-70.0, 0 );
+    draw_string( value_font, buff );
+    glPopMatrix();
+
+    bind_font_texture( small_font );
+    glPushMatrix();
+    glTranslatef( 82.0+w+4.0, getparam_y_resolution()-64.0, 0 );
+    draw_string( small_font, hundredths_buff );
     glPopMatrix();
 }
 
@@ -315,186 +278,54 @@ void draw_partial_tri_fan( scalar_t fraction )
 
 void draw_gauge( scalar_t speed, scalar_t energy )
 {
-    char *binding;
-    GLfloat xplane[4] = { 1.0/GAUGE_IMG_SIZE, 0.0, 0.0, 0.0 };
-    GLfloat yplane[4] = { 0.0, 1.0/GAUGE_IMG_SIZE, 0.0, 0.0 };
-    GLuint energymask_texobj, speedmask_texobj, outline_texobj;
-    font_t *speed_font;
-    font_t *units_font;
-    int w, asc, desc;
-    char *string;
+    font_t *value_font, *small_font;
     char buff[BUFF_LEN];
-    scalar_t y;
-    scalar_t speedbar_frac;
+    int w, asc, desc;
+    scalar_t panel_x = getparam_x_resolution() - 238.0;
+    scalar_t panel_y = 20.0;
+    scalar_t energy_w;
 
-    set_gl_options( GAUGE_BARS );
+    if ( !get_font_binding( "modern_hud_speed", &value_font ) ||
+         !get_font_binding( "modern_hud_small", &small_font ) ) return;
 
-    binding = "gauge_energy_mask";
-    if ( !get_texture_binding( binding, &energymask_texobj ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get texture for binding %s", binding );
-	return;
-    }
+    draw_modern_panel( panel_x, panel_y, 218.0, 104.0 );
 
-    binding = "gauge_speed_mask";
-    if ( !get_texture_binding( binding, &speedmask_texobj ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get texture for binding %s", binding );
-	return;
-    }
+    sprintf( buff, "%d", (int)speed );
+    get_font_metrics( value_font, buff, &w, &asc, &desc );
 
-    binding = "gauge_outline";
-    if ( !get_texture_binding( binding, &outline_texobj ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get texture for binding %s", binding );
-	return;
-    }
-
-    binding = "speed_digits";
-    if ( !get_font_binding( binding, & speed_font ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get font for binding %s", speed_font );
-    }
-
-    binding = "speed_units";
-    if ( !get_font_binding( binding, &units_font ) ) {
-	print_warning( IMPORTANT_WARNING,
-		       "Couldn't get font for binding %s", speed_font );
-    }
-
-
-    glTexGenfv( GL_S, GL_OBJECT_PLANE, xplane );
-    glTexGenfv( GL_T, GL_OBJECT_PLANE, yplane );
-
+    bind_font_texture( value_font );
+    set_gl_options( TEXFONT );
     glPushMatrix();
-    {
-	glTranslatef( getparam_x_resolution() - GAUGE_WIDTH,
-		      0,
-		      0 );
-
-	glColor4fv( energy_background_color );
-
-	glBindTexture( GL_TEXTURE_2D, energymask_texobj );
-
-	y = ENERGY_GAUGE_BOTTOM + energy * ENERGY_GAUGE_HEIGHT;
-
-	glBegin( GL_QUADS );
-	{
-	    glVertex2f( 0.0, y );
-	    glVertex2f( GAUGE_IMG_SIZE, y );
-	    glVertex2f( GAUGE_IMG_SIZE, GAUGE_IMG_SIZE );
-	    glVertex2f( 0.0, GAUGE_IMG_SIZE );
-	}
-	glEnd();
-
-	glColor4fv( energy_foreground_color );
-
-	glBegin( GL_QUADS );
-	{
-	    glVertex2f( 0.0, 0.0 );
-	    glVertex2f( GAUGE_IMG_SIZE, 0.0 );
-	    glVertex2f( GAUGE_IMG_SIZE, y );
-	    glVertex2f( 0.0, y );
-	}
-	glEnd();
-
-
-	/* Calculate the fraction of the speed bar to fill */
-	speedbar_frac = 0.0;
-
-	if ( speed > SPEEDBAR_GREEN_MAX_SPEED ) {
-	    speedbar_frac = SPEEDBAR_GREEN_FRACTION;
-	    
-	    if ( speed > SPEEDBAR_YELLOW_MAX_SPEED ) {
-		speedbar_frac += SPEEDBAR_YELLOW_FRACTION;
-		
-		if ( speed > SPEEDBAR_RED_MAX_SPEED ) {
-		    speedbar_frac += SPEEDBAR_RED_FRACTION;
-		} else {
-		    speedbar_frac +=
-			( speed - SPEEDBAR_YELLOW_MAX_SPEED ) /
-			( SPEEDBAR_RED_MAX_SPEED - SPEEDBAR_YELLOW_MAX_SPEED ) *
-			SPEEDBAR_RED_FRACTION;
-		}
-
-	    } else {
-		speedbar_frac += 
-		    ( speed - SPEEDBAR_GREEN_MAX_SPEED ) /
-		    ( SPEEDBAR_YELLOW_MAX_SPEED - SPEEDBAR_GREEN_MAX_SPEED ) *
-		    SPEEDBAR_YELLOW_FRACTION;
-	    }
-	    
-	} else {
-	    speedbar_frac +=  speed/SPEEDBAR_GREEN_MAX_SPEED * 
-		SPEEDBAR_GREEN_FRACTION;
-	}
-
-	glColor4fv( speedbar_background_color );
-
-	glBindTexture( GL_TEXTURE_2D, speedmask_texobj );
-
-	draw_partial_tri_fan( 1.0 );
-
-	glColor4fv( white );
-
-	draw_partial_tri_fan( min( 1.0, speedbar_frac ) );
-
-
-
-	glColor4fv( white );
-
-	glBindTexture( GL_TEXTURE_2D, outline_texobj );
-
-	glBegin( GL_QUADS );
-	{
-	    glVertex2f( 0.0, 0.0 );
-	    glVertex2f( GAUGE_IMG_SIZE, 0.0 );
-	    glVertex2f( GAUGE_IMG_SIZE, GAUGE_IMG_SIZE );
-	    glVertex2f( 0.0, GAUGE_IMG_SIZE );
-	}
-	glEnd();
-
-
-
-	sprintf( buff, "%d", (int)speed );
-	string = buff;
-
-	get_font_metrics( speed_font, string, &w, &asc, &desc );
-
-	bind_font_texture( speed_font);
-	set_gl_options( TEXFONT );
-	glColor4f( 1, 1, 1, 1 );
-
-	glPushMatrix();
-	{
-	    glTranslatef( ENERGY_GAUGE_CENTER_X - w/2.0,
-			  ENERGY_GAUGE_BOTTOM + ENERGY_GAUGE_HEIGHT / 2.0,
-			  0 );
-	    draw_string( speed_font, string );
-	    
-	}
-	glPopMatrix();
-
-	string = "km/h";
-
-	get_font_metrics( units_font, string, &w, &asc, &desc );
-
-	bind_font_texture( units_font );
-
-	glPushMatrix();
-	{
-	    glTranslatef( ENERGY_GAUGE_CENTER_X - w/2.0,
-			  ENERGY_GAUGE_BOTTOM + ENERGY_GAUGE_HEIGHT / 2.0
-			  - asc - SPEED_UNITS_Y_OFFSET,
-			  0 );
-	    draw_string( units_font, string );
-	    
-	}
-	glPopMatrix();
-	
-    }
+    glTranslatef( panel_x+24.0, panel_y+43.0, 0 );
+    draw_string( value_font, buff );
     glPopMatrix();
-	
+
+    bind_font_texture( small_font );
+    glPushMatrix();
+    glTranslatef( panel_x+35.0+w, panel_y+51.0, 0 );
+    draw_string( small_font, "KM/H" );
+    glPopMatrix();
+
+    /* Minimal translucent energy/charge indicator. */
+    energy_w = 174.0 * min( 1.0, max( 0.0, energy ) );
+    set_gl_options( GUI );
+    glDisable( GL_TEXTURE_2D );
+    glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glColor4f( 0.75f, 0.86f, 0.96f, 0.16f );
+    glBegin( GL_QUADS );
+    glVertex2f(panel_x+22.0,panel_y+20.0);
+    glVertex2f(panel_x+196.0,panel_y+20.0);
+    glVertex2f(panel_x+196.0,panel_y+25.0);
+    glVertex2f(panel_x+22.0,panel_y+25.0);
+    glEnd();
+    glColor4f( 0.78f, 0.92f, 1.0f, 0.78f );
+    glBegin( GL_QUADS );
+    glVertex2f(panel_x+22.0,panel_y+20.0);
+    glVertex2f(panel_x+22.0+energy_w,panel_y+20.0);
+    glVertex2f(panel_x+22.0+energy_w,panel_y+25.0);
+    glVertex2f(panel_x+22.0,panel_y+25.0);
+    glEnd();
 }
 
 void print_fps()
