@@ -153,9 +153,9 @@ tux_bind_font -binding modern_hud_small -font trebuchet_white -size 16 \
 
 
 tux_bind_font -binding button_label -font trebuchet_white -size 34 \
-    -colour { 0.90 0.95 1.0 0.88 }
-tux_bind_font -binding button_label_hilit -font trebuchet_white -size 36 \
-              -colour { 1.00 0.89 0.01 1.0 }
+    -colour { 0.86 0.92 0.98 0.82 }
+tux_bind_font -binding button_label_hilit -font trebuchet_white -size 38 \
+    -colour { 0.96 0.99 1.0 1.0 }
 tux_bind_font -binding button_label_disabled -font trebuchet_white -size 30 \
               -colour { 1.0 1.0 1.0 0.5 }
 tux_bind_font -binding menu_label -font trebuchet_white -size 30
