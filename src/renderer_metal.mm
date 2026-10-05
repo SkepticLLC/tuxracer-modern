@@ -922,7 +922,8 @@ void renderer_metal_set_mountain_layers( tux_texture_handle_t far_tex,
 }
 
 static void renderer_metal_draw_background_mountain_layer(
-    tux_texture_handle_t handle, float bottom, float top, float alpha )
+    tux_texture_handle_t handle, float bottom, float top, float alpha,
+    float u0, float u1 )
 {
     typedef struct { float px,py,pz,u,v,pad; } ov_t;
     ov_t v[6];
@@ -932,9 +933,9 @@ static void renderer_metal_draw_background_mountain_layer(
        g_mountain_card_pipeline==nil)return;
     tex=[g_textures objectForKey:@(handle)];
     if(tex==nil)return;
-    v[0]=(ov_t){-1.02f,bottom-0.015f,0,0,0,alpha}; v[1]=(ov_t){1.02f,bottom-0.015f,0,1,0,alpha};
-    v[2]=(ov_t){1.02f,top+0.015f,0,1,1,alpha}; v[3]=(ov_t){-1.02f,bottom-0.015f,0,0,0,alpha};
-    v[4]=(ov_t){1.02f,top+0.015f,0,1,1,alpha}; v[5]=(ov_t){-1.02f,top+0.015f,0,0,1,alpha};
+    v[0]=(ov_t){-1.02f,bottom-0.015f,0,u0,0,alpha}; v[1]=(ov_t){1.02f,bottom-0.015f,0,u1,0,alpha};
+    v[2]=(ov_t){1.02f,top+0.015f,0,u1,1,alpha}; v[3]=(ov_t){-1.02f,bottom-0.015f,0,u0,0,alpha};
+    v[4]=(ov_t){1.02f,top+0.015f,0,u1,1,alpha}; v[5]=(ov_t){-1.02f,top+0.015f,0,u0,1,alpha};
     vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
     if(vb==nil)return;
     [g_frame_encoder setRenderPipelineState:g_mountain_card_pipeline];
@@ -1032,11 +1033,12 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
 
         /* Stable distant scenery: screen-space depth layers behind terrain. */
         renderer_metal_draw_background_mountain_layer(
-            g_mountain_far_handle, -0.46f, 0.34f, 0.82f );
+            g_mountain_far_handle, -0.46f, 0.34f, 0.82f, 0.00f, 1.00f );
         /*
-         * Do not stack duplicate photographic source art. Mid/foothill
-         * layers are re-enabled when their mountain-only alpha assets are
-         * installed.
+         * The mid/foothill bindings are intentionally not submitted until
+         * their unique alpha-cut assets replace the duplicated prototype
+         * photographs. The compositor now supports independent crop ranges
+         * so those layers do not need matching source dimensions.
          */
 
         /* Procedural mountain shader retained for diagnostics only.
