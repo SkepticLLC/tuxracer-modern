@@ -1463,60 +1463,72 @@ void renderer_metal_draw_home_menu( int selected )
 {
     @autoreleasepool {
         static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};
-        float ui=(float)g_native_height/2168.0f,x,y;
+        float ui=(float)g_native_height/2168.0f,cx,y,title_x;
         int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
-        /*
-         * Full-screen Modern alpine composition.  The game world is the
-         * artwork; UI merely sits over it.
-         */
         menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
-        renderer_metal_draw_background_mountain_layer(
-            g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
-        renderer_metal_draw_background_mountain_layer(
-            g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
-        renderer_metal_draw_background_mountain_layer(
-            g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+        menu_box(0,0,g_native_width,g_native_height*.18f,.78f,.88f,.96f,.08f);
 
-        /* Snow/atmospheric base tying the panorama into the foreground. */
-        menu_box(0,0,g_native_width,g_native_height*.22f,
-                 .78f,.88f,.96f,.10f);
+        /* Centered, restrained readability field -- no vertical bands. */
+        menu_box(g_native_width*.28f,g_native_height*.13f,g_native_width*.44f,g_native_height*.74f,
+                 .006f,.018f,.034f,.18f);
 
-        /*
-         * Soft readability treatment rather than a hard panel.  Three
-         * overlapping translucent bands approximate a feathered gradient.
-         */
-        menu_box(0,0,g_native_width*.24f,g_native_height,
-                 .006f,.018f,.034f,.48f);
-        menu_box(g_native_width*.24f,0,g_native_width*.12f,g_native_height,
-                 .006f,.018f,.034f,.28f);
-        menu_box(g_native_width*.36f,0,g_native_width*.10f,g_native_height,
-                 .006f,.018f,.034f,.12f);
+        cx=(float)g_native_width*.5f;
+        title_x=cx-205.0f*ui;
+        y=(float)g_native_height-260.0f*ui;
+        modern_metal_text(title_x,y,"modern_hud_small","TUX RACER",1.00f*ui,.72f);
+        y-=66.0f*ui;
+        modern_metal_text(title_x-20.0f*ui,y,"modern_hud_speed","MODERN",1.18f*ui,1.0f);
 
-        x=112.0f*ui;
-        y=(float)g_native_height-205.0f*ui;
-
-        modern_metal_text(x,y,"modern_hud_small","TUX RACER",
-                          1.00f*ui,.72f);
-        y-=64.0f*ui;
-        modern_metal_text(x,y,"modern_hud_speed","MODERN",
-                          1.10f*ui,1.0f);
-
-        y-=178.0f*ui;
+        y-=190.0f*ui;
         for(i=0;i<4;i++){
-            float alpha=(i==selected)?1.0f:.54f;
-            float mul=(i==selected)?.94f:.82f;
-            float item_x=x+(i==selected?14.0f*ui:0.0f);
-
+            float alpha=(i==selected)?1.0f:.62f;
+            float item_x=cx-145.0f*ui+(i==selected?10.0f*ui:0.0f);
             if(i==selected){
-                menu_box(x-20.0f*ui,y-6.0f*ui,3.0f*ui,34.0f*ui,
-                         .78f,.92f,1.0f,.92f);
+                menu_box(cx-190.0f*ui,y-18.0f*ui,380.0f*ui,66.0f*ui,
+                         .015f,.045f,.075f,.42f);
+                menu_box(cx-190.0f*ui,y-18.0f*ui,3.0f*ui,66.0f*ui,
+                         .78f,.92f,1.0f,.95f);
             }
-            modern_metal_text(item_x,y,"modern_hud_speed",
-                              items[i],mul*ui,alpha);
-            y-=94.0f*ui;
+            modern_metal_text(item_x,y,"modern_hud_speed",items[i],.88f*ui,alpha);
+            y-=90.0f*ui;
         }
+    }
+}
+
+void renderer_metal_draw_results_menu( const char *headline,
+                                       const char *message,
+                                       const char *time_text,
+                                       int herring,
+                                       int score )
+{
+    @autoreleasepool {
+        char fish[32],points[32];
+        float ui=(float)g_native_height/2168.0f,cx,x,y;
+        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
+        if(!headline)headline="RACE COMPLETE"; if(!message)message=""; if(!time_text)time_text="";
+        snprintf(fish,sizeof(fish),"%d",herring); snprintf(points,sizeof(points),"%d",score);
+        menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+        menu_box(g_native_width*.27f,g_native_height*.20f,g_native_width*.46f,g_native_height*.60f,
+                 .006f,.018f,.034f,.48f);
+        cx=g_native_width*.5f;x=cx-235.0f*ui;y=g_native_height-410.0f*ui;
+        modern_metal_text(x,y,"modern_hud_small","TUX RACER MODERN",.92f*ui,.68f);
+        y-=78.0f*ui; modern_metal_text(x,y,"modern_hud_speed",headline,1.02f*ui,1.0f);
+        y-=92.0f*ui; modern_metal_text(x,y,"modern_hud_small",message,.88f*ui,.78f);
+        y-=120.0f*ui; modern_metal_text(x,y,"modern_hud_small","TIME",.78f*ui,.58f);
+        modern_metal_text(x+150*ui,y,"modern_hud_speed",time_text,.72f*ui,.96f);
+        y-=72.0f*ui; modern_metal_text(x,y,"modern_hud_small","FISH",.78f*ui,.58f);
+        modern_metal_text(x+150*ui,y,"modern_hud_speed",fish,.72f*ui,.96f);
+        y-=72.0f*ui; modern_metal_text(x,y,"modern_hud_small","SCORE",.78f*ui,.58f);
+        modern_metal_text(x+150*ui,y,"modern_hud_speed",points,.72f*ui,.96f);
+        y-=125.0f*ui; modern_metal_text(x,y,"modern_hud_small","PRESS ANY KEY TO CONTINUE",.78f*ui,.66f);
     }
 }
 
