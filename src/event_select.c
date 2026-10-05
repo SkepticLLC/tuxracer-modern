@@ -36,6 +36,9 @@
 #include "save.h"
 #include "ui_snow.h"
 #include "joystick.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 static listbox_t *event_listbox = NULL;
 static listbox_t *cup_listbox = NULL;
@@ -351,172 +354,133 @@ static void set_widget_positions_and_draw_decorations()
     }
 }
 
+static int modern_event_focus = 0;
+
+static const char *modern_event_status(void)
+{
+    if ( event_data == NULL || cur_cup == NULL ) return "";
+    if ( is_cup_complete( event_data, cur_cup ) ) return "COMPLETED";
+    if ( is_cup_first_incomplete_cup( event_data, cur_cup ) ) return "AVAILABLE";
+    return "LOCKED";
+}
+
+static void modern_event_sync(void)
+{
+    list_t cup_list;
+    if ( cur_event == NULL ) return;
+    event_data = (event_data_t*)get_list_elem_data( cur_event );
+    cup_list = get_event_cup_list( event_data );
+    if ( cur_cup == NULL ) set_cur_cup_to_first_incomplete( event_data, cup_list );
+}
+
+static void modern_event_move_event(int direction)
+{
+    list_t events = get_events_list();
+    list_t cups;
+    list_elem_t next;
+    if ( cur_event == NULL ) cur_event = get_list_head( events );
+    next = direction < 0 ? get_prev_list_elem( events, cur_event )
+                         : get_next_list_elem( events, cur_event );
+    if ( next == NULL ) next = direction < 0 ? get_list_tail( events )
+                                              : get_list_head( events );
+    cur_event = next;
+    event_data = (event_data_t*)get_list_elem_data( cur_event );
+    cups = get_event_cup_list( event_data );
+    set_cur_cup_to_first_incomplete( event_data, cups );
+}
+
+static void modern_event_move_cup(int direction)
+{
+    list_t cups;
+    list_elem_t next;
+    if ( event_data == NULL ) return;
+    cups = get_event_cup_list( event_data );
+    if ( cur_cup == NULL ) cur_cup = get_list_head( cups );
+    next = direction < 0 ? get_prev_list_elem( cups, cur_cup )
+                         : get_next_list_elem( cups, cur_cup );
+    if ( next == NULL ) next = direction < 0 ? get_list_tail( cups )
+                                              : get_list_head( cups );
+    cur_cup = next;
+}
+
+static void modern_event_continue(void)
+{
+    cup_data_t *cup;
+    player_data_t *plyr;
+    if ( event_data == NULL || cur_cup == NULL ) return;
+    if ( !is_cup_complete( event_data, cur_cup ) &&
+         !is_cup_first_incomplete_cup( event_data, cur_cup ) ) return;
+    cup = (cup_data_t*)get_list_elem_data( cur_cup );
+    plyr = get_player_data( local_player() );
+    g_game.current_event = get_event_name( event_data );
+    g_game.current_cup = get_cup_name( cup );
+    plyr->lives = INIT_NUM_LIVES;
+    set_game_mode( RACE_SELECT );
+}
+
 static void event_select_init(void)
 {
-    list_t event_list = NULL;
-    list_t cup_list = NULL;
-    point2d_t dummy_pos = {0, 0};
-
+    list_t events = get_events_list();
+    list_t cups;
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
     winsys_set_reshape_func( reshape );
-    winsys_set_mouse_func( ui_event_mouse_func );
-    winsys_set_motion_func( ui_event_motion_func );
-    winsys_set_passive_motion_func( ui_event_motion_func );
-
-    event_list = get_events_list();
-
-    if ( g_game.prev_mode != RACE_SELECT ) {
-	cur_event = get_list_head( event_list );
-	event_data = (event_data_t*)get_list_elem_data( cur_event );
-	cup_list = get_event_cup_list( event_data );
-
-	set_cur_cup_to_first_incomplete( event_data, cup_list );
+    modern_event_focus = 0;
+    if ( g_game.prev_mode != RACE_SELECT || cur_event == NULL ) {
+        cur_event = get_list_head( events );
+        event_data = (event_data_t*)get_list_elem_data( cur_event );
+        cups = get_event_cup_list( event_data );
+        set_cur_cup_to_first_incomplete( event_data, cups );
     } else {
-	event_data = (event_data_t*)get_list_elem_data( cur_event );
-	cup_list = get_event_cup_list( event_data );
+        modern_event_sync();
     }
-
-
-
-    /* 
-     * Create widgets 
-     */
-
-    /* back button */
-    back_btn = button_create( dummy_pos,
-			      150, 40, 
-			      "button_label", 
-			      "Back" );
-    button_set_hilit_font_binding( back_btn, "button_label_hilit" );
-    button_set_visible( back_btn, True );
-    button_set_click_event_cb( back_btn, back_click_cb, NULL );
-
-    /* continue button */
-    continue_btn = button_create( dummy_pos,
-			       150, 40,
-			       "button_label",
-			       "Continue" );
-    button_set_hilit_font_binding( continue_btn, "button_label_hilit" );
-    button_set_disabled_font_binding( continue_btn, "button_label_disabled" );
-    button_set_visible( continue_btn, True );
-    button_set_click_event_cb( continue_btn, continue_click_cb, NULL );
-
-    /* event listbox */
-    event_listbox = listbox_create( dummy_pos,
-				   460 - 52, 44,
-				   "listbox_item",
-				   event_list,
-				   event_list_elem_to_string_func );
-
-    listbox_set_current_item( event_listbox, cur_event );
-
-    listbox_set_item_change_event_cb( event_listbox, 
-				      event_listbox_item_change_cb, 
-				      NULL );
-
-    listbox_set_visible( event_listbox, True );
-
-    /* cup listbox */
-    cup_listbox = listbox_create( dummy_pos,
-				   460 - 52, 44,
-				   "listbox_item",
-				   cup_list,
-				   cup_list_elem_to_string_func );
-
-    listbox_set_current_item( cup_listbox, cur_cup );
-
-    listbox_set_item_change_event_cb( cup_listbox, 
-				      cup_listbox_item_change_cb, 
-				      NULL );
-
-    listbox_set_visible( cup_listbox, True );
-
-    update_button_enabled_states();
-
     play_music( "start_screen" );
 }
 
 static void event_select_loop( scalar_t time_step )
 {
-    check_gl_error();
-
+    int w=getparam_x_resolution(),h=getparam_y_resolution();
+    const char *event_name="";
+    const char *cup_name="";
+    (void)time_step;
     update_audio();
-
-    set_gl_options( GUI );
-
-    clear_rendering_context();
-
-    ui_setup_display();
-
-    if (getparam_ui_snow()) {
-	update_ui_snow( time_step, False );
-	draw_ui_snow();
+    modern_event_sync();
+    if(event_data) event_name=get_event_name(event_data);
+    if(cur_cup) cup_name=get_cup_name((cup_data_t*)get_list_elem_data(cur_cup));
+#ifdef __APPLE__
+    if(renderer_metal_begin_menu_frame(w,h)){
+        renderer_metal_draw_event_menu(event_name,cup_name,modern_event_status(),
+                                       modern_event_focus);
+        renderer_metal_end_menu_frame();
     }
-
-    ui_draw_menu_decorations();
-
-    set_widget_positions_and_draw_decorations();
-
-    ui_draw();
-
-    reshape( getparam_x_resolution(), getparam_y_resolution() );
-
-    winsys_swap_buffers();
+#else
+    clear_rendering_context();ui_setup_display();ui_draw_menu_decorations();
+    reshape(w,h);winsys_swap_buffers();
+#endif
 }
 
 static void event_select_term(void)
 {
-    button_delete( back_btn );
-    back_btn = NULL;
-
-    button_delete( continue_btn );
-    continue_btn = NULL;
-
-    listbox_delete( event_listbox );
-    event_listbox = NULL;
-
-    listbox_delete( cup_listbox );
-    cup_listbox = NULL;
 }
 
 START_KEYBOARD_CB( event_select_key_cb )
 {
-    if ( release ) {
-	return;
-    }
-
+    if ( release ) return;
     if ( special ) {
-	switch( key ) {
-	case WSK_LEFT:
-	    listbox_goto_prev_item( event_listbox );
-	    break;
-	case WSK_RIGHT:
-	    listbox_goto_next_item( event_listbox );
-	    break;
-	case WSK_DOWN:
-	    listbox_goto_next_item( cup_listbox );
-	    break;
-	case WSK_UP:
-	    listbox_goto_prev_item( cup_listbox );
-	    break;
-	}
+        if ( key == WSK_UP || key == WSK_DOWN ) {
+            modern_event_focus = 1-modern_event_focus;
+        } else if ( key == WSK_LEFT ) {
+            if(modern_event_focus==0)modern_event_move_event(-1);
+            else modern_event_move_cup(-1);
+        } else if ( key == WSK_RIGHT ) {
+            if(modern_event_focus==0)modern_event_move_event(1);
+            else modern_event_move_cup(1);
+        }
     } else {
-	switch (key) {
-	case 13: /* Enter */
-	    if ( continue_btn ) {
-		button_simulate_mouse_click( continue_btn );
-		ui_set_dirty();
-	    }
-	    break;
-	case 27: /* Esc */
-            set_game_mode( GAME_TYPE_SELECT );
-            ui_set_dirty();
-	    break;
-	}
+        if ( key == 13 ) modern_event_continue();
+        else if ( key == 27 ) set_game_mode( GAME_TYPE_SELECT );
     }
-
-    ui_check_dirty();
+    winsys_post_redisplay();
 }
 END_KEYBOARD_CB
 
