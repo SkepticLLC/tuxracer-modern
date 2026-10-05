@@ -30,6 +30,12 @@ static int g_metal_native_enabled = 0;
 static int g_renderer_frame_active = 0;
 static int g_renderer_world_started = 0;
 static unsigned long long g_renderer_frame_serial = 0;
+static int g_hud_valid = 0;
+static float g_hud_speed_kmh = 0.0f;
+static float g_hud_race_time = 0.0f;
+static float g_hud_energy = 0.0f;
+static int g_hud_herring = 0;
+
 static int g_metal_compare_enabled = 0;
 static unsigned char *g_metal_present_pixels = NULL;
 static size_t g_metal_present_capacity = 0;
@@ -128,6 +134,7 @@ void renderer_begin_frame( void )
                 g_renderer_frame_serial,(int)g_game.mode);
     }
     g_renderer_world_started = 0;
+    g_hud_valid = 0;
     {
         int logical_w = g_frame.logical_width;
         int logical_h = g_frame.logical_height;
@@ -226,6 +233,16 @@ void renderer_toggle_metal_native( void )
     fprintf( stderr, "Tux Racer Modern: native Metal %s\n",
              g_metal_native_enabled ? "ON" : "OFF" );
 #endif
+}
+
+void renderer_set_hud_state( float speed_kmh, float race_time,
+                             float energy, int herring )
+{
+    g_hud_speed_kmh = speed_kmh;
+    g_hud_race_time = race_time;
+    g_hud_energy = energy;
+    g_hud_herring = herring;
+    g_hud_valid = 1;
 }
 
 void renderer_sync_mode_visibility( int mode )
@@ -357,11 +374,14 @@ void renderer_end_frame( void )
     g_renderer_world_started = 0;
     if ( g_metal_native_enabled ) {
         /*
-         * Native Metal owns presentation through CAMetalDrawable.
-         * Do not also swap the SDL/OpenGL back buffer: dual presentation
-         * serializes two graphics APIs on one window and adds visible input
-         * latency/judder.
+         * Final native frame ownership for Modern 2.0:
+         * world -> HUD overlay -> present.  The HUD is encoded here so no
+         * later resize/state change can separate it from the presented frame.
          */
+        if ( g_game.mode == RACING && g_hud_valid ) {
+            renderer_metal_draw_hud( g_hud_speed_kmh, g_hud_race_time,
+                                     g_hud_energy, g_hud_herring );
+        }
         renderer_metal_end_native_frame();
         return;
     } else {
