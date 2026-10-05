@@ -49,11 +49,16 @@ void modern_text_draw(const char *text,float x,float y,float size,float r,float 
         GLuint tex=[item[@"tex"] unsignedIntValue];float w=[item[@"w"] floatValue],h=[item[@"h"] floatValue];
         glEnable(GL_TEXTURE_2D);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         glBindTexture(GL_TEXTURE_2D,tex);glColor4f(1,1,1,1);
+        /*
+         * CoreGraphics bitmap rows and OpenGL texture coordinates use
+         * opposite vertical conventions. Flip V at presentation time so the
+         * cached text texture remains in its native raster orientation.
+         */
         glBegin(GL_QUADS);
-        glTexCoord2f(0,0);glVertex2f(x,y);
-        glTexCoord2f(1,0);glVertex2f(x+w,y);
-        glTexCoord2f(1,1);glVertex2f(x+w,y+h);
-        glTexCoord2f(0,1);glVertex2f(x,y+h);
+        glTexCoord2f(0,1);glVertex2f(x,y);
+        glTexCoord2f(1,1);glVertex2f(x+w,y);
+        glTexCoord2f(1,0);glVertex2f(x+w,y+h);
+        glTexCoord2f(0,0);glVertex2f(x,y+h);
         glEnd();
     }
 }
