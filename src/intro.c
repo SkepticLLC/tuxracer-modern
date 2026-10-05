@@ -206,6 +206,30 @@ void intro_loop( scalar_t time_step )
             tree_base = move_point( tree_base, scale_vector(0.10, fwd) );
             tree_base.y = find_y_coord( tree_base.x, tree_base.z );
 
+            {
+                static bool_t logged_staging_frame = False;
+                double proof_tux[16] = {
+                    0.34,0,0,0, 0,0.34,0,0, 0,0,0.34,0,
+                    plyr->pos.x, plyr->pos.y + 2.2, plyr->pos.z, 1
+                };
+                double proof_tree[16] = {
+                    0.34,0,0,0, 0,0.34,0,0, 0,0,0.34,0,
+                    tree_base.x, tree_base.y + 2.2, tree_base.z, 1
+                };
+                if ( !logged_staging_frame ) {
+                    point2d_t sp = get_start_pt();
+                    fprintf(stderr,
+                      "Tux Racer Modern: staging debug tux=(%.2f,%.2f,%.2f) start=(%.2f,%.2f) camera=(%.2f,%.2f,%.2f) dir=(%.3f,%.3f,%.3f) side=(%.3f,%.3f) tree=(%.2f,%.2f,%.2f)\\n",
+                      plyr->pos.x,plyr->pos.y,plyr->pos.z,sp.x,sp.y,
+                      plyr->view.pos.x,plyr->view.pos.y,plyr->view.pos.z,
+                      plyr->view.dir.x,plyr->view.dir.y,plyr->view.dir.z,
+                      side.x,side.z,tree_base.x,tree_base.y,tree_base.z);
+                    logged_staging_frame=True;
+                }
+                renderer_metal_draw_sphere(proof_tux,10,1.0f,0.0f,1.0f,1.0f);
+                renderer_metal_draw_sphere(proof_tree,10,0.0f,1.0f,1.0f,1.0f);
+            }
+
             for ( lamp=0; lamp<3; ++lamp ) {
                 for ( pair=0; pair<2; ++pair ) {
                     point_t lp = tree_base;
