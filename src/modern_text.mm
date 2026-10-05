@@ -47,6 +47,7 @@ void modern_text_draw(const char *text,float x,float y,float size,float r,float 
         if(!item){item=make_text(text,size,weight,r,g,b,a);if(item)gModernTextCache[key]=item;}
         if(!item)return;
         GLuint tex=[item[@"tex"] unsignedIntValue];float w=[item[@"w"] floatValue],h=[item[@"h"] floatValue];
+        glPushAttrib(GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT|GL_TEXTURE_BIT|GL_CURRENT_BIT);
         glEnable(GL_TEXTURE_2D);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         glBindTexture(GL_TEXTURE_2D,tex);glColor4f(1,1,1,1);
         /*
@@ -60,6 +61,7 @@ void modern_text_draw(const char *text,float x,float y,float size,float r,float 
         glTexCoord2f(1,0);glVertex2f(x+w,y+h);
         glTexCoord2f(0,0);glVertex2f(x,y+h);
         glEnd();
+        glPopAttrib();
     }
 }
 void modern_text_clear_cache(void){
