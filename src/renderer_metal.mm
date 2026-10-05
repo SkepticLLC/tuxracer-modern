@@ -1293,6 +1293,102 @@ void renderer_metal_draw_sphere( const double model[16],
 }
 
 
+static void modern_hud_box2d(float x,float y,float w,float h,
+                             float r,float g,float b,float a)
+{
+    /* Native HUD uses clip-space boxes encoded through the existing solid pipeline. */
+    typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
+    typedef struct { float mvp[16], model[16], color[4]; } su_t;
+    float sx=2.0f/(float)g_native_width, sy=2.0f/(float)g_native_height;
+    float x0=-1.0f+x*sx, x1=-1.0f+(x+w)*sx;
+    float y0=-1.0f+y*sy, y1=-1.0f+(y+h)*sy;
+    sv_t v[6]={{x0,y0,0,0,0,1},{x1,y0,0,0,0,1},{x1,y1,0,0,0,1},
+               {x0,y0,0,0,0,1},{x1,y1,0,0,0,1},{x0,y1,0,0,0,1}};
+    su_t u; memset(&u,0,sizeof(u));
+    u.mvp[0]=u.mvp[5]=u.mvp[10]=u.mvp[15]=1.0f;
+    u.model[0]=u.model[5]=u.model[10]=u.model[15]=1.0f;
+    u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
+    if(g_frame_encoder==nil||g_sphere_pipeline==nil)return;
+    id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+    id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+    if(vb==nil||ub==nil)return;
+    [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
+    [g_frame_encoder setDepthStencilState:nil];
+    [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+    [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+    [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+}
+
+static void modern_hud_digit(float x,float y,float scale,int digit,float alpha)
+{
+    static const unsigned char seg[10]={
+      0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
+    const float t=4.0f*scale,l=19.0f*scale,g=3.0f*scale;
+    unsigned char s=(digit>=0&&digit<=9)?seg[digit]:0;
+    float r=0.94f,gg=0.98f,b=1.0f;
+    if(s&0x01)modern_hud_box2d(x+t,y+2*l+2*g,l,t,r,gg,b,alpha);
+    if(s&0x02)modern_hud_box2d(x+l+t,y+l+g+t,t,l,r,gg,b,alpha);
+    if(s&0x04)modern_hud_box2d(x+l+t,y+t,t,l,r,gg,b,alpha);
+    if(s&0x08)modern_hud_box2d(x+t,y,l,t,r,gg,b,alpha);
+    if(s&0x10)modern_hud_box2d(x,y+t,t,l,r,gg,b,alpha);
+    if(s&0x20)modern_hud_box2d(x,y+l+g+t,t,l,r,gg,b,alpha);
+    if(s&0x40)modern_hud_box2d(x+t,y+l+g,l,t,r,gg,b,alpha);
+}
+
+static float modern_hud_number(float x,float y,float scale,int value,int min_digits,float alpha)
+{
+    char buf[16]; int i,n;
+    snprintf(buf,sizeof(buf),"%0*d",min_digits,value);
+    n=(int)strlen(buf);
+    for(i=0;i<n;i++){
+        modern_hud_digit(x,y,scale,buf[i]-'0',alpha);
+        x+=29.0f*scale;
+    }
+    return x;
+}
+
+void renderer_metal_draw_hud( float speed_kmh, float race_time,
+                             float energy, int herring )
+{
+    @autoreleasepool {
+        int mins=(int)(race_time/60.0f);
+        int secs=((int)race_time)%60;
+        int hundredths=(int)((race_time-(float)((int)race_time))*100.0f);
+        int speed=(int)(speed_kmh+0.5f);
+        float sx=(float)g_native_width-245.0f;
+        float sy=24.0f;
+        float tx=24.0f, ty=(float)g_native_height-86.0f;
+        float x;
+
+        if(g_frame_encoder==nil||g_native_width<=0||g_native_height<=0)return;
+
+        /* Glass panels. */
+        modern_hud_box2d(sx,sy,221,102,0.018f,0.035f,0.055f,0.56f);
+        modern_hud_box2d(tx,ty,210,62,0.018f,0.035f,0.055f,0.50f);
+
+        /* Speed. */
+        modern_hud_number(sx+22,sy+42,1.05f,speed,2,0.94f);
+
+        /* Charge / energy line. */
+        modern_hud_box2d(sx+20,sy+18,181,5,0.45f,0.60f,0.72f,0.20f);
+        modern_hud_box2d(sx+20,sy+18,181*energy,5,0.72f,0.90f,1.0f,0.82f);
+
+        /* Race timer MM:SS.hh */
+        x=modern_hud_number(tx+18,ty+18,0.58f,mins,2,0.90f);
+        modern_hud_box2d(x+2,ty+35,4,4,0.94f,0.98f,1.0f,0.90f);
+        modern_hud_box2d(x+2,ty+48,4,4,0.94f,0.98f,1.0f,0.90f);
+        x=modern_hud_number(x+12,ty+18,0.58f,secs,2,0.90f);
+        modern_hud_box2d(x+3,ty+18,4,4,0.94f,0.98f,1.0f,0.72f);
+        modern_hud_number(x+11,ty+18,0.36f,hundredths,2,0.72f);
+
+        /* Small herring count as numeric badge until general Metal text lands. */
+        modern_hud_box2d((float)g_native_width-105.0f,(float)g_native_height-62.0f,
+                         81,38,0.018f,0.035f,0.055f,0.44f);
+        modern_hud_number((float)g_native_width-91.0f,(float)g_native_height-53.0f,
+                          0.34f,herring,2,0.76f);
+    }
+}
+
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
                                      float r,float g,float b,float a )
