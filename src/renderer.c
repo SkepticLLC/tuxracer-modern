@@ -228,6 +228,25 @@ void renderer_toggle_metal_native( void )
 #endif
 }
 
+void renderer_sync_mode_visibility( game_mode_t mode )
+{
+#ifdef __APPLE__
+    /*
+     * Native Metal owns only playable 3D world modes for the 2.0 release.
+     * Legacy OpenGL menus/results must be visible when leaving a level.
+     */
+    int world_visible = g_metal_native_enabled &&
+                        (mode == INTRO || mode == RACING);
+    if ( !world_visible ) {
+        renderer_metal_end_native_frame();
+        renderer_metal_end_offscreen_frame();
+    }
+    renderer_metal_set_native_visible( world_visible );
+#else
+    (void)mode;
+#endif
+}
+
 int renderer_metal_native_enabled( void )
 {
 #ifdef __APPLE__
