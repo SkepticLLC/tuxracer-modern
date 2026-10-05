@@ -257,8 +257,18 @@ void renderer_sync_mode_visibility( int mode )
     if ( !world_visible ) {
         renderer_metal_end_native_frame();
         renderer_metal_end_offscreen_frame();
+        renderer_metal_set_native_visible( 0 );
+
+        /*
+         * Metal world rendering and legacy OpenGL UI use different frame
+         * state. Restore the menu projection before the first UI frame after
+         * leaving a level; waiting until the end of that frame can render
+         * previews/text with stale world transforms.
+         */
+        reshape( getparam_x_resolution(), getparam_y_resolution() );
+    } else {
+        renderer_metal_set_native_visible( 1 );
     }
-    renderer_metal_set_native_visible( world_visible );
 #else
     (void)mode;
 #endif
