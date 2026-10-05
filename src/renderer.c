@@ -29,6 +29,7 @@ static tux_renderer_frame_state_t g_frame = {
 static int g_metal_native_enabled = 0;
 static int g_renderer_frame_active = 0;
 static int g_renderer_world_started = 0;
+static unsigned long long g_renderer_frame_serial = 0;
 static int g_metal_compare_enabled = 0;
 static unsigned char *g_metal_present_pixels = NULL;
 static size_t g_metal_present_capacity = 0;
@@ -121,6 +122,11 @@ void renderer_resize( int logical_width, int logical_height )
 void renderer_begin_frame( void )
 {
     g_renderer_frame_active = 1;
+    ++g_renderer_frame_serial;
+    if ( g_renderer_frame_serial <= 8 ) {
+        fprintf(stderr,"Tux Racer Modern: frame %llu BEGIN mode=%d\n",
+                g_renderer_frame_serial,(int)g_game.mode);
+    }
     g_renderer_world_started = 0;
     {
         int logical_w = g_frame.logical_width;
@@ -149,6 +155,10 @@ void renderer_begin_world_frame( void )
     if ( g_renderer_world_started ) return;
     if ( g_game.mode != RACING && g_game.mode != INTRO ) return;
     g_renderer_world_started = 1;
+    if ( g_renderer_frame_serial <= 8 ) {
+        fprintf(stderr,"Tux Racer Modern: frame %llu WORLD mode=%d native=%d\n",
+                g_renderer_frame_serial,(int)g_game.mode,g_metal_native_enabled);
+    }
 
     if ( renderer_metal_vertex_bytes() == 0 ) {
         size_t vertex_count = 0;
@@ -320,6 +330,10 @@ void renderer_present_metal_terrain( void )
 void renderer_end_frame( void )
 {
 #ifdef __APPLE__
+    if ( g_renderer_frame_serial <= 8 ) {
+        fprintf(stderr,"Tux Racer Modern: frame %llu END mode=%d native=%d\n",
+                g_renderer_frame_serial,(int)g_game.mode,g_metal_native_enabled);
+    }
     g_renderer_frame_active = 0;
     g_renderer_world_started = 0;
     if ( g_metal_native_enabled ) {
