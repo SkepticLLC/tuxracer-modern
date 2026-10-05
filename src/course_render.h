@@ -37,6 +37,8 @@ void draw_trees() ;
 void draw_sky_metal();
 void draw_mountain_backdrop_metal( point_t eye );
 void draw_trees_metal();
+void trigger_tree_shake_metal( point_t tree_loc, scalar_t tree_height,
+                              scalar_t impact_speed, vector_t impact_dir );
 void draw_items_metal();
 void set_course_clipping( bool_t state );
 void set_course_eye_point( point_t pt );
