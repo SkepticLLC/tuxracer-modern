@@ -99,10 +99,10 @@ static void set_widget_positions()
     int button_sep =0;
     int cur_y_pos;
 
-    box_height = 210;
-    box_max_y = h - 128;
+    box_height = 300;
+    box_max_y = h - 150;
 
-    bottom_y = 0.4*h - box_height/2;
+    bottom_y = 0.46*h - box_height/2;
 
     if ( bottom_y + box_height > box_max_y ) {
 	bottom_y = box_max_y - box_height;
@@ -143,33 +143,33 @@ static void game_type_select_init(void)
     winsys_set_passive_motion_func( ui_event_motion_func );
 
     enter_event_btn = button_create( dummy_pos,
-				     300, 40, 
+				     360, 54, 
 				     "button_label", 
-				     "Enter an event" );
+				     "RACE SERIES" );
     button_set_hilit_font_binding( enter_event_btn, "button_label_hilit" );
     button_set_visible( enter_event_btn, True );
     button_set_click_event_cb( enter_event_btn, enter_event_click_cb, NULL );
 
     practice_btn = button_create( dummy_pos,
-				  300, 40,
+				  360, 54,
 				  "button_label",
-				  "Practice" );
+				  "QUICK RACE" );
     button_set_hilit_font_binding( practice_btn, "button_label_hilit" );
     button_set_visible( practice_btn, True );
     button_set_click_event_cb( practice_btn, practice_click_cb, NULL );
 
     credits_btn = button_create( dummy_pos,
-				  300, 40,
+				  360, 54,
 				  "button_label",
-				  "Credits" );
+				  "CREDITS" );
     button_set_hilit_font_binding( credits_btn, "button_label_hilit" );
     button_set_visible( credits_btn, True );
     button_set_click_event_cb( credits_btn, credits_click_cb, NULL );
 
     quit_btn = button_create( dummy_pos,
-			      300, 40,
+			      360, 54,
 			      "button_label",
-			      "Quit" );
+			      "QUIT" );
     button_set_hilit_font_binding( quit_btn, "button_label_hilit" );
     button_set_visible( quit_btn, True );
     button_set_click_event_cb( quit_btn, quit_click_cb, NULL );
