@@ -39,6 +39,9 @@
 #include "ui_mgr.h"
 #include "joystick.h"
 #include "part_sys.h"
+#ifdef __APPLE__
+#include "renderer_metal.h"
+#endif
 
 #define NEXT_MODE RACE_SELECT
 
@@ -235,67 +238,32 @@ void game_over_init(void)
 void game_over_loop( scalar_t time_step )
 {
     player_data_t *plyr = get_player_data( local_player() );
-    int width, height;
-    width = getparam_x_resolution();
-    height = getparam_y_resolution();
-
-    check_gl_error();
-
-    /* Check joystick */
-    if ( is_joystick_active() ) {
-	update_joystick();
-
-	if ( is_joystick_continue_button_down() )
-	{
-	    set_game_mode( NEXT_MODE );
-	    winsys_post_redisplay();
-	    return;
-	}
-    }
-
-    new_frame_for_fps_calc();
-
+    int width=getparam_x_resolution(),height=getparam_y_resolution();
+    int minutes,seconds,hundredths;
+    char time_text[32];
+    const char *headline;
+    const char *message;
+    (void)time_step;
     update_audio();
 
-    clear_rendering_context();
+    get_time_components( g_game.time, &minutes, &seconds, &hundredths );
+    snprintf(time_text,sizeof(time_text),"%02d:%02d.%02d",minutes,seconds,hundredths);
+    if(g_game.race_aborted){headline="RACE ABORTED";message="RETURN TO COURSE SELECT";}
+    else if(race_won){headline="RACE COMPLETE";message=is_current_race_last_race_in_cup()?"CUP COMPLETE":"NEXT RACE UNLOCKED";}
+    else{headline="RACE COMPLETE";message="TRY AGAIN";}
 
-    setup_fog();
-
-    update_player_pos( plyr, 0 );
-    update_view( plyr, 0 );
-
-    setup_view_frustum( plyr, NEAR_CLIP_DIST, 
-			getparam_forward_clip_distance() );
-
-    draw_sky(plyr->view.pos);
-
-    draw_fog_plane();
-
-    set_course_clipping( True );
-    set_course_eye_point( plyr->view.pos );
-    setup_course_lighting();
-    render_course();
-    draw_trees();
-
-    if ( getparam_draw_particles() ) {
-	draw_particles( plyr );
+#ifdef __APPLE__
+    if(renderer_metal_begin_menu_frame(width,height)){
+        renderer_metal_draw_results_menu(headline,message,time_text,
+                                         plyr->herring,plyr->score);
+        renderer_metal_end_menu_frame();
     }
-
-    draw_tux();
-    draw_tux_shadow();
-
-    set_gl_options( GUI );
-
-    ui_setup_display();
-
-    draw_game_over_text();
-
-    draw_hud( plyr );
-
-    reshape( width, height );
-
-    winsys_swap_buffers();
-} 
+#else
+    clear_rendering_context();
+    set_gl_options(GUI);ui_setup_display();draw_game_over_text();
+    reshape(width,height);winsys_swap_buffers();
+#endif
+}
 
 START_KEYBOARD_CB( game_over_cb )
 {
