@@ -997,7 +997,9 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
          */
         if ( g_frame_encoder != nil || g_frame_command_buffer != nil ) {
             fprintf( stderr,
-                     "Tux Racer Modern: refusing nested native Metal frame\n" );
+                     "Tux Racer Modern: refusing nested native Metal frame active=%d encoder=%d command=%d drawable=%d\n",
+                     g_native_frame_active,
+                     g_frame_encoder!=nil,g_frame_command_buffer!=nil,g_native_drawable!=nil );
             return 0;
         }
 
