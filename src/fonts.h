@@ -24,8 +24,11 @@ extern "C"
 
 #ifndef _FONTS_H_
 #define _FONTS_H_
+#include "tex_font_metrics.h"
+#include "renderer_resources.h"
 
 typedef struct font_ font_t;
+typedef struct { tux_texture_handle_t texture; tex_font_metrics_t *metrics; scalar_t scale; colour_t colour; } font_render_info_t;
 
 void init_fonts();
 
@@ -34,6 +37,7 @@ bool_t load_font( char *fontname, char *filename, char *texname );
 bool_t bind_font( char *binding, char *fontname, scalar_t size, 
 		  colour_t colour );
 bool_t get_font_binding( char *binding, font_t **font );
+bool_t get_font_render_info( char *binding, font_render_info_t *out );
 bool_t unbind_font( char *binding );
 
 bool_t flush_fonts(void);
