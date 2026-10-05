@@ -163,11 +163,19 @@ int renderer_metal_initialize_resources( void )
                 "c=mix(c,float3(0.96,0.97,0.99),saturate(wisps)*0.38); "
                 "return float4(c,1.0); }\n"
                 "struct ObjectVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
-                "struct ObjectOut { float4 position [[position]]; float2 uv; float alpha; };\n"
+                "struct ObjectOut { float4 position [[position]]; float2 uv; float alpha; float mode; };\n"
                 "vertex ObjectOut object_vertex(uint vid [[vertex_id]], const device ObjectVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
-                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); o.alpha=(v[vid].pad>0.0?v[vid].pad:1.0); return o; }\n"
+                "ObjectOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); o.uv=float2(v[vid].uv0,v[vid].uv1); "
+                "o.mode=(v[vid].pad<0.0?1.0:0.0); o.alpha=(v[vid].pad>0.0?v[vid].pad:1.0); return o; }\n"
                 "fragment float4 object_fragment(ObjectOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
-                "float4 c=tex.sample(samp,in.uv); c.a*=in.alpha; if(c.a<0.05) discard_fragment(); return c; }\n"
+                "float4 c=tex.sample(samp,in.uv); "
+                "if(in.mode>0.5){ float mx=max(c.r,max(c.g,c.b)); float mn=min(c.r,min(c.g,c.b)); float sat=mx-mn; "
+                "float green=smoothstep(0.02,0.16,c.g-max(c.r,c.b))*smoothstep(0.08,0.28,sat); "
+                "float lum=dot(c.rgb,float3(0.299,0.587,0.114)); "
+                "float3 charcoal=mix(float3(0.055,0.065,0.075),float3(0.16,0.18,0.20),lum); "
+                "float3 red=mix(float3(0.38,0.035,0.03),float3(0.72,0.07,0.055),lum); "
+                "c.rgb=mix(c.rgb,mix(charcoal,red,smoothstep(0.30,0.72,lum)),green); } "
+                "c.a*=in.alpha; if(c.a<0.05) discard_fragment(); return c; }\n"
                 "struct SphereVertex { packed_float3 position; packed_float3 normal; };\n"
                 "struct SphereUniforms { float4x4 mvp; float4x4 model; float4 color; };\n"
                 "struct SphereOut { float4 position [[position]]; float3 normal; float4 color; };\n"
@@ -819,6 +827,32 @@ void renderer_metal_register_named_texture( const char *name,
     else if ( strcmp( name, "ice" ) == 0 ) g_ice_handle = handle;
 }
 
+
+void renderer_metal_draw_start_banner( float x,float y,float z,
+                                      float radius,float height,
+                                      float nx,float nz,
+                                      tux_texture_handle_t texture )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,u,v,pad; } object_vertex_t;
+        float rx=-radius*nz, rz=radius*nx;
+        const object_vertex_t verts[6]={
+            {x+rx,y,z+rz,0,0,-1},{x-rx,y,z-rz,1,0,-1},{x-rx,y+height,z-rz,1,1,-1},
+            {x+rx,y,z+rz,0,0,-1},{x-rx,y+height,z-rz,1,1,-1},{x+rx,y+height,z+rz,0,1,-1}
+        };
+        if(g_frame_encoder==nil||g_billboard_pipeline==nil||g_camera_uniform_buffer==nil)return;
+        id<MTLTexture> tex=[g_textures objectForKey:@(texture)]; if(tex==nil)return;
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:verts length:sizeof(verts) options:MTLResourceStorageModeShared];
+        if(vb==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+        [g_frame_encoder setFragmentTexture:tex atIndex:0];
+        [g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+    }
+}
 
 int renderer_metal_read_present_frame( unsigned char *rgba,
                                        size_t rgba_bytes,
