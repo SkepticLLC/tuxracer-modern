@@ -26,6 +26,8 @@ static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
 static id<MTLRenderPipelineState> g_mountain_pipeline = nil;
+static id<MTLRenderPipelineState> g_mountain_card_pipeline = nil;
+static id<MTLDepthStencilState> g_depth_readonly_state = nil;
 static id<MTLDepthStencilState> g_depth_state = nil;
 static id<MTLDepthStencilState> g_no_depth_state = nil;
 static id<MTLBuffer> g_camera_uniform_buffer = nil;
@@ -187,6 +189,13 @@ int renderer_metal_initialize_resources( void )
                 "float3 c=mix(farC,float3(0.88,0.91,0.94),snowFar*0.82); "
                 "c=mix(c,mix(midC,float3(0.94,0.95,0.96),snowMid*0.88),aMid); "
                 "float a=max(aFar*0.62,aMid*0.90); return float4(c,a); }\n"
+                "struct MountainCardVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
+                "struct MountainCardOut { float4 position [[position]]; float2 uv; float alpha; };\n"
+                "vertex MountainCardOut mountain_card_vertex(uint vid [[vertex_id]], const device MountainCardVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
+                "MountainCardOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); "
+                "o.uv=float2(v[vid].uv0,v[vid].uv1); o.alpha=v[vid].pad; return o; }\n"
+                "fragment float4 mountain_card_fragment(MountainCardOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
+                "float4 c=tex.sample(samp,in.uv); return float4(c.rgb,c.a*in.alpha); }\n"
                 "vertex TerrainVarying terrain_vertex(uint vid [[vertex_id]], const device TerrainVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
@@ -364,10 +373,36 @@ int renderer_metal_initialize_resources( void )
                 }
             }
 
+            {
+                id<MTLFunction> mv=[g_terrain_library newFunctionWithName:@"mountain_card_vertex"];
+                id<MTLFunction> mf=[g_terrain_library newFunctionWithName:@"mountain_card_fragment"];
+                MTLRenderPipelineDescriptor *md=[[MTLRenderPipelineDescriptor alloc] init];
+                md.vertexFunction=mv; md.fragmentFunction=mf;
+                md.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
+                md.colorAttachments[0].blendingEnabled=YES;
+                md.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+                md.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+                md.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;
+                g_mountain_card_pipeline=[g_device newRenderPipelineStateWithDescriptor:md error:&error];
+                if(g_mountain_card_pipeline==nil){
+                    fprintf(stderr,"Tux Racer Modern: Metal mountain-card pipeline creation failed: %s\n",
+                            error?[[error localizedDescription] UTF8String]:"unknown error");
+                    return 0;
+                }
+            }
+
             MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
             depthDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
             depthDesc.depthWriteEnabled = YES;
             g_depth_state = [g_device newDepthStencilStateWithDescriptor:depthDesc];
+            {
+                MTLDepthStencilDescriptor *readOnlyDesc =
+                    [[MTLDepthStencilDescriptor alloc] init];
+                readOnlyDesc.depthCompareFunction = MTLCompareFunctionLessEqual;
+                readOnlyDesc.depthWriteEnabled = NO;
+                g_depth_readonly_state =
+                    [g_device newDepthStencilStateWithDescriptor:readOnlyDesc];
+            }
             {
                 MTLDepthStencilDescriptor *noDepthDesc =
                     [[MTLDepthStencilDescriptor alloc] init];
@@ -408,6 +443,8 @@ void renderer_metal_shutdown_resources( void )
         g_shadow_pipeline = nil;
         g_skybox_pipeline = nil;
         g_mountain_pipeline = nil;
+        g_mountain_card_pipeline = nil;
+        g_depth_readonly_state = nil;
         g_terrain_library = nil;
         [g_textures removeAllObjects];
         g_textures = nil;
@@ -1013,8 +1050,8 @@ void renderer_metal_draw_billboard_cross( float x, float y, float z,
                                  options:MTLResourceStorageModeShared];
         if ( vb == nil ) return;
 
-        [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
-        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setRenderPipelineState:g_mountain_card_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_readonly_state];
         [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
         [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
         [g_frame_encoder setFragmentTexture:tex atIndex:0];
@@ -1272,7 +1309,7 @@ void renderer_metal_draw_mountain_card( float center_x, float base_y, float cent
         typedef struct { float px,py,pz,u,v,pad; } ov_t;
         ov_t v[6];
         float hw=width*0.5f;
-        if(g_frame_encoder==nil||g_billboard_pipeline==nil||
+        if(g_frame_encoder==nil||g_mountain_card_pipeline==nil||
            g_camera_uniform_buffer==nil||texture==TUX_INVALID_TEXTURE_HANDLE)return;
         id<MTLTexture> tex=[g_textures objectForKey:@(texture)];
         if(tex==nil)return;
