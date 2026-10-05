@@ -42,9 +42,6 @@
 #include "renderer_metal.h"
 #endif
 
-static bool_t staging_lights_active = False;
-static scalar_t staging_lights_time = 0.0;
-
 static void abort_intro( player_data_t *plyr ) {
     point2d_t start_pt = get_start_pt();
 
@@ -68,8 +65,6 @@ void intro_init(void)
     point2d_t start_pt = get_start_pt();
 
     init_key_frame();
-    staging_lights_active = False;
-    staging_lights_time = 0.0;
 
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
@@ -143,17 +138,9 @@ void intro_loop( scalar_t time_step )
      * Audio, rendering, particles, and the rest of the game clock remain
      * real-time so the scene feels deliberate rather than slow-motion.
      */
-    if ( !staging_lights_active ) {
-        if ( update_key_frame( plyr, time_step * 0.78 ) ) {
-            staging_lights_active = True;
-            staging_lights_time = 0.0;
-        }
-    } else {
-        staging_lights_time += time_step;
-        if ( staging_lights_time >= 2.25 ) {
-            set_game_mode( RACING );
-            return;
-        }
+    if ( update_key_frame( plyr, time_step ) ) {
+        set_game_mode( RACING );
+        return;
     }
 
     renderer_begin_frame();
@@ -187,15 +174,6 @@ void intro_loop( scalar_t time_step )
         draw_trees_metal();
         draw_items_metal();
 
-        {
-            int light_phase=-1;
-            if(staging_lights_active){
-                if(staging_lights_time<0.75) light_phase=0;
-                else if(staging_lights_time<1.50) light_phase=1;
-                else light_phase=2;
-            }
-            draw_start_scene_metal(light_phase);
-        }
 #endif
         draw_tux_shadow_metal();
         draw_tux_metal();
