@@ -1383,10 +1383,8 @@ START_KEYBOARD_CB( race_select_key_cb )
 	    }
 	    break;
 	case 27: /* Esc */
-	    if ( back_btn ) {
-		button_simulate_mouse_click( back_btn );
-		ui_set_dirty();
-	    }
+            set_game_mode( EVENT_SELECT );
+            ui_set_dirty();
 	    break;
 	case 'c': 
 	    next_race_condition();
