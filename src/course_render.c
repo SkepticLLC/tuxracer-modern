@@ -446,6 +446,45 @@ void draw_sky(point_t pos)
 
 }
 
+typedef struct {
+    point_t loc;
+    scalar_t height;
+    scalar_t start_time;
+    scalar_t amplitude;
+    vector_t direction;
+    bool_t active;
+} modern_tree_shake_t;
+
+#define MAX_MODERN_TREE_SHAKES 16
+static modern_tree_shake_t modern_tree_shakes[MAX_MODERN_TREE_SHAKES];
+
+void trigger_tree_shake_metal( point_t tree_loc, scalar_t tree_height,
+                              scalar_t impact_speed, vector_t impact_dir )
+{
+#ifdef __APPLE__
+    int i, slot = 0;
+    scalar_t oldest = 1e30;
+    impact_dir.y = 0.0;
+    if ( MAG_SQD( impact_dir ) < 0.0001 ) impact_dir = make_vector( 1,0,0 );
+    normalize_vector( &impact_dir );
+
+    for ( i=0; i<MAX_MODERN_TREE_SHAKES; ++i ) {
+        if ( !modern_tree_shakes[i].active ) { slot=i; oldest=-1; break; }
+        if ( modern_tree_shakes[i].start_time < oldest ) {
+            oldest=modern_tree_shakes[i].start_time; slot=i;
+        }
+    }
+    modern_tree_shakes[slot].loc=tree_loc;
+    modern_tree_shakes[slot].height=tree_height;
+    modern_tree_shakes[slot].start_time=g_game.time;
+    modern_tree_shakes[slot].amplitude=min( 0.24, max( 0.045, impact_speed*0.0065 ) );
+    modern_tree_shakes[slot].direction=impact_dir;
+    modern_tree_shakes[slot].active=True;
+#else
+    (void)tree_loc;(void)tree_height;(void)impact_speed;(void)impact_dir;
+#endif
+}
+
 void draw_trees_metal()
 {
 #ifdef __APPLE__
@@ -468,8 +507,27 @@ void draw_trees_metal()
         if ( tree_name == NULL ||
              !get_texture_handle_binding( tree_name, &handle ) ) continue;
 
+        {
+            scalar_t shake_x=0.0, shake_z=0.0;
+            int si;
+            for ( si=0; si<MAX_MODERN_TREE_SHAKES; ++si ) {
+                modern_tree_shake_t *sh=&modern_tree_shakes[si];
+                vector_t d;
+                scalar_t age, envelope, wave;
+                if(!sh->active) continue;
+                age=g_game.time-sh->start_time;
+                if(age>0.85){sh->active=False;continue;}
+                d=subtract_points(treeLocs[i].ray.pt,sh->loc);
+                if(MAG_SQD(d)>0.25) continue;
+                envelope=exp(-4.8*age);
+                wave=sin(age*31.0)*sh->amplitude*envelope;
+                shake_x=sh->direction.x*wave;
+                shake_z=sh->direction.z*wave;
+                break;
+            }
+
         renderer_metal_draw_billboard_cross(
-            (float)treeLocs[i].ray.pt.x,
+            (float)(treeLocs[i].ray.pt.x + shake_x),
             (float)(get_renderer_course_height( treeLocs[i].ray.pt.x,
                                          treeLocs[i].ray.pt.z ) -
                     min( 0.22, max( 0.06, treeLocs[i].height * 0.035 ) )),
@@ -477,6 +535,7 @@ void draw_trees_metal()
             (float)(treeLocs[i].diam * 0.5),
             (float)treeLocs[i].height,
             handle );
+        }
     }
 #endif
 }
