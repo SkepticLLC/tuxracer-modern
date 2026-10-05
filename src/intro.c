@@ -165,6 +165,12 @@ void intro_loop( scalar_t time_step )
 
     update_view( plyr, time_step );
 
+    /*
+     * Explicit renderer ownership: camera is finalized first, then exactly
+     * one Metal world frame is opened for this display frame.
+     */
+    renderer_begin_world_frame();
+
     setup_view_frustum( plyr, NEAR_CLIP_DIST, 
 			getparam_forward_clip_distance() );
 
