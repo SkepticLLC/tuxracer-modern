@@ -41,6 +41,7 @@ void trigger_tree_shake_metal( point_t tree_loc, scalar_t tree_height,
                               scalar_t impact_speed, vector_t impact_dir );
 void draw_items_metal();
 void draw_start_line_metal();
+void draw_start_scene_metal( int light_phase );
 void set_course_clipping( bool_t state );
 void set_course_eye_point( point_t pt );
 void set_course_fog( bool_t state);
