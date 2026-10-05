@@ -191,11 +191,6 @@ static void game_type_select_loop( scalar_t time_step )
 
     ui_setup_display();
 
-    if (getparam_ui_snow()) {
-	update_ui_snow( time_step, False );
-	draw_ui_snow();
-    }
-
     ui_draw_menu_decorations();
 
     ui_draw();
