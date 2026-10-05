@@ -1377,10 +1377,11 @@ START_KEYBOARD_CB( race_select_key_cb )
 
 	switch (key) {
 	case 13: /* Enter */
-	    if ( start_btn ) {
-		button_simulate_mouse_click( start_btn );
-		ui_set_dirty();
-	    }
+            if ( cup_complete || is_current_race_first_incomplete() ) {
+                update_race_data();
+                set_game_mode( LOADING );
+            }
+            ui_set_dirty();
 	    break;
 	case 27: /* Esc */
             set_game_mode( EVENT_SELECT );
