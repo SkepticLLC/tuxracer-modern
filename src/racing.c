@@ -115,6 +115,11 @@ static void modern_tree_impact_visual( point_t tree_loc,
     velocity = make_vector( 0.0, 1.1 + energy * 2.4, -0.4 - energy * 1.0 );
     create_new_particles( burst, velocity, count );
 
+    {
+        vector_t impact_dir = subtract_points( tree_loc, get_player_data(local_player())->pos );
+        trigger_tree_shake_metal( tree_loc, tree_height, impact_speed, impact_dir );
+    }
+
     /* A middle branch band is always visible; harder hits add the crown. */
     burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
               tree_height * 0.58;
