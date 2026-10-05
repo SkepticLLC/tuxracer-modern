@@ -1475,6 +1475,8 @@ static void menu_box(float x,float y,float w,float h,float r,float g,float b,flo
     id<MTLBuffer>vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared],ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
     [g_frame_encoder setRenderPipelineState:g_overlay_pipeline];[g_frame_encoder setDepthStencilState:g_no_depth_state];[g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];[g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];[g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
+static void modern_menu_backdrop(void);
+
 void renderer_metal_draw_home_menu( int selected )
 {
     @autoreleasepool {
