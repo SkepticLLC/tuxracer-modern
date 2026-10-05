@@ -517,6 +517,7 @@ void racing_loop( scalar_t time_step )
          * the modern scene.
          */
         draw_mountain_backdrop_metal( plyr->view.pos );
+        draw_modern_start_zone_metal();
         draw_trees_metal();
         draw_items_metal();
         draw_track_marks_metal();
