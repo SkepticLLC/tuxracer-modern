@@ -890,6 +890,16 @@ void renderer_metal_register_named_texture( const char *name,
     if ( strcmp( name, "snow" ) == 0 ) g_snow_handle = handle;
     else if ( strcmp( name, "rock" ) == 0 ) g_rock_handle = handle;
     else if ( strcmp( name, "ice" ) == 0 ) g_ice_handle = handle;
+    else if ( strcmp( name, "modern_mountains_far" ) == 0 ) {
+        g_menu_mountain_far_handle = handle;
+        g_mountain_far_handle = handle;
+    } else if ( strcmp( name, "modern_mountains_mid" ) == 0 ) {
+        g_menu_mountain_mid_handle = handle;
+        g_mountain_mid_handle = handle;
+    } else if ( strcmp( name, "modern_mountains_foothills" ) == 0 ) {
+        g_menu_mountain_foothill_handle = handle;
+        g_mountain_foothill_handle = handle;
+    }
 }
 
 
