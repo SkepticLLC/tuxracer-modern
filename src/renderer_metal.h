@@ -54,6 +54,10 @@ void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
                                          float radius_x, float radius_z,
                                          float alpha );
 
+void renderer_metal_draw_colored_box( float cx,float cy,float cz,
+                                      float sx,float sy,float sz,
+                                      float r,float g,float b,float a );
+
 void renderer_metal_draw_sphere( const double model[16],
                                  int divisions,
                                  float r, float g, float b, float a );
