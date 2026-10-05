@@ -253,7 +253,7 @@ void renderer_sync_mode_visibility( int mode )
      * Legacy OpenGL menus/results must be visible when leaving a level.
      */
     int world_visible = g_metal_native_enabled &&
-                        (mode == INTRO || mode == RACING);
+                        (mode == INTRO || mode == RACING || mode == GAME_TYPE_SELECT);
     if ( !world_visible ) {
         renderer_metal_end_native_frame();
         renderer_metal_end_offscreen_frame();
