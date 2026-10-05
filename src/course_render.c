@@ -549,42 +549,54 @@ void draw_modern_start_zone_metal()
     float y=(float)get_renderer_course_height(start.x,start.y);
 
     /*
-     * Compact start gate sized for Tux rather than vehicles. Keep the
-     * mountain view open and let the original course remain the hero.
+     * Mountain trailhead-style start structure: compact timber construction
+     * with modern timing equipment attached to it. It should frame Tux and
+     * the Rockies rather than read as a motorsport gantry.
      */
-    renderer_metal_draw_colored_box(x-3.85f,y+1.75f,z-0.85f,
-                                    0.24f,3.50f,0.24f, 0.075f,0.085f,0.095f,1.0f);
-    renderer_metal_draw_colored_box(x+3.85f,y+1.75f,z-0.85f,
-                                    0.24f,3.50f,0.24f, 0.075f,0.085f,0.095f,1.0f);
-    renderer_metal_draw_colored_box(x,y+3.34f,z-0.85f,
-                                    7.95f,0.54f,0.34f, 0.075f,0.085f,0.095f,1.0f);
+    const float wood_r=0.29f, wood_g=0.19f, wood_b=0.105f;
+    const float dark_r=0.16f, dark_g=0.095f, dark_b=0.050f;
 
-    /* Restrained red identity strip and shallow snow cap. */
-    renderer_metal_draw_colored_box(x,y+3.02f,z-0.84f,
-                                    7.72f,0.075f,0.38f, 0.72f,0.055f,0.045f,1.0f);
-    renderer_metal_draw_colored_box(x,y+3.65f,z-0.85f,
-                                    8.02f,0.075f,0.40f, 0.91f,0.94f,0.97f,1.0f);
+    /* Main timber uprights, deliberately chunky and slightly inset. */
+    renderer_metal_draw_colored_box(x-3.25f,y+1.48f,z-0.72f,
+                                    0.30f,2.96f,0.34f, wood_r,wood_g,wood_b,1.0f);
+    renderer_metal_draw_colored_box(x+3.25f,y+1.48f,z-0.72f,
+                                    0.30f,2.96f,0.34f, wood_r,wood_g,wood_b,1.0f);
 
-    /* Small timing modules close to the posts. */
-    renderer_metal_draw_colored_box(x-3.58f,y+0.82f,z-0.62f,
-                                    0.32f,0.42f,0.32f, 0.025f,0.030f,0.035f,1.0f);
-    renderer_metal_draw_colored_box(x+3.58f,y+0.82f,z-0.62f,
-                                    0.32f,0.42f,0.32f, 0.025f,0.030f,0.035f,1.0f);
+    /* Layered wooden header board instead of a geometric metal beam. */
+    renderer_metal_draw_colored_box(x,y+2.82f,z-0.72f,
+                                    6.85f,0.58f,0.30f, wood_r,wood_g,wood_b,1.0f);
+    renderer_metal_draw_colored_box(x,y+2.80f,z-0.89f,
+                                    6.45f,0.38f,0.10f, dark_r,dark_g,dark_b,1.0f);
 
     /*
-     * Minimal staging markers only. The long blockout rails were too large
-     * for the character/course scale.
+     * Irregular snow accumulation: several overlapping shallow pieces avoid
+     * the perfect slab silhouette while we are still on procedural geometry.
      */
-    renderer_metal_draw_colored_box(x-3.55f,y+0.38f,z+0.55f,
-                                    0.13f,0.65f,1.85f, 0.10f,0.11f,0.12f,1.0f);
-    renderer_metal_draw_colored_box(x+3.55f,y+0.38f,z+0.55f,
-                                    0.13f,0.65f,1.85f, 0.10f,0.11f,0.12f,1.0f);
+    renderer_metal_draw_colored_box(x-1.70f,y+3.145f,z-0.70f,
+                                    3.25f,0.085f,0.39f, 0.91f,0.94f,0.97f,1.0f);
+    renderer_metal_draw_colored_box(x+1.62f,y+3.13f,z-0.70f,
+                                    3.45f,0.075f,0.41f, 0.93f,0.95f,0.98f,1.0f);
+    renderer_metal_draw_colored_box(x-3.25f,y+2.99f,z-0.72f,
+                                    0.39f,0.075f,0.43f, 0.92f,0.95f,0.98f,1.0f);
+    renderer_metal_draw_colored_box(x+3.25f,y+2.99f,z-0.72f,
+                                    0.38f,0.065f,0.41f, 0.92f,0.95f,0.98f,1.0f);
+
+    /* Small timing sensors attached to the timber, not dominating it. */
+    renderer_metal_draw_colored_box(x-3.02f,y+0.82f,z-0.48f,
+                                    0.24f,0.30f,0.24f, 0.035f,0.040f,0.045f,1.0f);
+    renderer_metal_draw_colored_box(x+3.02f,y+0.82f,z-0.48f,
+                                    0.24f,0.30f,0.24f, 0.035f,0.040f,0.045f,1.0f);
 
     /*
-     * Do not draw the start stripe as a flat box: the course is sloped and
-     * the box intersects/deforms visually. A terrain-conforming strip will
-     * replace it using the same height-sampled approach as track marks.
+     * Short timber snow-fence markers establish the walk-out/start chute
+     * without enclosing the player.
      */
+    renderer_metal_draw_colored_box(x-3.05f,y+0.34f,z+0.30f,
+                                    0.16f,0.62f,1.15f, wood_r,wood_g,wood_b,1.0f);
+    renderer_metal_draw_colored_box(x+3.05f,y+0.34f,z+0.30f,
+                                    0.16f,0.62f,1.15f, wood_r,wood_g,wood_b,1.0f);
+
+    /* Start stripe remains intentionally absent until terrain-conforming. */
 #endif
 }
 
