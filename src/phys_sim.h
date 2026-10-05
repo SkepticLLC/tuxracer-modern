@@ -61,6 +61,7 @@ void      init_physical_simulation();
  */
 typedef void (*tree_impact_visual_callback_t)( point_t tree_loc,
                                                scalar_t tree_diam,
+                                               scalar_t tree_height,
                                                scalar_t impact_speed );
 void set_tree_impact_visual_callback( tree_impact_visual_callback_t callback );
 
