@@ -37,6 +37,7 @@
 #include "part_sys.h"
 #include "course_load.h"
 #include "joystick.h"
+#include "renderer.h"
 
 static void abort_intro( player_data_t *plyr ) {
     point2d_t start_pt = get_start_pt();
@@ -64,7 +65,7 @@ void intro_init(void)
 
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
-    winsys_set_reshape_func( reshape );
+    winsys_set_reshape_func( renderer_resize );
     winsys_set_mouse_func( NULL );
     winsys_set_motion_func( NULL );
     winsys_set_passive_motion_func( NULL );
@@ -132,6 +133,8 @@ void intro_loop( scalar_t time_step )
 
     update_key_frame( plyr, time_step );
 
+    renderer_begin_frame();
+
     clear_rendering_context();
 
     setup_fog();
@@ -149,15 +152,23 @@ void intro_loop( scalar_t time_step )
     set_course_eye_point( plyr->view.pos );
     setup_course_lighting();
     render_course( );
-    draw_trees();
 
+    if ( renderer_metal_native_enabled() ) {
+        draw_mountain_backdrop_metal( plyr->view.pos );
+        draw_trees_metal();
+        draw_items_metal();
+        draw_tux_shadow_metal();
+        draw_tux_metal();
+    }
+
+    draw_trees();
     draw_tux();
     draw_tux_shadow();
 
     draw_hud( plyr );
 
-    reshape( width, height );
-    winsys_swap_buffers();
+    renderer_resize( width, height );
+    renderer_end_frame();
 } 
 
 START_KEYBOARD_CB( intro_cb )
