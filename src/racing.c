@@ -546,15 +546,14 @@ void racing_loop( scalar_t time_step )
     draw_tux();
     draw_tux_shadow();
 
-    if ( renderer_metal_native_enabled() ) {
+    /* Tux Racer Modern 2.0: native Metal exclusively owns gameplay HUD. */
+    {
         vector_t hud_vel = plyr->vel;
         scalar_t hud_speed = normalize_vector( &hud_vel );
         renderer_metal_draw_hud( (float)(hud_speed * M_PER_SEC_TO_KM_PER_H),
                                  (float)g_game.time,
                                  (float)plyr->control.jump_amt,
                                  plyr->herring );
-    } else {
-        draw_hud( plyr );
     }
 
     renderer_resize( width, height );
