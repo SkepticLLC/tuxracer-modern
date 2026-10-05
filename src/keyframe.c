@@ -54,7 +54,7 @@ scalar_t interp( scalar_t frac, scalar_t v1, scalar_t v2 )
     return frac*v1 + (1.-frac)*v2;
 } 
 
-void update_key_frame( player_data_t *plyr, scalar_t dt )
+bool_t update_key_frame( player_data_t *plyr, scalar_t dt )
 {
     int idx;
     scalar_t frac;
@@ -96,8 +96,7 @@ void update_key_frame( player_data_t *plyr, scalar_t dt )
     } 
 
     if ( idx == numFrames || numFrames == 0 ) {
-        set_game_mode( RACING );
-        return;
+        return True;
     } 
 
     reset_scene_node( root );
@@ -156,6 +155,7 @@ void update_key_frame( player_data_t *plyr, scalar_t dt )
     /* Set orientation */
     plyr->orientation = make_quaternion_from_matrix( cob_mat );
     plyr->orientation_initialized = True;
+    return False;
 } 
 
 static int key_frame_cb ( ClientData cd, Tcl_Interp *ip, int argc, const char *argv[]) 
