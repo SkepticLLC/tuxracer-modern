@@ -1425,29 +1425,33 @@ void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                       float r,float g,float b,float a )
 {
     @autoreleasepool {
-        static const float unit[36][3]={
-            {-1,-1, 1},{ 1,-1, 1},{ 1, 1, 1},{-1,-1, 1},{ 1, 1, 1},{-1, 1, 1},
-            { 1,-1,-1},{-1,-1,-1},{-1, 1,-1},{ 1,-1,-1},{-1, 1,-1},{ 1, 1,-1},
-            {-1,-1,-1},{-1,-1, 1},{-1, 1, 1},{-1,-1,-1},{-1, 1, 1},{-1, 1,-1},
-            { 1,-1, 1},{ 1,-1,-1},{ 1, 1,-1},{ 1,-1, 1},{ 1, 1,-1},{ 1, 1, 1},
-            {-1, 1, 1},{ 1, 1, 1},{ 1, 1,-1},{-1, 1, 1},{ 1, 1,-1},{-1, 1,-1},
-            {-1,-1,-1},{ 1,-1,-1},{ 1,-1, 1},{-1,-1,-1},{ 1,-1, 1},{-1,-1, 1}
-        };
         typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
-        sv_t v[36]; int i;
-        double model[16]={sx*0.5,0,0,0, 0,sy*0.5,0,0, 0,0,sz*0.5,0, cx,cy,cz,1};
-        for(i=0;i<36;i++){
-            float x=unit[i][0],y=unit[i][1],z=unit[i][2];
-            float ax=fabsf(x),ay=fabsf(y),az=fabsf(z);
-            float nx=0,ny=0,nz=0;
-            if(ay>=ax&&ay>=az)ny=(y>0?1:-1);
-            else if(ax>=az)nx=(x>0?1:-1); else nz=(z>0?1:-1);
-            v[i]=(sv_t){x,y,z,nx,ny,nz};
+        typedef struct { float mvp[16], model[16], color[4]; } su_t;
+        static const sv_t v[36]={
+            {-1,-1, 1,0,0,1},{ 1,-1, 1,0,0,1},{ 1, 1, 1,0,0,1},{-1,-1, 1,0,0,1},{ 1, 1, 1,0,0,1},{-1, 1, 1,0,0,1},
+            { 1,-1,-1,0,0,-1},{-1,-1,-1,0,0,-1},{-1, 1,-1,0,0,-1},{ 1,-1,-1,0,0,-1},{-1, 1,-1,0,0,-1},{ 1, 1,-1,0,0,-1},
+            {-1,-1,-1,-1,0,0},{-1,-1, 1,-1,0,0},{-1, 1, 1,-1,0,0},{-1,-1,-1,-1,0,0},{-1, 1, 1,-1,0,0},{-1, 1,-1,-1,0,0},
+            { 1,-1, 1,1,0,0},{ 1,-1,-1,1,0,0},{ 1, 1,-1,1,0,0},{ 1,-1, 1,1,0,0},{ 1, 1,-1,1,0,0},{ 1, 1, 1,1,0,0},
+            {-1, 1, 1,0,1,0},{ 1, 1, 1,0,1,0},{ 1, 1,-1,0,1,0},{-1, 1, 1,0,1,0},{ 1, 1,-1,0,1,0},{-1, 1,-1,0,1,0},
+            {-1,-1,-1,0,-1,0},{ 1,-1,-1,0,-1,0},{ 1,-1, 1,0,-1,0},{-1,-1,-1,0,-1,0},{ 1,-1, 1,0,-1,0},{-1,-1, 1,0,-1,0}
+        };
+        float mf[16]={sx*0.5f,0,0,0, 0,sy*0.5f,0,0, 0,0,sz*0.5f,0, cx,cy,cz,1};
+        float mvp[16]; su_t u; int col,row,q;
+        if(g_frame_encoder==nil||g_sphere_pipeline==nil||g_camera_uniform_buffer==nil)return;
+        const float *vp=(const float *)[g_camera_uniform_buffer contents];
+        for(col=0;col<4;++col)for(row=0;row<4;++row){
+            float vv=0;for(q=0;q<4;++q)vv+=vp[q*4+row]*mf[col*4+q];
+            mvp[col*4+row]=vv;
         }
-        if(g_frame_encoder==nil||g_sphere_pipeline==nil)return;
+        memcpy(u.mvp,mvp,sizeof(mvp));memcpy(u.model,mf,sizeof(mf));
+        u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
         id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
-        if(vb==nil)return;
-        renderer_metal_draw_sphere(model,6,r,g,b,a);
-        (void)vb;
+        id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+        if(vb==nil||ub==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:36];
     }
 }
