@@ -525,7 +525,7 @@ void racing_loop( scalar_t time_step )
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
-        draw_start_line_metal();
+        draw_start_scene_metal(2);
         draw_track_marks_metal();
     }
 
