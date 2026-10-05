@@ -1462,18 +1462,61 @@ static void menu_box(float x,float y,float w,float h,float r,float g,float b,flo
 void renderer_metal_draw_home_menu( int selected )
 {
     @autoreleasepool {
-        static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};float ui=(float)g_native_height/2168.0f,x,y;int i;
+        static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};
+        float ui=(float)g_native_height/2168.0f,x,y;
+        int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
-        menu_box(0,0,g_native_width,g_native_height,.055f,.16f,.29f,1);
-        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.10f,.66f,.90f,0,1);
-        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.22f,.50f,.72f,.02f,.98f);
-        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.38f,.28f,.62f,.04f,.96f);
-        menu_box(0,0,g_native_width*.44f,g_native_height,.008f,.02f,.04f,.50f);
-        x=105*ui;y=g_native_height-210*ui;
-        modern_metal_text(x,y,"modern_hud_small","TUX RACER",1.05f*ui,.72f);y-=68*ui;
-        modern_metal_text(x,y,"modern_hud_speed","MODERN",1.18f*ui,1);y-=175*ui;
-        for(i=0;i<4;i++){float al=i==selected?1:.52f,mul=i==selected?1.0f:.86f;if(i==selected)menu_box(x-22*ui,y-8*ui,4*ui,38*ui,.78f,.92f,1,.9f);modern_metal_text(x,y,"modern_hud_speed",items[i],mul*ui,al);y-=100*ui;}
-        modern_metal_text(x,70*ui,"modern_hud_small","UP/DOWN  SELECT     ENTER  CONFIRM",.72f*ui,.48f);
+
+        /*
+         * Full-screen Modern alpine composition.  The game world is the
+         * artwork; UI merely sits over it.
+         */
+        menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
+
+        /* Snow/atmospheric base tying the panorama into the foreground. */
+        menu_box(0,0,g_native_width,g_native_height*.22f,
+                 .78f,.88f,.96f,.10f);
+
+        /*
+         * Soft readability treatment rather than a hard panel.  Three
+         * overlapping translucent bands approximate a feathered gradient.
+         */
+        menu_box(0,0,g_native_width*.24f,g_native_height,
+                 .006f,.018f,.034f,.48f);
+        menu_box(g_native_width*.24f,0,g_native_width*.12f,g_native_height,
+                 .006f,.018f,.034f,.28f);
+        menu_box(g_native_width*.36f,0,g_native_width*.10f,g_native_height,
+                 .006f,.018f,.034f,.12f);
+
+        x=112.0f*ui;
+        y=(float)g_native_height-205.0f*ui;
+
+        modern_metal_text(x,y,"modern_hud_small","TUX RACER",
+                          1.00f*ui,.72f);
+        y-=64.0f*ui;
+        modern_metal_text(x,y,"modern_hud_speed","MODERN",
+                          1.10f*ui,1.0f);
+
+        y-=178.0f*ui;
+        for(i=0;i<4;i++){
+            float alpha=(i==selected)?1.0f:.54f;
+            float mul=(i==selected)?.94f:.82f;
+            float item_x=x+(i==selected?14.0f*ui:0.0f);
+
+            if(i==selected){
+                menu_box(x-20.0f*ui,y-6.0f*ui,3.0f*ui,34.0f*ui,
+                         .78f,.92f,1.0f,.92f);
+            }
+            modern_metal_text(item_x,y,"modern_hud_speed",
+                              items[i],mul*ui,alpha);
+            y-=94.0f*ui;
+        }
     }
 }
 void renderer_metal_end_menu_frame( void ){renderer_metal_end_native_frame();}
