@@ -322,12 +322,6 @@ void setup_view_matrix( player_data_t *plyr )
                          plyr->view.dir.x, plyr->view.dir.y, plyr->view.dir.z,
                          plyr->view.up.x, plyr->view.up.y, plyr->view.up.z );
 
-    /*
-     * The live camera for this racing frame is now final.  Modern renderers
-     * may safely begin world rendering without a one-frame camera lag.
-     */
-    renderer_begin_world_frame();
-
     /* Preservation backend: consume the same matrix through legacy OpenGL. */
     glLoadIdentity();
     glMultMatrixd( (scalar_t *) view_mat );
