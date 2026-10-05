@@ -590,6 +590,74 @@ void draw_status_msg( int x_org, int y_org, int box_width, int box_height )
   \date    Created:  2000-09-24
   \date    Modified: 2000-09-24
 */
+static void modern_draw_text( const char *binding, const char *text,
+                              scalar_t x, scalar_t y )
+{
+    font_t *font;
+    if ( text == NULL || !get_font_binding( (char *)binding, &font ) ) return;
+    bind_font_texture( font );
+    glPushMatrix();
+    glTranslatef( x, y, 0 );
+    draw_string( font, (char *)text );
+    glPopMatrix();
+}
+
+static void modern_draw_race_select( void )
+{
+    int w=getparam_x_resolution(), h=getparam_y_resolution();
+    int pw=(int)(w*.43), ph=(int)(h*.42);
+    int px=(int)(w*.51), py=(int)(h*.30);
+    const char *name=NULL,*desc=NULL,*course=NULL;
+    GLuint texobj=0;
+    char counter[64],line[96];
+    int index=0,total=0;
+    list_elem_t e;
+
+    if(g_game.practicing){
+        open_course_data_t *d=(open_course_data_t*)get_list_elem_data(cur_elem);
+        name=d->name;desc=d->description;course=d->course;
+    }else{
+        race_data_t *d=(race_data_t*)get_list_elem_data(cur_elem);
+        name=d->name;desc=d->description;course=d->course;
+    }
+    for(e=get_list_head(race_list);e!=NULL;e=get_next_list_elem(race_list,e)){
+        ++total;if(e==cur_elem)index=total;
+    }
+
+    ui_draw_menu_decorations();
+    modern_draw_text("modern_screen_eyebrow",g_game.practicing?"PRACTICE":"RACE",w*.065,h*.865);
+    modern_draw_text("modern_screen_title",name,w*.065,h*.745);
+    modern_draw_text("modern_screen_body",desc,w*.065,h*.665);
+    snprintf(counter,sizeof(counter),"<   %02d / %02d   >",index,total);
+    modern_draw_text("modern_screen_meta",counter,w*.065,h*.545);
+
+    if(g_game.practicing){
+        snprintf(line,sizeof(line),"CONDITIONS   %s",
+                 g_game.race.conditions==RACE_CONDITIONS_SUNNY?"CLEAR":
+                 g_game.race.conditions==RACE_CONDITIONS_CLOUDY?"CLOUDY":"NIGHT");
+        modern_draw_text("modern_screen_meta",line,w*.065,h*.445);
+        snprintf(line,sizeof(line),"WIND         %s",g_game.race.windy?"ON":"OFF");
+        modern_draw_text("modern_screen_meta",line,w*.065,h*.395);
+        snprintf(line,sizeof(line),"MIRRORED     %s",g_game.race.mirrored?"ON":"OFF");
+        modern_draw_text("modern_screen_meta",line,w*.065,h*.345);
+        modern_draw_text("modern_screen_hint","C  CONDITIONS    W  WIND    M  MIRROR",w*.065,h*.265);
+    }
+
+    glDisable(GL_TEXTURE_2D);glEnable(GL_BLEND);
+    glColor4f(.88f,.94f,1,.16f);glBegin(GL_QUADS);
+    glVertex2f(px-4,py-4);glVertex2f(px+pw+4,py-4);glVertex2f(px+pw+4,py+ph+4);glVertex2f(px-4,py+ph+4);glEnd();
+    glColor4f(.01f,.025f,.045f,.72f);glBegin(GL_QUADS);
+    glVertex2f(px,py);glVertex2f(px+pw,py);glVertex2f(px+pw,py+ph);glVertex2f(px,py+ph);glEnd();
+    glEnable(GL_TEXTURE_2D);
+    if(!get_texture_binding((char*)course,&texobj))get_texture_binding("no_preview",&texobj);
+    glBindTexture(GL_TEXTURE_2D,texobj);glColor4f(1,1,1,1);glBegin(GL_QUADS);
+    glTexCoord2f(0,0);glVertex2f(px,py);glTexCoord2f(1,0);glVertex2f(px+pw,py);
+    glTexCoord2f(1,1);glVertex2f(px+pw,py+ph);glTexCoord2f(0,1);glVertex2f(px,py+ph);glEnd();
+
+    modern_draw_text("modern_screen_hint","ESC  BACK",w*.065,h*.085);
+    modern_draw_text("modern_screen_action","ENTER  START",w*.78,h*.085);
+}
+
 static void set_widget_positions_and_draw_decorations()
 {
     int w = getparam_x_resolution();
@@ -910,7 +978,7 @@ static void race_select_init(void)
 			      "button_label", 
 			      "Back" );
     button_set_hilit_font_binding( back_btn, "button_label_hilit" );
-    button_set_visible( back_btn, True );
+    button_set_visible( back_btn, False );
     button_set_click_event_cb( back_btn, back_click_cb, NULL );
 
     start_btn = button_create( dummy_pos,
@@ -919,7 +987,7 @@ static void race_select_init(void)
 			       "Race!" );
     button_set_hilit_font_binding( start_btn, "button_label_hilit" );
     button_set_disabled_font_binding( start_btn, "button_label_disabled" );
-    button_set_visible( start_btn, True );
+    button_set_visible( start_btn, False );
     button_set_click_event_cb( start_btn, start_click_cb, NULL );
 
 
@@ -935,7 +1003,7 @@ static void race_select_init(void)
 				      race_listbox_item_change_cb, 
 				      NULL );
 
-    listbox_set_visible( race_listbox, True );
+    listbox_set_visible( race_listbox, False );
 
     /* 
      * Create text area 
@@ -954,7 +1022,7 @@ static void race_select_init(void)
 	textarea_set_text( desc_ta, data->description );
     }
 
-    textarea_set_visible( desc_ta, True );
+    textarea_set_visible( desc_ta, False );
 			       
 
     /* 
@@ -981,7 +1049,7 @@ static void race_select_init(void)
 				  white );
 
 	ssbutton_set_state( mirror_ssbtn, (int)g_game.race.mirrored );
-	ssbutton_set_visible( mirror_ssbtn, True );
+	ssbutton_set_visible( mirror_ssbtn, False );
 
 	/* conditions */
 	conditions_ssbtn = ssbutton_create( dummy_pos,
@@ -1009,7 +1077,7 @@ static void race_select_init(void)
 				  white );
 
 	ssbutton_set_state( conditions_ssbtn, (int)g_game.race.conditions );
-	ssbutton_set_visible( conditions_ssbtn, True );
+	ssbutton_set_visible( conditions_ssbtn, False );
 
 	/* wind */
 	wind_ssbtn = ssbutton_create( dummy_pos,
@@ -1030,7 +1098,7 @@ static void race_select_init(void)
 				  white );
 
 	ssbutton_set_state( wind_ssbtn, (int)g_game.race.windy );
-	ssbutton_set_visible( wind_ssbtn, True );
+	ssbutton_set_visible( wind_ssbtn, False );
 
 	/* snow */
 	snow_ssbtn = ssbutton_create( dummy_pos,
@@ -1051,7 +1119,7 @@ static void race_select_init(void)
 				  white );
 
 	ssbutton_set_state( snow_ssbtn, (int)g_game.race.snowing );
-	ssbutton_set_visible( snow_ssbtn, True );
+	ssbutton_set_visible( snow_ssbtn, False );
 	/* XXX snow button doesn't do anything, so disable for now */
 	ssbutton_set_enabled( snow_ssbtn, False );
 
@@ -1086,31 +1154,14 @@ static void race_select_init(void)
 */
 static void race_select_loop( scalar_t time_step )
 {
+    (void)time_step;
     check_gl_error();
-
     update_audio();
-
     set_gl_options( GUI );
-
     clear_rendering_context();
-
     ui_setup_display();
-
-    if (getparam_ui_snow()) {
-	update_ui_snow( time_step, 
-			(bool_t) ( wind_ssbtn != NULL && 
-				   ssbutton_get_state( wind_ssbtn ) ) );
-	draw_ui_snow();
-    }
-
-    ui_draw_menu_decorations();
-
-    set_widget_positions_and_draw_decorations();
-
-    ui_draw();
-
+    modern_draw_race_select();
     reshape( getparam_x_resolution(), getparam_y_resolution() );
-
     winsys_swap_buffers();
 }
 
