@@ -125,16 +125,15 @@ void intro_loop( scalar_t time_step )
 
     check_gl_error();
 
-    /* Check joystick */
+    /*
+     * Modern staging is deterministic. Do not let ordinary control input
+     * skip the walk-out/countdown; an explicit skip control can be added
+     * later without competing with steering/paddle inputs.
+     */
     if ( is_joystick_active() ) {
-	update_joystick();
-
-	if ( is_joystick_continue_button_down() ) {
-	    abort_intro( plyr );
-	    return;
-	}
+        update_joystick();
     }
-    
+
     new_frame_for_fps_calc();
 
     update_audio();
@@ -277,25 +276,13 @@ void intro_loop( scalar_t time_step )
     renderer_end_frame();
 } 
 
-START_KEYBOARD_CB( intro_cb )
-{
-    if ( release ) return;
-
-    abort_intro( plyr );
-}
-END_KEYBOARD_CB
-
 void intro_register()
 {
-    int status = 0;
-
+    /*
+     * Modern start sequence owns the full walk-out and staging countdown.
+     * The legacy DEFAULT_CALLBACK made any keyboard input skip INTRO,
+     * which prevented the staging tree from ever being seen.
+     */
     register_loop_funcs( INTRO, intro_init, intro_loop, NULL );
-
-    status |= add_keymap_entry(
-	INTRO, DEFAULT_CALLBACK, NULL, NULL, intro_cb );
-
-    check_assertion( status == 0, "out of keymap entries" );
-
-    return;
 }
 
