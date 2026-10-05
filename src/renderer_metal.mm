@@ -244,20 +244,27 @@ int renderer_metal_initialize_resources( void )
                 "TerrainVarying o; o.position=u.viewProjection*float4(v[vid].position,1.0); o.worldPosition=v[vid].position; o.normal=v[vid].normal; o.texcoord=v[vid].texcoord; o.weights=max(v[vid].terrainWeights.xyz,float3(0.0)); return o; }\n"
                 "fragment float4 terrain_fragment(TerrainVarying in [[stage_in]], constant TerrainUniforms &u [[buffer(1)]], texture2d<float> snow [[texture(0)]], texture2d<float> rock [[texture(1)]], texture2d<float> ice [[texture(2)]], sampler samp [[sampler(0)]]) { "
                 "float3 w=in.weights/max(in.weights.x+in.weights.y+in.weights.z,0.0001); "
-                "float2 macroUV=in.texcoord; float2 detailUV=in.texcoord*5.75; "
+                "float2 macroUV=in.texcoord; float2 detailUV=in.texcoord*7.5; float2 microUV=in.texcoord*23.0; "
                 "float3 snowMacro=snow.sample(samp,macroUV).rgb; float3 snowDetail=snow.sample(samp,detailUV).rgb; "
+                "float3 snowMicro=snow.sample(samp,microUV+float2(in.worldPosition.z*0.003,in.worldPosition.x*0.002)).rgb; "
                 "float3 rockBase=rock.sample(samp,macroUV*0.85).rgb; float3 iceBase=ice.sample(samp,macroUV*1.15).rgb; "
-                "float snowVariation=dot(snowDetail,float3(0.3333)); "
-                "float3 snowMat=snowMacro*(0.86+0.18*snowVariation); "
+                "float detailLum=dot(snowDetail,float3(0.3333)); float microLum=dot(snowMicro,float3(0.3333)); "
+                "float ripple=0.5+0.5*sin(in.worldPosition.x*0.32+in.worldPosition.z*0.11); "
+                "float snowVar=0.82+0.13*detailLum+0.07*microLum+0.025*ripple; "
+                "float3 snowMat=snowMacro*snowVar*float3(0.985,0.995,1.02); "
                 "float3 rockMat=rockBase*float3(0.78,0.75,0.72); "
-                "float3 iceMat=iceBase*float3(0.82,0.93,1.08); "
+                "float3 iceMat=iceBase*float3(0.80,0.93,1.10); "
                 "float3 albedo=snowMat*w.x+rockMat*w.y+iceMat*w.z; "
                 "float3 n=normalize(in.normal); float3 sunDir=normalize(float3(-0.28,-0.90,-0.32)); "
-                "float ndl=saturate(dot(n,-sunDir)); float hemi=0.60+0.40*saturate(n.y); "
-                "float3 ambient=float3(0.48,0.56,0.70)*hemi; float3 sun=float3(0.82,0.78,0.70)*ndl; "
-                "float snowSpark=pow(saturate(ndl),24.0)*w.x*0.10; "
-                "float iceGlint=pow(saturate(ndl),48.0)*w.z*0.24; "
-                "float3 lit=albedo*(ambient+sun)+float3(snowSpark)+float3(0.72,0.86,1.0)*iceGlint; "
+                "float ndl=saturate(dot(n,-sunDir)); float up=saturate(n.y); float hemi=0.54+0.46*up; "
+                "float slopeShadow=(1.0-up)*(1.0-ndl); "
+                "float3 ambient=mix(float3(0.40,0.50,0.66),float3(0.56,0.62,0.72),up)*hemi; "
+                "float3 sun=float3(0.92,0.88,0.80)*ndl; "
+                "float snowSpark=pow(saturate(ndl*(0.88+0.12*microLum)),42.0)*w.x*(0.035+0.055*microLum); "
+                "float iceGlint=pow(saturate(ndl),56.0)*w.z*0.28; "
+                "float3 lit=albedo*(ambient+sun); "
+                "lit=mix(lit,lit*float3(0.82,0.91,1.05),slopeShadow*w.x*0.32); "
+                "lit+=float3(0.96,0.98,1.0)*snowSpark+float3(0.70,0.86,1.0)*iceGlint; "
                 "float d=distance(in.worldPosition,u.cameraAndFogStart.xyz); "
                 "float fog=smoothstep(u.cameraAndFogStart.w,u.fogEndAndPad.x,d)*0.55; "
                 "float3 fogColor=float3(0.68,0.77,0.88); return float4(mix(lit,fogColor,fog),1.0); "
@@ -1285,6 +1292,41 @@ void renderer_metal_draw_sphere( const double model[16],
     }
 }
 
+
+void renderer_metal_draw_colored_box( float cx,float cy,float cz,
+                                     float sx,float sy,float sz,
+                                     float r,float g,float b,float a )
+{
+    @autoreleasepool {
+        typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
+        typedef struct { float mvp[16], model[16], color[4]; } su_t;
+        const float x0=cx-sx*0.5f,x1=cx+sx*0.5f;
+        const float y0=cy-sy*0.5f,y1=cy+sy*0.5f;
+        const float z0=cz-sz*0.5f,z1=cz+sz*0.5f;
+        const sv_t v[36]={
+          {x0,y0,z1,0,0,1},{x1,y0,z1,0,0,1},{x1,y1,z1,0,0,1},{x0,y0,z1,0,0,1},{x1,y1,z1,0,0,1},{x0,y1,z1,0,0,1},
+          {x1,y0,z0,0,0,-1},{x0,y0,z0,0,0,-1},{x0,y1,z0,0,0,-1},{x1,y0,z0,0,0,-1},{x0,y1,z0,0,0,-1},{x1,y1,z0,0,0,-1},
+          {x0,y0,z0,-1,0,0},{x0,y0,z1,-1,0,0},{x0,y1,z1,-1,0,0},{x0,y0,z0,-1,0,0},{x0,y1,z1,-1,0,0},{x0,y1,z0,-1,0,0},
+          {x1,y0,z1,1,0,0},{x1,y0,z0,1,0,0},{x1,y1,z0,1,0,0},{x1,y0,z1,1,0,0},{x1,y1,z0,1,0,0},{x1,y1,z1,1,0,0},
+          {x0,y1,z1,0,1,0},{x1,y1,z1,0,1,0},{x1,y1,z0,0,1,0},{x0,y1,z1,0,1,0},{x1,y1,z0,0,1,0},{x0,y1,z0,0,1,0},
+          {x0,y0,z0,0,-1,0},{x1,y0,z0,0,-1,0},{x1,y0,z1,0,-1,0},{x0,y0,z0,0,-1,0},{x1,y0,z1,0,-1,0},{x0,y0,z1,0,-1,0}
+        };
+        su_t u; float ident[16]={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+        const float *vp;
+        if(g_frame_encoder==nil||g_sphere_pipeline==nil||g_camera_uniform_buffer==nil)return;
+        vp=(const float *)[g_camera_uniform_buffer contents];
+        memcpy(u.mvp,vp,sizeof(u.mvp)); memcpy(u.model,ident,sizeof(u.model));
+        u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
+        id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+        id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+        if(vb==nil||ub==nil)return;
+        [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
+        [g_frame_encoder setDepthStencilState:g_depth_state];
+        [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+        [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+        [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:36];
+    }
+}
 
 void renderer_metal_draw_ground_strip( float cx,float cz,float width,float depth,
                                       float r,float g,float b,float a )
