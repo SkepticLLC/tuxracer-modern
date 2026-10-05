@@ -66,6 +66,8 @@ bool_t get_font_binding( char *binding, font_t **font )
     return False;  
 }
 
+bool_t get_font_render_info(char *binding,font_render_info_t *out){font_t *font;int ascent;if(!out||!get_font_binding(binding,&font))return False;ascent=get_tex_font_max_ascent(font->node->tfm);if(ascent<=0)return False;out->texture=font->node->tex->handle;out->metrics=font->node->tfm;out->scale=font->size/(scalar_t)ascent;out->colour=font->colour;return True;}
+
 bool_t load_font( char *fontname, char *filename, char *texname )
 {
     font_node_t *fontnode;
