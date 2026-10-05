@@ -306,6 +306,9 @@ bool_t is_character_in_tex_font( tex_font_metrics_t *tfm, char c )
     return (bool_t) (tfm->char_data[(int)c] != NULL);
 }
 
+bool_t get_tex_font_glyph(tex_font_metrics_t *tfm,char c,tex_font_glyph_t *out){tfm_char_data_t *cd;if(!tfm||!out)return False;cd=find_char_data(tfm,c);if(!cd)return False;out->x0=cd->ll.x;out->y0=cd->ll.y;out->x1=cd->ur.x;out->y1=cd->ur.y;out->u0=cd->tex_ll.x;out->v0=cd->tex_ll.y;out->u1=cd->tex_ur.x;out->v1=cd->tex_ur.y;out->advance=cd->kern_width;return True;}
+int get_tex_font_max_ascent(tex_font_metrics_t *tfm){return tfm?tfm->max_ascent:0;}
+
 /* EOF */
 
 
