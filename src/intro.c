@@ -181,6 +181,7 @@ void intro_loop( scalar_t time_step )
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
+        draw_start_line_metal();
 
 #ifdef __APPLE__
         if ( staging_lights_active ) {
@@ -189,8 +190,8 @@ void intro_loop( scalar_t time_step )
             int lamp;
             for ( lamp=0; lamp<3; ++lamp ) {
                 double model[16] = {
-                    0.22,0,0,0, 0,0.22,0,0, 0,0,0.22,0,
-                    sp.x + 3.9, base_y + 1.05 + lamp*0.52, sp.y - 0.35, 1
+                    0.18,0,0,0, 0,0.18,0,0, 0,0,0.18,0,
+                    sp.x + 3.25, base_y + 0.78 + lamp*0.46, sp.y - 0.18, 1
                 };
                 float rr=0.055f, gg=0.060f, bb=0.065f;
                 int active = (staging_lights_time < 0.75 && lamp==2) ||
