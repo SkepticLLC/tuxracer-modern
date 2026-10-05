@@ -540,6 +540,34 @@ void draw_trees_metal()
 #endif
 }
 
+void draw_modern_start_zone_metal()
+{
+#ifdef __APPLE__
+    point2d_t start = get_start_pt();
+    float x=(float)start.x;
+    float z=(float)start.y;
+    float y=(float)get_renderer_course_height(start.x,start.y);
+
+    /* Restrained alpine timing gantry: dark posts, red header, start stripe. */
+    renderer_metal_draw_colored_box(x-5.4f,y+2.35f,z-1.0f,
+                                    0.28f,4.7f,0.28f, 0.10f,0.12f,0.14f,1.0f);
+    renderer_metal_draw_colored_box(x+5.4f,y+2.35f,z-1.0f,
+                                    0.28f,4.7f,0.28f, 0.10f,0.12f,0.14f,1.0f);
+    renderer_metal_draw_colored_box(x,y+4.55f,z-1.0f,
+                                    11.1f,0.42f,0.38f, 0.72f,0.07f,0.06f,1.0f);
+
+    /* Timing pods at waist height. */
+    renderer_metal_draw_colored_box(x-5.05f,y+1.05f,z-0.72f,
+                                    0.42f,0.52f,0.42f, 0.04f,0.05f,0.06f,1.0f);
+    renderer_metal_draw_colored_box(x+5.05f,y+1.05f,z-0.72f,
+                                    0.42f,0.52f,0.42f, 0.04f,0.05f,0.06f,1.0f);
+
+    /* Groomed start stripe, deliberately thin above terrain. */
+    renderer_metal_draw_colored_box(x,y+0.025f,z-0.25f,
+                                    9.4f,0.025f,0.34f, 0.78f,0.08f,0.07f,1.0f);
+#endif
+}
+
 void draw_items_metal()
 {
 #ifdef __APPLE__
