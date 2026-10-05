@@ -61,6 +61,11 @@ void renderer_metal_draw_hud( float speed_kmh, float race_time,
                              float energy, int herring );
 int renderer_metal_begin_menu_frame( int width, int height );
 void renderer_metal_draw_home_menu( int selected );
+void renderer_metal_draw_results_menu( const char *headline,
+                                       const char *message,
+                                       const char *time_text,
+                                       int herring,
+                                       int score );
 void renderer_metal_draw_event_menu( const char *event_name,
                                      const char *cup_name,
                                      const char *status,
