@@ -143,6 +143,21 @@ tux_bind_font -binding fps -font trebuchet_yel_blk -size 20
 tux_load_texture trebuchet_white fonts/trebuchet_white.rgb 0
 tux_load_font -name trebuchet_white -file fonts/trebuchet.tfm \
               -texture trebuchet_white
+
+# Tux Racer Modern 2.0 screen typography
+tux_bind_font -binding modern_screen_eyebrow -font trebuchet_white -size 22 \
+    -colour { 0.70 0.82 0.93 0.82 }
+tux_bind_font -binding modern_screen_title -font trebuchet_white -size 48 \
+    -colour { 0.96 0.985 1.0 1.0 }
+tux_bind_font -binding modern_screen_body -font trebuchet_white -size 24 \
+    -colour { 0.82 0.89 0.95 0.90 }
+tux_bind_font -binding modern_screen_meta -font trebuchet_white -size 21 \
+    -colour { 0.78 0.87 0.94 0.86 }
+tux_bind_font -binding modern_screen_hint -font trebuchet_white -size 17 \
+    -colour { 0.65 0.76 0.86 0.72 }
+tux_bind_font -binding modern_screen_action -font trebuchet_white -size 21 \
+    -colour { 0.94 0.98 1.0 0.96 }
+
 # Tux Racer Modern 2.0 HUD -- clean translucent ice-white typography
 tux_bind_font -binding modern_hud_value -font trebuchet_white -size 34 \
     -colour { 0.94 0.97 1.0 0.88 }
