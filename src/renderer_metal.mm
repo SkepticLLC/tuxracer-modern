@@ -14,6 +14,8 @@
 #include "renderer_metal.h"
 #include "course_load.h"
 #include "metal_present.h"
+#include "fonts.h"
+#include "tex_font_metrics.h"
 
 static id<MTLDevice> g_device = nil;
 static id<MTLCommandQueue> g_command_queue = nil;
@@ -25,6 +27,7 @@ static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
 static id<MTLRenderPipelineState> g_overlay_pipeline = nil;
+static id<MTLRenderPipelineState> g_text_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
 static id<MTLRenderPipelineState> g_mountain_pipeline = nil;
@@ -189,7 +192,10 @@ int renderer_metal_initialize_resources( void )
                 "fragment float4 sphere_fragment(SphereOut in [[stage_in]]) { "
                 "float3 L=normalize(float3(-0.35,0.82,0.44)); float d=max(dot(normalize(in.normal),L),0.0); "
                 "float light=0.34+0.66*d; return float4(in.color.rgb*light,in.color.a); }\n"
-                "struct OverlayVertex { packed_float2 position; };\n"
+                "struct OverlayVertex { packed_float2 position; };\n"                "struct TextVertex { packed_float2 position; packed_float2 uv; };\n"
+                "struct TextOut { float4 position [[position]]; float2 uv; };\n"
+                "vertex TextOut text_vertex(uint vid [[vertex_id]], const device TextVertex *v [[buffer(0)]]) { TextOut o; o.position=float4(float2(v[vid].position),0,1); o.uv=float2(v[vid].uv); return o; }\n"
+                "fragment float4 text_fragment(TextOut in [[stage_in]], constant OverlayUniforms &u [[buffer(0)]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { float4 s=tex.sample(samp,in.uv); float a=max(s.a,max(s.r,max(s.g,s.b))); return float4(u.color.rgb,u.color.a*a); }\n"
                 "struct OverlayUniforms { float4 color; };\n"
                 "struct OverlayOut { float4 position [[position]]; };\n"
                 "vertex OverlayOut overlay_vertex(uint vid [[vertex_id]], const device OverlayVertex *v [[buffer(0)]]) { "
@@ -394,6 +400,8 @@ int renderer_metal_initialize_resources( void )
                     return 0;
                 }
             }
+
+            { id<MTLFunction> v=[g_terrain_library newFunctionWithName:@"text_vertex"]; id<MTLFunction> f=[g_terrain_library newFunctionWithName:@"text_fragment"]; MTLRenderPipelineDescriptor *d=[[MTLRenderPipelineDescriptor alloc]init]; d.vertexFunction=v;d.fragmentFunction=f;d.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;d.colorAttachments[0].blendingEnabled=YES;d.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;d.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;d.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;g_text_pipeline=[g_device newRenderPipelineStateWithDescriptor:d error:&error];if(!g_text_pipeline){fprintf(stderr,"Tux Racer Modern: text pipeline failed: %s\n",error?[[error localizedDescription]UTF8String]:"unknown");return 0;} }
 
             {
                 id<MTLFunction> shadowVertex =
@@ -1351,139 +1359,9 @@ static void modern_hud_box2d(float x,float y,float w,float h,
     [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
-static const unsigned char *modern_hud_glyph(char c)
-{
-    /* 5x7 compact uppercase HUD alphabet / numerals. MSB-left, 5 useful bits. */
-    static const unsigned char blank[7]={0,0,0,0,0,0,0};
-    static const unsigned char A[7]={14,17,17,31,17,17,17};
-    static const unsigned char D[7]={30,17,17,17,17,17,30};
-    static const unsigned char E[7]={31,16,16,30,16,16,31};
-    static const unsigned char G[7]={14,17,16,23,17,17,15};
-    static const unsigned char H[7]={17,17,17,31,17,17,17};
-    static const unsigned char I[7]={31,4,4,4,4,4,31};
-    static const unsigned char N[7]={17,25,21,19,17,17,17};
-    static const unsigned char R[7]={30,17,17,30,20,18,17};
-    static const unsigned char M[7]={17,27,21,21,17,17,17};
-    static const unsigned char P[7]={30,17,17,30,16,16,16};
-    static const unsigned char S[7]={15,16,16,14,1,1,30};
-    static const unsigned char T[7]={31,4,4,4,4,4,4};
-    static const unsigned char zero[7]={14,17,19,21,25,17,14};
-    static const unsigned char one[7]={4,12,4,4,4,4,14};
-    static const unsigned char two[7]={14,17,1,2,4,8,31};
-    static const unsigned char three[7]={30,1,1,14,1,1,30};
-    static const unsigned char four[7]={2,6,10,18,31,2,2};
-    static const unsigned char five[7]={31,16,16,30,1,1,30};
-    static const unsigned char six[7]={14,16,16,30,17,17,14};
-    static const unsigned char seven[7]={31,1,2,4,8,8,8};
-    static const unsigned char eight[7]={14,17,17,14,17,17,14};
-    static const unsigned char nine[7]={14,17,17,15,1,1,14};
-    switch(c){
-      case 'A':return A; case 'D':return D; case 'E':return E; case 'G':return G;
-      case 'H':return H; case 'I':return I; case 'M':return M; case 'N':return N;
-      case 'P':return P; case 'R':return R; case 'S':return S;
-      case 'T':return T;
-      case '0':return zero; case '1':return one; case '2':return two; case '3':return three;
-      case '4':return four; case '5':return five; case '6':return six; case '7':return seven;
-      case '8':return eight; case '9':return nine;
-      default:return blank;
-    }
-}
+static float modern_metal_text(float x,float y,const char *binding,const char *text,float mul,float alpha){typedef struct{float x,y,u,v;}V;typedef struct{float color[4];}U;font_render_info_t fi;id<MTLTexture> tex;float pen=x;int i;if(!get_font_render_info((char*)binding,&fi)||!g_text_pipeline)return 0;tex=[g_textures objectForKey:@(fi.texture)];if(!tex)return 0;for(i=0;text[i];i++){tex_font_glyph_t g;if(!get_tex_font_glyph(fi.metrics,text[i],&g))continue;float sc=(float)fi.scale*mul,x0=pen+g.x0*sc,x1=pen+g.x1*sc,y0=y+g.y0*sc,y1=y+g.y1*sc,sx=2.0f/g_native_width,sy=2.0f/g_native_height;V v[6]={{-1+x0*sx,-1+y0*sy,g.u0,g.v0},{-1+x1*sx,-1+y0*sy,g.u1,g.v0},{-1+x1*sx,-1+y1*sy,g.u1,g.v1},{-1+x0*sx,-1+y0*sy,g.u0,g.v0},{-1+x1*sx,-1+y1*sy,g.u1,g.v1},{-1+x0*sx,-1+y1*sy,g.u0,g.v1}};U u={{(float)fi.colour.r,(float)fi.colour.g,(float)fi.colour.b,(float)fi.colour.a*alpha}};id<MTLBuffer>vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared],ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];if(vb&&ub){[g_frame_encoder setRenderPipelineState:g_text_pipeline];[g_frame_encoder setDepthStencilState:g_no_depth_state];[g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];[g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];[g_frame_encoder setFragmentTexture:tex atIndex:0];[g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];[g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];}pen+=g.advance*sc;}return pen-x;}
+void renderer_metal_draw_hud(float speed_kmh,float race_time,float energy,int herring){@autoreleasepool{int min=(int)(race_time/60),sec=((int)race_time)%60,hh=(int)((race_time-(int)race_time)*100),mph=(int)(speed_kmh*.621371f+.5f);char t[32],sp[32],he[32];float ui=(float)g_native_height/2168.0f,x,y;(void)energy;if(!g_frame_encoder||g_native_width<=0||g_native_height<=0)return;if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;snprintf(t,sizeof(t),"%d:%02d.%02d",min,sec,hh);snprintf(sp,sizeof(sp),"%d MPH",mph);snprintf(he,sizeof(he),"%d",herring);x=58*ui;y=g_native_height-74*ui;modern_metal_text(x,y,"modern_hud_small","TIME",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",t,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","SPEED",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",sp,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","HERRING",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",he,1.10f*ui,1);}}
 
-static float modern_hud_text(float x,float y,float px,const char *text,
-                             float r,float g,float b,float alpha)
-{
-    int i,row,col;
-    float start=x;
-    for(i=0;text[i];++i){
-        char c=text[i];
-        if(c==' '){ x+=4.0f*px; continue; }
-        if(c==':'){
-            modern_hud_box2d(x+px,y+2*px,px,px,r,g,b,alpha);
-            modern_hud_box2d(x+px,y+5*px,px,px,r,g,b,alpha);
-            x+=4.0f*px; continue;
-        }
-        if(c=='.'){
-            modern_hud_box2d(x+px,y,px,px,r,g,b,alpha);
-            x+=3.0f*px; continue;
-        }
-        const unsigned char *glyph=modern_hud_glyph(c);
-        for(row=0;row<7;++row){
-            for(col=0;col<5;++col){
-                if(glyph[6-row]&(1u<<(4-col))){
-                    modern_hud_box2d(x+col*px,y+row*px,px*0.76f,px*0.76f,
-                                     r,g,b,alpha);
-                }
-            }
-        }
-        x+=5.72f*px;
-    }
-    return x-start;
-}
-
-void renderer_metal_draw_hud( float speed_kmh, float race_time,
-                             float energy, int herring )
-{
-    @autoreleasepool {
-        int mins=(int)(race_time/60.0f);
-        int secs=((int)race_time)%60;
-        int hundredths=(int)((race_time-(float)((int)race_time))*100.0f);
-        int mph=(int)(speed_kmh*0.621371f+0.5f);
-        char time_buf[32],speed_buf[32],herring_buf[32];
-
-        /*
-         * Scale the HUD from the native drawable. The reference composition
-         * was approved at ~3456x2168; this keeps the same visual weight on
-         * Retina and lower-resolution displays without becoming tiny.
-         */
-        float ui=(float)g_native_height/2168.0f;
-        float margin=62.0f*ui;
-        float top=(float)g_native_height-43.0f*ui;
-        float label_px=2.55f*ui;
-        float value_px=4.75f*ui;
-        float label_gap=17.0f*ui;
-        float block_gap=29.0f*ui;
-        float value_h=7.0f*value_px;
-
-        (void)energy;
-
-        if(g_frame_encoder==nil||g_native_width<=0||g_native_height<=0)return;
-        if(ui<0.62f)ui=0.62f;
-        if(ui>1.45f)ui=1.45f;
-
-        snprintf(time_buf,sizeof(time_buf),"%d:%02d.%02d",mins,secs,hundredths);
-        snprintf(speed_buf,sizeof(speed_buf),"%d MPH",mph);
-        snprintf(herring_buf,sizeof(herring_buf),"%d",herring);
-
-        /*
-         * Final Modern 2.0 race telemetry.
-         * No backing panels: the mountain scene remains unobstructed.
-         * Labels are cool/desaturated and values are nearly white.
-         */
-        {
-            float y=top;
-
-            modern_hud_text(margin,y-7.0f*label_px,label_px,"TIME",
-                            0.69f,0.79f,0.91f,0.76f);
-            y-=7.0f*label_px+label_gap+value_h;
-            modern_hud_text(margin,y,value_px,time_buf,
-                            0.94f,0.975f,1.00f,0.96f);
-
-            y-=block_gap+7.0f*label_px;
-            modern_hud_text(margin,y,label_px,"SPEED",
-                            0.69f,0.79f,0.91f,0.76f);
-            y-=label_gap+value_h;
-            modern_hud_text(margin,y,value_px,speed_buf,
-                            0.94f,0.975f,1.00f,0.96f);
-
-            y-=block_gap+7.0f*label_px;
-            modern_hud_text(margin,y,label_px,"HERRING",
-                            0.69f,0.79f,0.91f,0.76f);
-            y-=label_gap+value_h;
-            modern_hud_text(margin,y,value_px,herring_buf,
-                            0.94f,0.975f,1.00f,0.96f);
-        }
-    }
-}
 
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
