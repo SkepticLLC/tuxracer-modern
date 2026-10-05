@@ -145,7 +145,7 @@ static void game_type_select_init(void)
     enter_event_btn = button_create( dummy_pos,
 				     430, 58, 
 				     "button_label", 
-				     "RACE SERIES" );
+				     "RACE" );
     button_set_hilit_font_binding( enter_event_btn, "button_label_hilit" );
     button_set_visible( enter_event_btn, True );
     button_set_click_event_cb( enter_event_btn, enter_event_click_cb, NULL );
@@ -153,7 +153,7 @@ static void game_type_select_init(void)
     practice_btn = button_create( dummy_pos,
 				  430, 58,
 				  "button_label",
-				  "QUICK RACE" );
+				  "PRACTICE" );
     button_set_hilit_font_binding( practice_btn, "button_label_hilit" );
     button_set_visible( practice_btn, True );
     button_set_click_event_cb( practice_btn, practice_click_cb, NULL );
