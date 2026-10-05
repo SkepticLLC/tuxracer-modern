@@ -63,9 +63,54 @@ static bool_t braking;
 static scalar_t charge_start_time;
 static int last_terrain;
 
+/*
+ * Modern reactive vegetation, phase 1:
+ * reuse the existing snow particle simulation for branch-snow shedding.
+ * Collision physics remain entirely in phys_sim.c.
+ */
+static point_t last_tree_snow_loc = { -999.0, -999.0, -999.0 };
+static scalar_t last_tree_snow_time = -999.0;
+
+static void modern_tree_impact_visual( point_t tree_loc,
+                                      scalar_t tree_diam,
+                                      scalar_t impact_speed )
+{
+    point_t burst;
+    vector_t velocity;
+    vector_t delta;
+    scalar_t energy;
+    int count;
+
+    if ( !renderer_metal_native_enabled() ) return;
+
+    delta = subtract_points( tree_loc, last_tree_snow_loc );
+    if ( g_game.time - last_tree_snow_time < 0.30 &&
+         MAG_SQD( delta ) < 1.0 ) return;
+
+    energy = min( 1.0, max( 0.18, impact_speed / 22.0 ) );
+    count = (int)( 18 + energy * 54 );
+
+    burst = tree_loc;
+    burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
+              max( 1.2, tree_diam * 1.8 );
+
+    velocity = make_vector( 0.0,
+                            1.8 + energy * 3.2,
+                            -0.7 - energy * 1.5 );
+
+    create_new_particles( burst, velocity, count );
+
+    last_tree_snow_loc = tree_loc;
+    last_tree_snow_time = g_game.time;
+}
+
 void racing_init(void) 
 {
     player_data_t *plyr = get_player_data( local_player() );
+
+    set_tree_impact_visual_callback( modern_tree_impact_visual );
+    last_tree_snow_loc = make_point( -999.0, -999.0, -999.0 );
+    last_tree_snow_time = -999.0;
 
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
@@ -468,6 +513,7 @@ void racing_loop( scalar_t time_step )
 
 static void racing_term(void)
 {
+    set_tree_impact_visual_callback( NULL );
     halt_sound( "flying_sound" );
     halt_sound( "rock_sound" );
     halt_sound( "ice_sound" );
