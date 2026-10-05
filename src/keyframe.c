@@ -96,6 +96,13 @@ bool_t update_key_frame( player_data_t *plyr, scalar_t dt )
     } 
 
     if ( idx == numFrames || numFrames == 0 ) {
+        static int reported_completion = 0;
+        if ( !reported_completion ) {
+            fprintf(stderr,
+                    "Tux Racer Modern: intro keyframe COMPLETE keyTime=%.3f frames=%d last=%.3f\n",
+                    keyTime,numFrames,numFrames>0?frames[numFrames-1].time:0.0);
+            reported_completion=1;
+        }
         return True;
     } 
 
