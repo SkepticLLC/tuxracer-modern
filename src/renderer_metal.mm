@@ -1359,7 +1359,88 @@ static void modern_hud_box2d(float x,float y,float w,float h,
     [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
-static float modern_metal_text(float x,float y,const char *binding,const char *text,float mul,float alpha){typedef struct{float x,y,u,v;}V;typedef struct{float color[4];}U;font_render_info_t fi;id<MTLTexture> tex;float pen=x;int i;if(!get_font_render_info((char*)binding,&fi)||!g_text_pipeline)return 0;tex=[g_textures objectForKey:@(fi.texture)];if(!tex)return 0;for(i=0;text[i];i++){tex_font_glyph_t g;if(!get_tex_font_glyph(fi.metrics,text[i],&g))continue;float sc=(float)fi.scale*mul,x0=pen+g.x0*sc,x1=pen+g.x1*sc,y0=y+g.y0*sc,y1=y+g.y1*sc,sx=2.0f/g_native_width,sy=2.0f/g_native_height;V v[6]={{-1+x0*sx,-1+y0*sy,g.u0,g.v0},{-1+x1*sx,-1+y0*sy,g.u1,g.v0},{-1+x1*sx,-1+y1*sy,g.u1,g.v1},{-1+x0*sx,-1+y0*sy,g.u0,g.v0},{-1+x1*sx,-1+y1*sy,g.u1,g.v1},{-1+x0*sx,-1+y1*sy,g.u0,g.v1}};U u={{(float)fi.colour.r,(float)fi.colour.g,(float)fi.colour.b,(float)fi.colour.a*alpha}};id<MTLBuffer>vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared],ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];if(vb&&ub){[g_frame_encoder setRenderPipelineState:g_text_pipeline];[g_frame_encoder setDepthStencilState:g_no_depth_state];[g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];[g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];[g_frame_encoder setFragmentTexture:tex atIndex:0];[g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];[g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];}pen+=g.advance*sc;}return pen-x;}
+static float modern_metal_text( float x, float y,
+                                const char *binding, const char *text,
+                                float mul, float alpha )
+{
+    typedef struct { float x, y, u, v; } text_vertex_t;
+    typedef struct { float color[4]; } text_uniform_t;
+
+    font_render_info_t fi;
+    id<MTLTexture> tex;
+    float pen = x;
+    int i;
+
+    if ( !get_font_render_info( (char *)binding, &fi ) ||
+         g_text_pipeline == nil ) {
+        return 0.0f;
+    }
+
+    tex = [g_textures objectForKey:@(fi.texture)];
+    if ( tex == nil ) return 0.0f;
+
+    for ( i=0; text[i] != '\0'; ++i ) {
+        tex_font_glyph_t g;
+        float sc, x0, x1, y0, y1, sx, sy;
+        float u0, v0, u1, v1;
+        text_vertex_t vertices[6];
+        text_uniform_t uniforms;
+        id<MTLBuffer> vb, ub;
+
+        if ( !get_tex_font_glyph( fi.metrics, text[i], &g ) ) continue;
+
+        sc = (float)fi.scale * mul;
+        x0 = pen + (float)g.x0 * sc;
+        x1 = pen + (float)g.x1 * sc;
+        y0 = y + (float)g.y0 * sc;
+        y1 = y + (float)g.y1 * sc;
+
+        /* tex_font_metrics uses scalar_t (double); Metal vertices are float. */
+        u0 = (float)g.u0;
+        v0 = (float)g.v0;
+        u1 = (float)g.u1;
+        v1 = (float)g.v1;
+
+        sx = 2.0f / (float)g_native_width;
+        sy = 2.0f / (float)g_native_height;
+
+        vertices[0] = (text_vertex_t){ -1.0f+x0*sx, -1.0f+y0*sy, u0, v0 };
+        vertices[1] = (text_vertex_t){ -1.0f+x1*sx, -1.0f+y0*sy, u1, v0 };
+        vertices[2] = (text_vertex_t){ -1.0f+x1*sx, -1.0f+y1*sy, u1, v1 };
+        vertices[3] = (text_vertex_t){ -1.0f+x0*sx, -1.0f+y0*sy, u0, v0 };
+        vertices[4] = (text_vertex_t){ -1.0f+x1*sx, -1.0f+y1*sy, u1, v1 };
+        vertices[5] = (text_vertex_t){ -1.0f+x0*sx, -1.0f+y1*sy, u0, v1 };
+
+        uniforms.color[0] = (float)fi.colour.r;
+        uniforms.color[1] = (float)fi.colour.g;
+        uniforms.color[2] = (float)fi.colour.b;
+        uniforms.color[3] = (float)fi.colour.a * alpha;
+
+        vb = [g_device newBufferWithBytes:vertices
+                                  length:sizeof(vertices)
+                                 options:MTLResourceStorageModeShared];
+        ub = [g_device newBufferWithBytes:&uniforms
+                                  length:sizeof(uniforms)
+                                 options:MTLResourceStorageModeShared];
+
+        if ( vb != nil && ub != nil ) {
+            [g_frame_encoder setRenderPipelineState:g_text_pipeline];
+            [g_frame_encoder setDepthStencilState:g_no_depth_state];
+            [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+            [g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];
+            [g_frame_encoder setFragmentTexture:tex atIndex:0];
+            [g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];
+            [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                                vertexStart:0
+                                vertexCount:6];
+        }
+
+        pen += (float)g.advance * sc;
+    }
+
+    return pen - x;
+}
+
 void renderer_metal_draw_hud(float speed_kmh,float race_time,float energy,int herring){@autoreleasepool{int min=(int)(race_time/60),sec=((int)race_time)%60,hh=(int)((race_time-(int)race_time)*100),mph=(int)(speed_kmh*.621371f+.5f);char t[32],sp[32],he[32];float ui=(float)g_native_height/2168.0f,x,y;(void)energy;if(!g_frame_encoder||g_native_width<=0||g_native_height<=0)return;if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;snprintf(t,sizeof(t),"%d:%02d.%02d",min,sec,hh);snprintf(sp,sizeof(sp),"%d MPH",mph);snprintf(he,sizeof(he),"%d",herring);x=58*ui;y=g_native_height-74*ui;modern_metal_text(x,y,"modern_hud_small","TIME",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",t,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","SPEED",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",sp,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","HERRING",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",he,1.10f*ui,1);}}
 
 
