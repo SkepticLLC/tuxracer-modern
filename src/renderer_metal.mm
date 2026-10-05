@@ -1338,27 +1338,6 @@ void renderer_metal_draw_sphere( const double model[16],
 }
 
 
-static void modern_hud_box2d(float x,float y,float w,float h,
-                             float r,float g,float b,float a)
-{
-    typedef struct { float x,y; } ov_t;
-    typedef struct { float color[4]; } ou_t;
-    float sx=2.0f/(float)g_native_width, sy=2.0f/(float)g_native_height;
-    float x0=-1.0f+x*sx, x1=-1.0f+(x+w)*sx;
-    float y0=-1.0f+y*sy, y1=-1.0f+(y+h)*sy;
-    ov_t v[6]={{x0,y0},{x1,y0},{x1,y1},{x0,y0},{x1,y1},{x0,y1}};
-    ou_t u={{r,g,b,a}};
-    if(g_frame_encoder==nil||g_overlay_pipeline==nil)return;
-    id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
-    id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
-    if(vb==nil||ub==nil)return;
-    [g_frame_encoder setRenderPipelineState:g_overlay_pipeline];
-    [g_frame_encoder setDepthStencilState:g_no_depth_state];
-    [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
-    [g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];
-    [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
-}
-
 static float modern_metal_text( float x, float y,
                                 const char *binding, const char *text,
                                 float mul, float alpha )
