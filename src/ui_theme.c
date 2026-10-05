@@ -57,17 +57,29 @@ void ui_draw_menu_decorations()
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+    /* Modern alpine background: quiet gradient, no legacy frame/chrome. */
     glBegin(GL_QUADS);
-    glColor4f(.035f,.085f,.15f,1);glVertex2f(0,0);glVertex2f(w,0);
-    glColor4f(.16f,.34f,.55f,1);glVertex2f(w,h);glVertex2f(0,h);
+    glColor4f(.025f,.065f,.11f,1); glVertex2f(0,0); glVertex2f(w,0);
+    glColor4f(.12f,.29f,.48f,1); glVertex2f(w,h); glVertex2f(0,h);
     glEnd();
-    glColor4f(.018f,.040f,.068f,.50f);glBegin(GL_QUADS);
-    glVertex2f(w*.25f,h*.15f);glVertex2f(w*.75f,h*.15f);
-    glVertex2f(w*.75f,h*.82f);glVertex2f(w*.25f,h*.82f);glEnd();
-    glColor4f(.72f,.90f,1,.22f);glBegin(GL_QUADS);
-    glVertex2f(w*.25f,h*.82f);glVertex2f(w*.75f,h*.82f);
-    glVertex2f(w*.75f,h*.825f);glVertex2f(w*.25f,h*.825f);glEnd();
-    glColor4f(.82f,.91f,.99f,.11f);glBegin(GL_QUADS);
-    glVertex2f(0,0);glVertex2f(w,0);glVertex2f(w,h*.16f);glVertex2f(0,h*.10f);glEnd();
+
+    /* Atmospheric horizon and snow field. */
+    glBegin(GL_QUADS);
+    glColor4f(.46f,.63f,.77f,.16f); glVertex2f(0,h*.34f); glVertex2f(w,h*.34f);
+    glColor4f(.72f,.82f,.90f,.04f); glVertex2f(w,h*.62f); glVertex2f(0,h*.62f);
+    glEnd();
+    glBegin(GL_QUADS);
+    glColor4f(.83f,.90f,.96f,.13f); glVertex2f(0,0); glVertex2f(w,0);
+    glColor4f(.72f,.82f,.91f,.03f); glVertex2f(w,h*.20f); glVertex2f(0,h*.13f);
+    glEnd();
+
+    /* Left-side readability wash for the editorial menu. */
+    glBegin(GL_QUADS);
+    glColor4f(.01f,.025f,.045f,.58f); glVertex2f(0,0);
+    glColor4f(.01f,.025f,.045f,.38f); glVertex2f(w*.43f,0);
+    glColor4f(.01f,.025f,.045f,.22f); glVertex2f(w*.43f,h);
+    glColor4f(.01f,.025f,.045f,.48f); glVertex2f(0,h);
+    glEnd();
 }
 /* EOF */
