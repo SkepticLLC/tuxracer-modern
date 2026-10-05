@@ -28,6 +28,7 @@ static tux_renderer_frame_state_t g_frame = {
 #ifdef __APPLE__
 static int g_metal_native_enabled = 0;
 static int g_renderer_frame_active = 0;
+static int g_renderer_world_started = 0;
 static int g_metal_compare_enabled = 0;
 static unsigned char *g_metal_present_pixels = NULL;
 static size_t g_metal_present_capacity = 0;
@@ -120,6 +121,7 @@ void renderer_resize( int logical_width, int logical_height )
 void renderer_begin_frame( void )
 {
     g_renderer_frame_active = 1;
+    g_renderer_world_started = 0;
     {
         int logical_w = g_frame.logical_width;
         int logical_h = g_frame.logical_height;
@@ -144,7 +146,9 @@ void renderer_begin_world_frame( void )
      * real display frame may acquire a Metal drawable/encoder.
      */
     if ( !g_renderer_frame_active ) return;
+    if ( g_renderer_world_started ) return;
     if ( g_game.mode != RACING && g_game.mode != INTRO ) return;
+    g_renderer_world_started = 1;
 
     if ( renderer_metal_vertex_bytes() == 0 ) {
         size_t vertex_count = 0;
@@ -317,6 +321,7 @@ void renderer_end_frame( void )
 {
 #ifdef __APPLE__
     g_renderer_frame_active = 0;
+    g_renderer_world_started = 0;
     if ( g_metal_native_enabled ) {
         /*
          * Native Metal owns presentation through CAMetalDrawable.
