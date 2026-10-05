@@ -535,6 +535,7 @@ void draw_trees_metal()
             (float)(treeLocs[i].diam * 0.5),
             (float)treeLocs[i].height,
             handle );
+        } /* tree shake scope */
     }
 #endif
 }
