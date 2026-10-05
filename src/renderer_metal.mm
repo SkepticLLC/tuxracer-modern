@@ -24,7 +24,6 @@ static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
-        g_overlay_pipeline = nil;
 static id<MTLRenderPipelineState> g_overlay_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
