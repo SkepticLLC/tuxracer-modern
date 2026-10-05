@@ -1434,6 +1434,50 @@ static float modern_metal_text( float x, float y,
     return pen - x;
 }
 
+int renderer_metal_begin_menu_frame( int width, int height )
+{
+    @autoreleasepool {
+        void *opaque;
+        if(width<=0||height<=0||g_command_queue==nil||g_overlay_pipeline==nil)return 0;
+        renderer_metal_set_native_visible(1);
+        opaque=tux_metal_present_next_drawable(); if(!opaque)return 0;
+        g_native_drawable=(__bridge_transfer id<CAMetalDrawable>)opaque;
+        g_native_width=width;g_native_height=height;
+        g_frame_command_buffer=[g_command_queue commandBuffer];if(!g_frame_command_buffer)return 0;
+        g_frame_pass=[MTLRenderPassDescriptor renderPassDescriptor];
+        g_frame_pass.colorAttachments[0].texture=g_native_drawable.texture;
+        g_frame_pass.colorAttachments[0].loadAction=MTLLoadActionClear;
+        g_frame_pass.colorAttachments[0].storeAction=MTLStoreActionStore;
+        g_frame_pass.colorAttachments[0].clearColor=MTLClearColorMake(.025,.07,.13,1);
+        g_frame_encoder=[g_frame_command_buffer renderCommandEncoderWithDescriptor:g_frame_pass];
+        if(!g_frame_encoder)return 0;g_native_frame_active=1;return 1;
+    }
+}
+static void menu_box(float x,float y,float w,float h,float r,float g,float b,float a){
+    typedef struct{float x,y;}V;typedef struct{float color[4];}U;float sx=2.0f/g_native_width,sy=2.0f/g_native_height;
+    float x0=-1+x*sx,x1=-1+(x+w)*sx,y0=-1+y*sy,y1=-1+(y+h)*sy;V v[6]={{x0,y0},{x1,y0},{x1,y1},{x0,y0},{x1,y1},{x0,y1}};U u={{r,g,b,a}};
+    id<MTLBuffer>vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared],ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
+    [g_frame_encoder setRenderPipelineState:g_overlay_pipeline];[g_frame_encoder setDepthStencilState:g_no_depth_state];[g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];[g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];[g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+}
+void renderer_metal_draw_home_menu( int selected )
+{
+    @autoreleasepool {
+        static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};float ui=(float)g_native_height/2168.0f,x,y;int i;
+        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
+        menu_box(0,0,g_native_width,g_native_height,.055f,.16f,.29f,1);
+        renderer_metal_draw_background_mountain_layer(g_mountain_far_handle,-.10f,.66f,.90f,0,1);
+        renderer_metal_draw_background_mountain_layer(g_mountain_mid_handle,-.22f,.50f,.72f,.02f,.98f);
+        renderer_metal_draw_background_mountain_layer(g_mountain_foothill_handle,-.38f,.28f,.62f,.04f,.96f);
+        menu_box(0,0,g_native_width*.44f,g_native_height,.008f,.02f,.04f,.50f);
+        x=105*ui;y=g_native_height-210*ui;
+        modern_metal_text(x,y,"modern_hud_small","TUX RACER",1.05f*ui,.72f);y-=68*ui;
+        modern_metal_text(x,y,"modern_hud_speed","MODERN",1.18f*ui,1);y-=175*ui;
+        for(i=0;i<4;i++){float al=i==selected?1:.52f,mul=i==selected?1.0f:.86f;if(i==selected)menu_box(x-22*ui,y-8*ui,4*ui,38*ui,.78f,.92f,1,.9f);modern_metal_text(x,y,"modern_hud_speed",items[i],mul*ui,al);y-=100*ui;}
+        modern_metal_text(x,70*ui,"modern_hud_small","UP/DOWN  SELECT     ENTER  CONFIRM",.72f*ui,.48f);
+    }
+}
+void renderer_metal_end_menu_frame( void ){renderer_metal_end_native_frame();}
+
 void renderer_metal_draw_hud(float speed_kmh,float race_time,float energy,int herring){@autoreleasepool{int min=(int)(race_time/60),sec=((int)race_time)%60,hh=(int)((race_time-(int)race_time)*100),mph=(int)(speed_kmh*.621371f+.5f);char t[32],sp[32],he[32];float ui=(float)g_native_height/2168.0f,x,y;(void)energy;if(!g_frame_encoder||g_native_width<=0||g_native_height<=0)return;if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;snprintf(t,sizeof(t),"%d:%02d.%02d",min,sec,hh);snprintf(sp,sizeof(sp),"%d MPH",mph);snprintf(he,sizeof(he),"%d",herring);x=58*ui;y=g_native_height-74*ui;modern_metal_text(x,y,"modern_hud_small","TIME",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",t,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","SPEED",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",sp,1.10f*ui,1);y-=78*ui;modern_metal_text(x,y,"modern_hud_small","HERRING",1.35f*ui,.85f);y-=55*ui;modern_metal_text(x,y,"modern_hud_speed",he,1.10f*ui,1);}}
 
 
