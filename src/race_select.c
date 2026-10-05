@@ -39,6 +39,9 @@
 #include "game_logic_util.h"
 #include "ui_snow.h"
 #include "joystick.h"
+#ifdef __APPLE__
+#include "modern_text.h"
+#endif
 
 static textarea_t *desc_ta = NULL;
 static listbox_t *race_listbox = NULL;
@@ -590,13 +593,21 @@ void draw_status_msg( int x_org, int y_org, int box_width, int box_height )
 static void modern_draw_text( const char *binding, const char *text,
                               scalar_t x, scalar_t y )
 {
+#ifdef __APPLE__
+    float size=22.0f, alpha=.90f;
+    int weight=0;
+    if ( strcmp(binding,"modern_screen_title")==0 ) { size=48.0f;weight=1;alpha=1.0f; }
+    else if ( strcmp(binding,"modern_screen_eyebrow")==0 ) { size=20.0f;weight=1;alpha=.78f; }
+    else if ( strcmp(binding,"modern_screen_body")==0 ) { size=24.0f;alpha=.90f; }
+    else if ( strcmp(binding,"modern_screen_hint")==0 ) { size=18.0f;alpha=.70f; }
+    else if ( strcmp(binding,"modern_screen_action")==0 ) { size=22.0f;weight=1;alpha=.96f; }
+    modern_text_draw(text,(float)x,(float)y,size,.90f,.95f,1.0f,alpha,weight);
+#else
     font_t *font;
     if ( text == NULL || !get_font_binding( (char *)binding, &font ) ) return;
     bind_font_texture( font );
-    glPushMatrix();
-    glTranslatef( x, y, 0 );
-    draw_string( font, (char *)text );
-    glPopMatrix();
+    glPushMatrix(); glTranslatef( x, y, 0 ); draw_string( font, (char *)text ); glPopMatrix();
+#endif
 }
 
 static void modern_draw_race_select( void )
