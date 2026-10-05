@@ -56,6 +56,8 @@ void renderer_metal_draw_shadow_ellipse( float x, float y, float z,
 
 void renderer_metal_draw_ground_strip( float cx,float cz,float width,float depth,
                                       float r,float g,float b,float a );
+void renderer_metal_draw_hud( float speed_kmh, float race_time,
+                             float energy, int herring );
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
                                      float r,float g,float b,float a );
