@@ -54,6 +54,9 @@ static double g_pacing_min_ms = 1000000.0;
 static double g_pacing_max_ms = 0.0;
 static unsigned int g_pacing_samples = 0;
 static float g_mountain_parallax_x = 0.0f;
+static tux_texture_handle_t g_mountain_far_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_mountain_mid_handle = TUX_INVALID_TEXTURE_HANDLE;
+static tux_texture_handle_t g_mountain_foothill_handle = TUX_INVALID_TEXTURE_HANDLE;
 
 static uint64_t renderer_metal_now_ns( void )
 {
@@ -192,7 +195,7 @@ int renderer_metal_initialize_resources( void )
                 "struct MountainCardVertex { packed_float3 position; float uv0; float uv1; float pad; };\n"
                 "struct MountainCardOut { float4 position [[position]]; float2 uv; float alpha; };\n"
                 "vertex MountainCardOut mountain_card_vertex(uint vid [[vertex_id]], const device MountainCardVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
-                "MountainCardOut o; o.position=u.viewProjection*float4(float3(v[vid].position),1.0); "
+                "MountainCardOut o; o.position=float4(float3(v[vid].position),1.0); "
                 "o.uv=float2(v[vid].uv0,v[vid].uv1); o.alpha=v[vid].pad; return o; }\n"
                 "fragment float4 mountain_card_fragment(MountainCardOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
                 "float4 c=tex.sample(samp,in.uv); return float4(c.rgb,c.a*in.alpha); }\n"
@@ -877,6 +880,40 @@ static int renderer_metal_prepare_camera_uniforms(
     return g_camera_uniform_buffer != nil;
 }
 
+void renderer_metal_set_mountain_layers( tux_texture_handle_t far_tex,
+                                         tux_texture_handle_t mid_tex,
+                                         tux_texture_handle_t foothill_tex )
+{
+    g_mountain_far_handle = far_tex;
+    g_mountain_mid_handle = mid_tex;
+    g_mountain_foothill_handle = foothill_tex;
+}
+
+static void renderer_metal_draw_background_mountain_layer(
+    tux_texture_handle_t handle, float bottom, float top, float alpha )
+{
+    typedef struct { float px,py,pz,u,v,pad; } ov_t;
+    ov_t v[6];
+    id<MTLTexture> tex;
+    id<MTLBuffer> vb;
+    if(handle==TUX_INVALID_TEXTURE_HANDLE||g_frame_encoder==nil||
+       g_mountain_card_pipeline==nil)return;
+    tex=[g_textures objectForKey:@(handle)];
+    if(tex==nil)return;
+    v[0]=(ov_t){-1,bottom,0,0,0,alpha}; v[1]=(ov_t){1,bottom,0,1,0,alpha};
+    v[2]=(ov_t){1,top,0,1,1,alpha}; v[3]=(ov_t){-1,bottom,0,0,0,alpha};
+    v[4]=(ov_t){1,top,0,1,1,alpha}; v[5]=(ov_t){-1,top,0,0,1,alpha};
+    vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
+    if(vb==nil)return;
+    [g_frame_encoder setRenderPipelineState:g_mountain_card_pipeline];
+    [g_frame_encoder setDepthStencilState:g_no_depth_state];
+    [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+    [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
+    [g_frame_encoder setFragmentTexture:tex atIndex:0];
+    [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+    [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+}
+
 int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera,
                                        int width, int height )
 {
@@ -960,6 +997,14 @@ int renderer_metal_begin_native_frame( const tux_renderer_camera_state_t *camera
                                 vertexStart:0
                                 vertexCount:3];
         }
+
+        /* Stable distant scenery: screen-space depth layers behind terrain. */
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_far_handle, -0.38f, 0.36f, 0.68f );
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_mid_handle, -0.48f, 0.22f, 0.78f );
+        renderer_metal_draw_background_mountain_layer(
+            g_mountain_foothill_handle, -0.58f, 0.06f, 0.82f );
 
         /* Procedural mountain shader retained for diagnostics only.
          * Production Modern uses world-space textured mountain cards. */
