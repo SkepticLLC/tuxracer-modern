@@ -26,6 +26,7 @@ extern "C"
 #define TEX_FONT_METRICS_H
 
 typedef struct tex_font_metrics_ tex_font_metrics_t; /* Opaque */
+typedef struct { scalar_t x0,y0,x1,y1,u0,v0,u1,v1,advance; } tex_font_glyph_t;
 
 tex_font_metrics_t* load_tex_font_metrics( char *filename );
 void delete_tex_font_metrics( tex_font_metrics_t *tfm );
@@ -35,6 +36,8 @@ void get_tex_font_string_bbox( tex_font_metrics_t *tfm,
 void draw_tex_font_char( tex_font_metrics_t *tfm, char c );
 void draw_tex_font_string( tex_font_metrics_t *tfm, char *string );
 bool_t is_character_in_tex_font( tex_font_metrics_t *tfm, char c );
+bool_t get_tex_font_glyph( tex_font_metrics_t *tfm, char c, tex_font_glyph_t *out );
+int get_tex_font_max_ascent( tex_font_metrics_t *tfm );
 
 #endif /* TEX_FONT_METRICS_H */
 
