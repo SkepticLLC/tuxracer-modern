@@ -549,55 +549,42 @@ void draw_modern_start_zone_metal()
     float y=(float)get_renderer_course_height(start.x,start.y);
 
     /*
-     * Modern alpine start gantry.
-     * Charcoal structure with restrained red accent and accumulated snow.
+     * Compact start gate sized for Tux rather than vehicles. Keep the
+     * mountain view open and let the original course remain the hero.
      */
-    renderer_metal_draw_colored_box(x-5.4f,y+2.35f,z-1.0f,
-                                    0.30f,4.7f,0.30f, 0.075f,0.085f,0.095f,1.0f);
-    renderer_metal_draw_colored_box(x+5.4f,y+2.35f,z-1.0f,
-                                    0.30f,4.7f,0.30f, 0.075f,0.085f,0.095f,1.0f);
-    renderer_metal_draw_colored_box(x,y+4.48f,z-1.0f,
-                                    11.15f,0.72f,0.44f, 0.075f,0.085f,0.095f,1.0f);
+    renderer_metal_draw_colored_box(x-3.85f,y+1.75f,z-0.85f,
+                                    0.24f,3.50f,0.24f, 0.075f,0.085f,0.095f,1.0f);
+    renderer_metal_draw_colored_box(x+3.85f,y+1.75f,z-0.85f,
+                                    0.24f,3.50f,0.24f, 0.075f,0.085f,0.095f,1.0f);
+    renderer_metal_draw_colored_box(x,y+3.34f,z-0.85f,
+                                    7.95f,0.54f,0.34f, 0.075f,0.085f,0.095f,1.0f);
 
-    /* Thin Skeptic/Tux Racer red accent below the header panel. */
-    renderer_metal_draw_colored_box(x,y+4.08f,z-0.98f,
-                                    10.9f,0.10f,0.48f, 0.72f,0.055f,0.045f,1.0f);
+    /* Restrained red identity strip and shallow snow cap. */
+    renderer_metal_draw_colored_box(x,y+3.02f,z-0.84f,
+                                    7.72f,0.075f,0.38f, 0.72f,0.055f,0.045f,1.0f);
+    renderer_metal_draw_colored_box(x,y+3.65f,z-0.85f,
+                                    8.02f,0.075f,0.40f, 0.91f,0.94f,0.97f,1.0f);
 
-    /* Snow caps soften the engineered structure into the alpine world. */
-    renderer_metal_draw_colored_box(x,y+4.88f,z-1.0f,
-                                    11.25f,0.10f,0.52f, 0.91f,0.94f,0.97f,1.0f);
-    renderer_metal_draw_colored_box(x-5.4f,y+4.72f,z-1.0f,
-                                    0.40f,0.10f,0.42f, 0.91f,0.94f,0.97f,1.0f);
-    renderer_metal_draw_colored_box(x+5.4f,y+4.72f,z-1.0f,
-                                    0.40f,0.10f,0.42f, 0.91f,0.94f,0.97f,1.0f);
-
-    /* Compact timing/sensor pods. */
-    renderer_metal_draw_colored_box(x-5.05f,y+1.05f,z-0.72f,
-                                    0.40f,0.56f,0.40f, 0.025f,0.030f,0.035f,1.0f);
-    renderer_metal_draw_colored_box(x+5.05f,y+1.05f,z-0.72f,
-                                    0.40f,0.56f,0.40f, 0.025f,0.030f,0.035f,1.0f);
+    /* Small timing modules close to the posts. */
+    renderer_metal_draw_colored_box(x-3.58f,y+0.82f,z-0.62f,
+                                    0.32f,0.42f,0.32f, 0.025f,0.030f,0.035f,1.0f);
+    renderer_metal_draw_colored_box(x+3.58f,y+0.82f,z-0.62f,
+                                    0.32f,0.42f,0.32f, 0.025f,0.030f,0.035f,1.0f);
 
     /*
-     * Low side rails define the staging chute without blocking the mountain
-     * view. Red tips provide course identity while the rail stays charcoal.
+     * Minimal staging markers only. The long blockout rails were too large
+     * for the character/course scale.
      */
-    renderer_metal_draw_colored_box(x-4.8f,y+0.52f,z+1.5f,
-                                    0.16f,0.90f,5.2f, 0.10f,0.11f,0.12f,1.0f);
-    renderer_metal_draw_colored_box(x+4.8f,y+0.52f,z+1.5f,
-                                    0.16f,0.90f,5.2f, 0.10f,0.11f,0.12f,1.0f);
-    renderer_metal_draw_colored_box(x-4.8f,y+0.98f,z+1.5f,
-                                    0.22f,0.10f,5.2f, 0.72f,0.055f,0.045f,1.0f);
-    renderer_metal_draw_colored_box(x+4.8f,y+0.98f,z+1.5f,
-                                    0.22f,0.10f,5.2f, 0.72f,0.055f,0.045f,1.0f);
+    renderer_metal_draw_colored_box(x-3.55f,y+0.38f,z+0.55f,
+                                    0.13f,0.65f,1.85f, 0.10f,0.11f,0.12f,1.0f);
+    renderer_metal_draw_colored_box(x+3.55f,y+0.38f,z+0.55f,
+                                    0.13f,0.65f,1.85f, 0.10f,0.11f,0.12f,1.0f);
 
     /*
-     * Start line: broad snow-white groomed band with narrow charcoal timing
-     * edge. It should read as course marking, not a floating red box.
+     * Do not draw the start stripe as a flat box: the course is sloped and
+     * the box intersects/deforms visually. A terrain-conforming strip will
+     * replace it using the same height-sampled approach as track marks.
      */
-    renderer_metal_draw_colored_box(x,y+0.018f,z-0.25f,
-                                    9.3f,0.018f,0.42f, 0.92f,0.94f,0.96f,1.0f);
-    renderer_metal_draw_colored_box(x,y+0.024f,z-0.48f,
-                                    9.3f,0.020f,0.07f, 0.12f,0.13f,0.14f,1.0f);
 #endif
 }
 
