@@ -59,6 +59,9 @@ void renderer_metal_draw_ground_strip( float cx,float cz,float width,float depth
                                       float r,float g,float b,float a );
 void renderer_metal_draw_hud( float speed_kmh, float race_time,
                              float energy, int herring );
+int renderer_metal_begin_menu_frame( int width, int height );
+void renderer_metal_draw_home_menu( int selected );
+void renderer_metal_end_menu_frame( void );
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
                                      float r,float g,float b,float a );
