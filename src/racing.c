@@ -93,31 +93,39 @@ static void modern_tree_impact_visual( point_t tree_loc,
      * saturated almost every collision. Map 4..38 m/s across the useful
      * range and square it so grazes remain subtle while hard impacts pop.
      */
-    energy = min( 1.0, max( 0.0, (impact_speed - 4.0) / 34.0 ) );
-    energy = energy * energy;
-
     /*
-     * Shed from several branch bands instead of the crown. The existing
-     * particle emitter supplies natural radial jitter around each band.
+     * Keep a visible baseline while we measure the real collision-speed
+     * distribution. 6..34 m/s spans the expected useful range, with a mild
+     * curve that preserves separation without crushing low-energy hits.
      */
-    count = (int)( 5 + energy * 23 );
+    energy = min( 1.0, max( 0.0, (impact_speed - 6.0) / 28.0 ) );
+    energy = sqrt( energy );
+
+    count = (int)( 18 + energy * 20 );
 
     burst = tree_loc;
     burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
-              tree_height * 0.36;
-    velocity = make_vector( 0.0, 0.7 + energy * 2.0, -0.3 - energy * 0.8 );
+              tree_height * 0.42;
+    velocity = make_vector( 0.0, 1.1 + energy * 2.4, -0.4 - energy * 1.0 );
     create_new_particles( burst, velocity, count );
 
-    if ( energy > 0.12 ) {
+    /* A middle branch band is always visible; harder hits add the crown. */
+    burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
+              tree_height * 0.58;
+    create_new_particles( burst, velocity, (int)(10 + energy * 18) );
+
+    if ( energy > 0.48 ) {
         burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
-                  tree_height * 0.55;
-        create_new_particles( burst, velocity, (int)(4 + energy * 18) );
+                  tree_height * 0.74;
+        create_new_particles( burst, velocity, (int)(8 + energy * 18) );
     }
-    if ( energy > 0.42 ) {
-        burst.y = get_renderer_course_height( tree_loc.x, tree_loc.z ) +
-                  tree_height * 0.72;
-        create_new_particles( burst, velocity, (int)(3 + energy * 14) );
-    }
+
+    fprintf( stderr,
+             "Tux Racer Modern: tree impact speed=%.2f m/s height=%.2f diam=%.2f energy=%.2f particles=%d%s\\n",
+             impact_speed, tree_height, tree_diam, energy,
+             count + (int)(10 + energy * 18) +
+             (energy > 0.48 ? (int)(8 + energy * 18) : 0),
+             energy > 0.48 ? " (3 bands)" : " (2 bands)" );
 
     last_tree_snow_loc = tree_loc;
     last_tree_snow_time = g_game.time;
