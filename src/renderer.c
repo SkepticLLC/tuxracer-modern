@@ -65,6 +65,14 @@ int renderer_initialize( tux_renderer_backend_t backend )
         fprintf( stderr, "Tux Racer Modern: Metal device available: Apple Silicon\n" );
         if ( !renderer_metal_attach_native_window( winsys_get_native_window() ) ) {
             fprintf( stderr, "Tux Racer Modern: native Metal layer unavailable\n" );
+        } else {
+            /*
+             * Modern is now the normal Apple renderer, not an F10 debug
+             * experiment. F10 remains available as a developer fallback.
+             */
+            g_metal_native_enabled = 1;
+            renderer_metal_set_native_visible( 1 );
+            fprintf( stderr, "Tux Racer Modern: native Metal default ON\n" );
         }
         terrain_set_batch_consumer( renderer_metal_consume_terrain_batch, NULL );
     } else {
@@ -129,7 +137,7 @@ void renderer_begin_frame( void )
 void renderer_begin_world_frame( void )
 {
 #ifdef __APPLE__
-    if ( g_game.mode != RACING ) return;
+    if ( g_game.mode != RACING && g_game.mode != INTRO ) return;
 
     if ( renderer_metal_vertex_bytes() == 0 ) {
         size_t vertex_count = 0;
