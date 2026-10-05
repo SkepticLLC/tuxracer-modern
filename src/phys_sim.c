@@ -244,6 +244,13 @@ static scalar_t  fricCoeff[3] = { 0.35, /* ice */
 
 /* Current time step in ODE solver */
 static double ode_time_step = -1;
+static tree_impact_visual_callback_t tree_impact_visual_callback = NULL;
+
+void set_tree_impact_visual_callback( tree_impact_visual_callback_t callback )
+{
+    tree_impact_visual_callback = callback;
+}
+
 
 
 /*
@@ -812,6 +819,9 @@ static void adjust_for_tree_collision( player_data_t *plyr,
 
 	/* Reduce speed by a minimum of 30% */
         speed = normalize_vector( vel );
+        if ( tree_impact_visual_callback != NULL ) {
+            tree_impact_visual_callback( treeLoc, tree_diam, speed );
+        }
         speed *= 0.7;
 
 	/* 
