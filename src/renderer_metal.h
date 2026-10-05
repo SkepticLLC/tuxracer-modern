@@ -24,6 +24,7 @@ int renderer_metal_upload_course_vertices( const tux_vertex_t *vertices,
                                            size_t vertex_count );
 void renderer_metal_consume_terrain_batch( const tux_terrain_batch_t *batch,
                                            void *context );
+void renderer_metal_reset_course_resources( void );
 size_t renderer_metal_vertex_bytes( void );
 size_t renderer_metal_last_index_bytes( void );
 void renderer_metal_begin_offscreen_frame( const tux_renderer_camera_state_t *camera,
