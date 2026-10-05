@@ -571,7 +571,8 @@ START_KEYBOARD_CB( quit_racing_cb )
 {
     if ( release ) return;
     g_game.race_aborted = True;
-    set_game_mode( GAME_OVER );
+    set_game_mode( RACE_SELECT );
+    winsys_post_redisplay();
 }
 END_KEYBOARD_CB
 
