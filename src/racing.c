@@ -428,7 +428,11 @@ void racing_loop( scalar_t time_step )
     }
 
     if ( renderer_metal_native_enabled() ) {
-        draw_sky_metal();
+        /*
+         * Native Modern already draws its atmospheric sky when the Metal
+         * frame begins. Do not layer the legacy six-face course skybox over
+         * the modern scene.
+         */
         draw_mountain_backdrop_metal( plyr->view.pos );
         draw_trees_metal();
         draw_items_metal();
