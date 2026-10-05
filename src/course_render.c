@@ -544,8 +544,70 @@ void draw_start_line_metal()
 {
 #ifdef __APPLE__
     point2d_t sp=get_start_pt();
-    renderer_metal_draw_ground_strip((float)sp.x,(float)sp.y,7.2f,0.18f,
-                                     0.93f,0.95f,0.97f,1.0f);
+    int i;
+    const int cells=12;
+    const float total=8.4f;
+    const float cell=total/(float)cells;
+    for(i=0;i<cells;++i){
+        float cx=(float)sp.x-total*0.5f+cell*((float)i+0.5f);
+        if((i&1)==0)
+            renderer_metal_draw_ground_strip(cx,(float)sp.y,cell+0.02f,0.28f,
+                                             0.78f,0.055f,0.045f,1.0f);
+        else
+            renderer_metal_draw_ground_strip(cx,(float)sp.y,cell+0.02f,0.28f,
+                                             0.94f,0.96f,0.98f,1.0f);
+    }
+#endif
+}
+
+void draw_start_scene_metal( int light_phase )
+{
+#ifdef __APPLE__
+    point2d_t sp=get_start_pt();
+    const float tower_x[2]={(float)sp.x-4.55f,(float)sp.x+4.55f};
+    int t,row,pair;
+    draw_start_line_metal();
+
+    for(t=0;t<2;++t){
+        float x=tower_x[t];
+        float z=(float)sp.y+0.05f;
+        float gy=(float)get_renderer_course_height(x,z);
+
+        /* Dark alpine timing mast + compact top cap. */
+        renderer_metal_draw_colored_box(x,gy+1.35f,z,0.34f,2.70f,0.34f,
+                                        0.055f,0.065f,0.075f,1.0f);
+        renderer_metal_draw_colored_box(x,gy+2.78f,z,1.22f,0.34f,0.42f,
+                                        0.075f,0.085f,0.100f,1.0f);
+        renderer_metal_draw_colored_box(x,gy+2.98f,z,1.08f,0.08f,0.48f,
+                                        0.93f,0.96f,0.99f,1.0f);
+
+        for(row=0;row<3;++row){
+            for(pair=0;pair<2;++pair){
+                double model[16];
+                float px=x+(pair?0.24f:-0.24f);
+                float py=gy+0.95f+row*0.56f;
+                float rr=0.045f,gg=0.050f,bb=0.055f;
+                int active=(row==2&&light_phase==0)||
+                           (row==1&&light_phase==1)||
+                           (row==0&&light_phase==2);
+                if(active){
+                    if(row==2){rr=0.98f;gg=0.055f;bb=0.035f;}
+                    if(row==1){rr=1.00f;gg=0.56f;bb=0.025f;}
+                    if(row==0){rr=0.055f;gg=0.95f;bb=0.14f;}
+                }
+                model[0]=0.19;model[1]=0;model[2]=0;model[3]=0;
+                model[4]=0;model[5]=0.19;model[6]=0;model[7]=0;
+                model[8]=0;model[9]=0;model[10]=0.19;model[11]=0;
+                model[12]=px;model[13]=py;model[14]=z-0.20f;model[15]=1;
+                renderer_metal_draw_sphere(model,12,rr,gg,bb,1.0f);
+            }
+        }
+
+        /* Small red course-side panel anchors each tower visually. */
+        renderer_metal_draw_colored_box(x+(t?0.65f:-0.65f),gy+0.52f,z+0.12f,
+                                        0.88f,0.76f,0.16f,
+                                        0.60f,0.045f,0.040f,1.0f);
+    }
 #endif
 }
 
