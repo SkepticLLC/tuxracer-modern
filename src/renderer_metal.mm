@@ -1358,8 +1358,11 @@ static const unsigned char *modern_hud_glyph(char c)
     static const unsigned char A[7]={14,17,17,31,17,17,17};
     static const unsigned char D[7]={30,17,17,17,17,17,30};
     static const unsigned char E[7]={31,16,16,30,16,16,31};
+    static const unsigned char G[7]={14,17,16,23,17,17,15};
     static const unsigned char H[7]={17,17,17,31,17,17,17};
     static const unsigned char I[7]={31,4,4,4,4,4,31};
+    static const unsigned char N[7]={17,25,21,19,17,17,17};
+    static const unsigned char R[7]={30,17,17,30,20,18,17};
     static const unsigned char M[7]={17,27,21,21,17,17,17};
     static const unsigned char P[7]={30,17,17,30,16,16,16};
     static const unsigned char S[7]={15,16,16,14,1,1,30};
@@ -1375,8 +1378,9 @@ static const unsigned char *modern_hud_glyph(char c)
     static const unsigned char eight[7]={14,17,17,14,17,17,14};
     static const unsigned char nine[7]={14,17,17,15,1,1,14};
     switch(c){
-      case 'A':return A; case 'D':return D; case 'E':return E; case 'H':return H;
-      case 'I':return I; case 'M':return M; case 'P':return P; case 'S':return S;
+      case 'A':return A; case 'D':return D; case 'E':return E; case 'G':return G;
+      case 'H':return H; case 'I':return I; case 'M':return M; case 'N':return N;
+      case 'P':return P; case 'R':return R; case 'S':return S;
       case 'T':return T;
       case '0':return zero; case '1':return one; case '2':return two; case '3':return three;
       case '4':return four; case '5':return five; case '6':return six; case '7':return seven;
@@ -1406,12 +1410,12 @@ static float modern_hud_text(float x,float y,float px,const char *text,
         for(row=0;row<7;++row){
             for(col=0;col<5;++col){
                 if(glyph[6-row]&(1u<<(4-col))){
-                    modern_hud_box2d(x+col*px,y+row*px,px*0.82f,px*0.82f,
+                    modern_hud_box2d(x+col*px,y+row*px,px*0.76f,px*0.76f,
                                      r,g,b,alpha);
                 }
             }
         }
-        x+=6.0f*px;
+        x+=5.72f*px;
     }
     return x-start;
 }
@@ -1424,33 +1428,60 @@ void renderer_metal_draw_hud( float speed_kmh, float race_time,
         int secs=((int)race_time)%60;
         int hundredths=(int)((race_time-(float)((int)race_time))*100.0f);
         int mph=(int)(speed_kmh*0.621371f+0.5f);
-        char time_buf[32],speed_buf[32];
-        const float margin=50.0f;
-        float top=(float)g_native_height-31.0f;
+        char time_buf[32],speed_buf[32],herring_buf[32];
+
+        /*
+         * Scale the HUD from the native drawable. The reference composition
+         * was approved at ~3456x2168; this keeps the same visual weight on
+         * Retina and lower-resolution displays without becoming tiny.
+         */
+        float ui=(float)g_native_height/2168.0f;
+        float margin=62.0f*ui;
+        float top=(float)g_native_height-43.0f*ui;
+        float label_px=2.55f*ui;
+        float value_px=4.75f*ui;
+        float label_gap=17.0f*ui;
+        float block_gap=29.0f*ui;
+        float value_h=7.0f*value_px;
 
         (void)energy;
-        (void)herring;
 
         if(g_frame_encoder==nil||g_native_width<=0||g_native_height<=0)return;
+        if(ui<0.62f)ui=0.62f;
+        if(ui>1.45f)ui=1.45f;
 
         snprintf(time_buf,sizeof(time_buf),"%d:%02d.%02d",mins,secs,hundredths);
         snprintf(speed_buf,sizeof(speed_buf),"%d MPH",mph);
+        snprintf(herring_buf,sizeof(herring_buf),"%d",herring);
 
         /*
-         * Modern 2.0 HUD: intentionally no panel/chrome.  The alpine world
-         * remains the visual focus; labels are quiet and values are bright.
-         * Coordinates mirror the approved mock: TIME and SPEED stacked
-         * tightly in the upper-left safe area.
+         * Final Modern 2.0 race telemetry.
+         * No backing panels: the mountain scene remains unobstructed.
+         * Labels are cool/desaturated and values are nearly white.
          */
-        modern_hud_text(margin,top-9.0f,1.75f,"TIME",
-                        0.73f,0.82f,0.92f,0.72f);
-        modern_hud_text(margin,top-42.0f,3.35f,time_buf,
-                        0.92f,0.96f,1.00f,0.94f);
+        {
+            float y=top;
 
-        modern_hud_text(margin,top-76.0f,1.75f,"SPEED",
-                        0.73f,0.82f,0.92f,0.72f);
-        modern_hud_text(margin,top-109.0f,3.35f,speed_buf,
-                        0.92f,0.96f,1.00f,0.94f);
+            modern_hud_text(margin,y-7.0f*label_px,label_px,"TIME",
+                            0.69f,0.79f,0.91f,0.76f);
+            y-=7.0f*label_px+label_gap+value_h;
+            modern_hud_text(margin,y,value_px,time_buf,
+                            0.94f,0.975f,1.00f,0.96f);
+
+            y-=block_gap+7.0f*label_px;
+            modern_hud_text(margin,y,label_px,"SPEED",
+                            0.69f,0.79f,0.91f,0.76f);
+            y-=label_gap+value_h;
+            modern_hud_text(margin,y,value_px,speed_buf,
+                            0.94f,0.975f,1.00f,0.96f);
+
+            y-=block_gap+7.0f*label_px;
+            modern_hud_text(margin,y,label_px,"HERRING",
+                            0.69f,0.79f,0.91f,0.76f);
+            y-=label_gap+value_h;
+            modern_hud_text(margin,y,value_px,herring_buf,
+                            0.94f,0.975f,1.00f,0.96f);
+        }
     }
 }
 
