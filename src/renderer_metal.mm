@@ -24,6 +24,8 @@ static id<MTLRenderPipelineState> g_terrain_pipeline = nil;
 static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
+        g_overlay_pipeline = nil;
+static id<MTLRenderPipelineState> g_overlay_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
 static id<MTLRenderPipelineState> g_mountain_pipeline = nil;
@@ -186,6 +188,12 @@ int renderer_metal_initialize_resources( void )
                 "fragment float4 sphere_fragment(SphereOut in [[stage_in]]) { "
                 "float3 L=normalize(float3(-0.35,0.82,0.44)); float d=max(dot(normalize(in.normal),L),0.0); "
                 "float light=0.34+0.66*d; return float4(in.color.rgb*light,in.color.a); }\n"
+                "struct OverlayVertex { packed_float2 position; };\n"
+                "struct OverlayUniforms { float4 color; };\n"
+                "struct OverlayOut { float4 position [[position]]; };\n"
+                "vertex OverlayOut overlay_vertex(uint vid [[vertex_id]], const device OverlayVertex *v [[buffer(0)]]) { "
+                "OverlayOut o; o.position=float4(float2(v[vid].position),0.0,1.0); return o; }\n"
+                "fragment float4 overlay_fragment(OverlayOut in [[stage_in]], constant OverlayUniforms &u [[buffer(0)]]) { return u.color; }\n"
                 "struct ShadowVertex { packed_float3 position; float alpha; };\n"
                 "struct ShadowOut { float4 position [[position]]; float alpha; float radial; };\n"
                 "vertex ShadowOut shadow_vertex(uint vid [[vertex_id]], const device ShadowVertex *v [[buffer(0)]], constant TerrainUniforms &u [[buffer(1)]]) { "
@@ -358,6 +366,29 @@ int renderer_metal_initialize_resources( void )
                     [g_device newRenderPipelineStateWithDescriptor:sphereDesc error:&error];
                 if ( g_sphere_pipeline == nil ) {
                     fprintf( stderr, "Tux Racer Modern: Metal sphere pipeline creation failed: %s\n",
+                             error ? [[error localizedDescription] UTF8String] : "unknown error" );
+                    return 0;
+                }
+            }
+
+            {
+                id<MTLFunction> overlayVertex =
+                    [g_terrain_library newFunctionWithName:@"overlay_vertex"];
+                id<MTLFunction> overlayFragment =
+                    [g_terrain_library newFunctionWithName:@"overlay_fragment"];
+                MTLRenderPipelineDescriptor *overlayDesc =
+                    [[MTLRenderPipelineDescriptor alloc] init];
+                overlayDesc.vertexFunction = overlayVertex;
+                overlayDesc.fragmentFunction = overlayFragment;
+                overlayDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                overlayDesc.colorAttachments[0].blendingEnabled = YES;
+                overlayDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+                overlayDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+                overlayDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+                g_overlay_pipeline =
+                    [g_device newRenderPipelineStateWithDescriptor:overlayDesc error:&error];
+                if ( g_overlay_pipeline == nil ) {
+                    fprintf( stderr, "Tux Racer Modern: Metal overlay pipeline creation failed: %s\n",
                              error ? [[error localizedDescription] UTF8String] : "unknown error" );
                     return 0;
                 }
@@ -1296,26 +1327,21 @@ void renderer_metal_draw_sphere( const double model[16],
 static void modern_hud_box2d(float x,float y,float w,float h,
                              float r,float g,float b,float a)
 {
-    /* Native HUD uses clip-space boxes encoded through the existing solid pipeline. */
-    typedef struct { float px,py,pz,nx,ny,nz; } sv_t;
-    typedef struct { float mvp[16], model[16], color[4]; } su_t;
+    typedef struct { float x,y; } ov_t;
+    typedef struct { float color[4]; } ou_t;
     float sx=2.0f/(float)g_native_width, sy=2.0f/(float)g_native_height;
     float x0=-1.0f+x*sx, x1=-1.0f+(x+w)*sx;
     float y0=-1.0f+y*sy, y1=-1.0f+(y+h)*sy;
-    sv_t v[6]={{x0,y0,0,0,0,1},{x1,y0,0,0,0,1},{x1,y1,0,0,0,1},
-               {x0,y0,0,0,0,1},{x1,y1,0,0,0,1},{x0,y1,0,0,0,1}};
-    su_t u; memset(&u,0,sizeof(u));
-    u.mvp[0]=u.mvp[5]=u.mvp[10]=u.mvp[15]=1.0f;
-    u.model[0]=u.model[5]=u.model[10]=u.model[15]=1.0f;
-    u.color[0]=r;u.color[1]=g;u.color[2]=b;u.color[3]=a;
-    if(g_frame_encoder==nil||g_sphere_pipeline==nil)return;
+    ov_t v[6]={{x0,y0},{x1,y0},{x1,y1},{x0,y0},{x1,y1},{x0,y1}};
+    ou_t u={{r,g,b,a}};
+    if(g_frame_encoder==nil||g_overlay_pipeline==nil)return;
     id<MTLBuffer> vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
     id<MTLBuffer> ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
     if(vb==nil||ub==nil)return;
-    [g_frame_encoder setRenderPipelineState:g_sphere_pipeline];
-    [g_frame_encoder setDepthStencilState:nil];
+    [g_frame_encoder setRenderPipelineState:g_overlay_pipeline];
+    [g_frame_encoder setDepthStencilState:g_no_depth_state];
     [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
-    [g_frame_encoder setVertexBuffer:ub offset:0 atIndex:1];
+    [g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];
     [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
