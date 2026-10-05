@@ -46,6 +46,7 @@ void renderer_toggle_metal_compare( void );
 int renderer_metal_compare_enabled( void );
 void renderer_toggle_metal_native( void );
 int renderer_metal_native_enabled( void );
+void renderer_sync_mode_visibility( game_mode_t mode );
 void renderer_present_native_metal_frame( void );
 const tux_renderer_info_t *renderer_get_info( void );
 typedef struct {
