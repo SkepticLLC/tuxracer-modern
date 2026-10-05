@@ -20,6 +20,7 @@
 #include "tuxracer.h"
 #include "ui_theme.h"
 #include "textures.h"
+#include "render_util.h"
 
 colour_t ui_background_colour = { 0.055, 0.105, 0.17, 1.0 };
 colour_t ui_foreground_colour = { 1.0, 1.0, 1.0, 1.0 }; 
