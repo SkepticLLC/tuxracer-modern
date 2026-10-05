@@ -211,13 +211,22 @@ void intro_loop( scalar_t time_step )
     renderer_end_frame();
 } 
 
+START_KEYBOARD_CB( intro_escape_cb )
+{
+    if ( release ) return;
+    g_game.race_aborted = True;
+    set_game_mode( RACE_SELECT );
+    winsys_post_redisplay();
+}
+END_KEYBOARD_CB
+
 void intro_register()
 {
-    /*
-     * Modern start sequence owns the full walk-out and staging countdown.
-     * The legacy DEFAULT_CALLBACK made any keyboard input skip INTRO,
-     * which prevented the staging tree from ever being seen.
-     */
+    int status = 0;
     register_loop_funcs( INTRO, intro_init, intro_loop, NULL );
+
+    /* Only Escape skips Modern staging; ordinary gameplay input does not. */
+    status |= add_keymap_entry( INTRO, FIXED_KEY, "escape", NULL, intro_escape_cb );
+    check_assertion( status == 0, "out of keymap entries" );
 }
 
