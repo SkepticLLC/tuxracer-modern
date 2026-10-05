@@ -74,6 +74,7 @@ void renderer_metal_set_frame_pacing_log( int enabled )
 static int g_capture_written = 1; /* diagnostic PPM capture disabled by default */
 static NSMutableDictionary<NSNumber *, id<MTLTexture>> *g_textures = nil;
 static id<MTLSamplerState> g_repeat_sampler = nil;
+static id<MTLSamplerState> g_clamp_sampler = nil;
 static tux_texture_handle_t g_snow_handle = TUX_INVALID_TEXTURE_HANDLE;
 static tux_texture_handle_t g_rock_handle = TUX_INVALID_TEXTURE_HANDLE;
 static tux_texture_handle_t g_ice_handle = TUX_INVALID_TEXTURE_HANDLE;
@@ -121,6 +122,15 @@ int renderer_metal_initialize_resources( void )
             sd.sAddressMode = MTLSamplerAddressModeRepeat;
             sd.tAddressMode = MTLSamplerAddressModeRepeat;
             g_repeat_sampler = [g_device newSamplerStateWithDescriptor:sd];
+        }
+        if ( g_clamp_sampler == nil ) {
+            MTLSamplerDescriptor *sd = [[MTLSamplerDescriptor alloc] init];
+            sd.minFilter = MTLSamplerMinMagFilterLinear;
+            sd.magFilter = MTLSamplerMinMagFilterLinear;
+            sd.mipFilter = MTLSamplerMipFilterNotMipmapped;
+            sd.sAddressMode = MTLSamplerAddressModeClampToEdge;
+            sd.tAddressMode = MTLSamplerAddressModeClampToEdge;
+            g_clamp_sampler = [g_device newSamplerStateWithDescriptor:sd];
         }
 
         if ( g_terrain_library == nil ) {
@@ -922,9 +932,9 @@ static void renderer_metal_draw_background_mountain_layer(
        g_mountain_card_pipeline==nil)return;
     tex=[g_textures objectForKey:@(handle)];
     if(tex==nil)return;
-    v[0]=(ov_t){-1,bottom,0,0,0,alpha}; v[1]=(ov_t){1,bottom,0,1,0,alpha};
-    v[2]=(ov_t){1,top,0,1,1,alpha}; v[3]=(ov_t){-1,bottom,0,0,0,alpha};
-    v[4]=(ov_t){1,top,0,1,1,alpha}; v[5]=(ov_t){-1,top,0,0,1,alpha};
+    v[0]=(ov_t){-1.02f,bottom-0.015f,0,0,0,alpha}; v[1]=(ov_t){1.02f,bottom-0.015f,0,1,0,alpha};
+    v[2]=(ov_t){1.02f,top+0.015f,0,1,1,alpha}; v[3]=(ov_t){-1.02f,bottom-0.015f,0,0,0,alpha};
+    v[4]=(ov_t){1.02f,top+0.015f,0,1,1,alpha}; v[5]=(ov_t){-1.02f,top+0.015f,0,0,1,alpha};
     vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
     if(vb==nil)return;
     [g_frame_encoder setRenderPipelineState:g_mountain_card_pipeline];
@@ -932,7 +942,7 @@ static void renderer_metal_draw_background_mountain_layer(
     [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
     [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
     [g_frame_encoder setFragmentTexture:tex atIndex:0];
-    [g_frame_encoder setFragmentSamplerState:g_repeat_sampler atIndex:0];
+    [g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];
     [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
