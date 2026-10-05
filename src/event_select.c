@@ -510,10 +510,8 @@ START_KEYBOARD_CB( event_select_key_cb )
 	    }
 	    break;
 	case 27: /* Esc */
-	    if ( back_btn ) {
-		button_simulate_mouse_click( back_btn );
-		ui_set_dirty();
-	    }
+            set_game_mode( GAME_TYPE_SELECT );
+            ui_set_dirty();
 	    break;
 	}
     }
