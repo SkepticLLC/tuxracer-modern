@@ -16,6 +16,7 @@
 #include "metal_present.h"
 #include "fonts.h"
 #include "tex_font_metrics.h"
+#include "image.h"
 
 static id<MTLDevice> g_device = nil;
 static id<MTLCommandQueue> g_command_queue = nil;
@@ -27,6 +28,8 @@ static id<MTLRenderPipelineState> g_sky_pipeline = nil;
 static id<MTLRenderPipelineState> g_billboard_pipeline = nil;
 static id<MTLRenderPipelineState> g_sphere_pipeline = nil;
 static id<MTLRenderPipelineState> g_overlay_pipeline = nil;
+static id<MTLRenderPipelineState> g_ui_image_pipeline = nil;
+static NSMutableDictionary<NSString *, id<MTLTexture>> *g_ui_textures = nil;
 static id<MTLRenderPipelineState> g_text_pipeline = nil;
 static id<MTLRenderPipelineState> g_shadow_pipeline = nil;
 static id<MTLRenderPipelineState> g_skybox_pipeline = nil;
@@ -555,6 +558,17 @@ int renderer_metal_upload_course_vertices( const tux_vertex_t *vertices,
                                            size_t vertex_count )
 {
     @autoreleasepool {
+        if ( g_ui_image_pipeline == nil ) {
+            id<MTLFunction> vs=[g_terrain_library newFunctionWithName:@"ui_image_vertex"];
+            id<MTLFunction> fs=[g_terrain_library newFunctionWithName:@"ui_image_fragment"];
+            MTLRenderPipelineDescriptor *pd=[[MTLRenderPipelineDescriptor alloc] init];
+            pd.vertexFunction=vs;pd.fragmentFunction=fs;
+            pd.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
+            g_ui_image_pipeline=[g_device newRenderPipelineStateWithDescriptor:pd error:&error];
+            if(g_ui_image_pipeline==nil){fprintf(stderr,"Tux Racer Modern: UI image pipeline failed: %s\n",[[error localizedDescription] UTF8String]);return 0;}
+        }
+        if(g_ui_textures==nil)g_ui_textures=[[NSMutableDictionary alloc] init];
+
         if ( vertices == NULL || vertex_count == 0 ||
              !renderer_metal_initialize_resources() ) {
             return 0;
@@ -1448,6 +1462,41 @@ static float modern_metal_text( float x, float y,
     }
 
     return pen - x;
+}
+
+int renderer_metal_load_modern_ui_texture( const char *name, const char *filename )
+{
+    @autoreleasepool {
+        tux_image_t *img;
+        id<MTLTexture> tex;
+        MTLTextureDescriptor *td;
+        if(!name||!filename||g_device==nil)return 0;
+        img=tux_image_load(filename);if(!img||img->channels!=4){tux_image_free(img);return 0;}
+        td=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+              width:(NSUInteger)img->width height:(NSUInteger)img->height mipmapped:NO];
+        tex=[g_device newTextureWithDescriptor:td];if(!tex){tux_image_free(img);return 0;}
+        [tex replaceRegion:MTLRegionMake2D(0,0,img->width,img->height) mipmapLevel:0
+               withBytes:img->pixels bytesPerRow:(NSUInteger)img->width*4u];
+        [g_ui_textures setObject:tex forKey:[NSString stringWithUTF8String:name]];
+        fprintf(stderr,"Tux Racer Modern: loaded Modern UI texture %s (%dx%d)\n",name,img->width,img->height);
+        tux_image_free(img);return 1;
+    }
+}
+
+static void modern_draw_ui_image( const char *name )
+{
+    typedef struct{float x,y,u,v;} V;
+    V v[6]={{-1,-1,0,1},{1,-1,1,1},{1,1,1,0},{-1,-1,0,1},{1,1,1,0},{-1,1,0,0}};
+    id<MTLTexture> tex;id<MTLBuffer> vb;
+    if(!name||g_frame_encoder==nil||g_ui_image_pipeline==nil)return;
+    tex=[g_ui_textures objectForKey:[NSString stringWithUTF8String:name]];if(!tex)return;
+    vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];if(!vb)return;
+    [g_frame_encoder setRenderPipelineState:g_ui_image_pipeline];
+    [g_frame_encoder setDepthStencilState:g_no_depth_state];
+    [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
+    [g_frame_encoder setFragmentTexture:tex atIndex:0];
+    [g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];
+    [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
 
 int renderer_metal_begin_menu_frame( int width, int height )
