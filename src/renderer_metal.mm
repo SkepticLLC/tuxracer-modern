@@ -1556,14 +1556,37 @@ static void modern_menu_backdrop(void);
 
 void renderer_metal_draw_home_menu( int selected )
 {
-    (void)selected;
     @autoreleasepool {
         /*
-         * Production Modern Home is an art-directed title screen.  The
-         * approved hero plate currently contains the complete visual menu,
-         * so do not layer the legacy/native prototype typography over it.
+         * The current approved Home plate includes its labels.  Keep the
+         * interaction state native: draw only the active treatment here so
+         * keyboard/controller navigation remains real and visible.
+         *
+         * Coordinates are normalized from the 1672x941 concept plate and
+         * therefore scale cleanly with the drawable.
          */
+        static const float row_center_v[4] = {
+            0.405f, /* RACE */
+            0.510f, /* PRACTICE */
+            0.615f, /* CREDITS */
+            0.790f  /* QUIT -- skips baked SETTINGS until Settings is wired */
+        };
+        float h, y, x, w;
+
+        if ( selected < 0 ) selected = 0;
+        if ( selected > 3 ) selected = 3;
+
         modern_draw_ui_image("home");
+
+        h = g_native_height * 0.078f;
+        y = g_native_height * (1.0f - row_center_v[selected]) - h * 0.50f;
+        x = g_native_width * 0.048f;
+        w = g_native_width * 0.245f;
+
+        /* Subtle focus wash + concept-sheet cyan rail. */
+        menu_box(x, y, w, h, .015f, .055f, .085f, .34f);
+        menu_box(x, y, 4.0f, h, .05f, .82f, 1.0f, .98f);
+        menu_box(x + 4.0f, y, 5.0f, h, .05f, .55f, .85f, .28f);
     }
 }
 
