@@ -1514,7 +1514,7 @@ int renderer_metal_load_modern_ui_texture( const char *name, const char *filenam
 static void modern_draw_ui_image( const char *name )
 {
     typedef struct{float x,y,u,v;} V;
-    V v[6]={{-1,-1,0,1},{1,-1,1,1},{1,1,1,0},{-1,-1,0,1},{1,1,1,0},{-1,1,0,0}};
+    V v[6]={{-1,-1,0,0},{1,-1,1,0},{1,1,1,1},{-1,-1,0,0},{1,1,1,1},{-1,1,0,1}};
     id<MTLTexture> tex;id<MTLBuffer> vb;
     if(!name||g_frame_encoder==nil||g_ui_image_pipeline==nil)return;
     tex=[g_ui_textures objectForKey:[NSString stringWithUTF8String:name]];if(!tex)return;
@@ -1556,34 +1556,14 @@ static void modern_menu_backdrop(void);
 
 void renderer_metal_draw_home_menu( int selected )
 {
+    (void)selected;
     @autoreleasepool {
-        static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};
-        float ui=(float)g_native_height/2168.0f,cx,y,title_x;
-        int i;
-        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
-
+        /*
+         * Production Modern Home is an art-directed title screen.  The
+         * approved hero plate currently contains the complete visual menu,
+         * so do not layer the legacy/native prototype typography over it.
+         */
         modern_draw_ui_image("home");
-
-        cx=(float)g_native_width*.5f;
-        title_x=cx-205.0f*ui;
-        y=(float)g_native_height-260.0f*ui;
-        modern_metal_text(title_x,y,"modern_hud_small","TUX RACER",1.00f*ui,.72f);
-        y-=66.0f*ui;
-        modern_metal_text(title_x-20.0f*ui,y,"modern_hud_speed","MODERN",1.18f*ui,1.0f);
-
-        y-=190.0f*ui;
-        for(i=0;i<4;i++){
-            float alpha=(i==selected)?1.0f:.62f;
-            float item_x=cx-145.0f*ui+(i==selected?10.0f*ui:0.0f);
-            if(i==selected){
-                menu_box(cx-190.0f*ui,y-18.0f*ui,380.0f*ui,66.0f*ui,
-                         .015f,.045f,.075f,.42f);
-                menu_box(cx-190.0f*ui,y-18.0f*ui,3.0f*ui,66.0f*ui,
-                         .78f,.92f,1.0f,.95f);
-            }
-            modern_metal_text(item_x,y,"modern_hud_speed",items[i],.88f*ui,alpha);
-            y-=90.0f*ui;
-        }
     }
 }
 
