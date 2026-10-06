@@ -1476,26 +1476,6 @@ static void menu_box(float x,float y,float w,float h,float r,float g,float b,flo
     id<MTLBuffer>vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared],ub=[g_device newBufferWithBytes:&u length:sizeof(u) options:MTLResourceStorageModeShared];
     [g_frame_encoder setRenderPipelineState:g_overlay_pipeline];[g_frame_encoder setDepthStencilState:g_no_depth_state];[g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];[g_frame_encoder setFragmentBuffer:ub offset:0 atIndex:0];[g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 }
-static void modern_draw_fullscreen_texture(tux_texture_handle_t handle)
-{
-    typedef struct { float px,py,pz,u,v,pad; } ov_t;
-    ov_t v[6]={{-1,-1,0,0,0,1},{1,-1,0,1,0,1},{1,1,0,1,1,1},
-               {-1,-1,0,0,0,1},{1,1,0,1,1,1},{-1,1,0,0,1,1}};
-    id<MTLTexture> tex;
-    id<MTLBuffer> vb;
-    if(handle==TUX_INVALID_TEXTURE_HANDLE||g_frame_encoder==nil||g_billboard_pipeline==nil)return;
-    tex=[g_textures objectForKey:@(handle)];if(tex==nil)return;
-    vb=[g_device newBufferWithBytes:v length:sizeof(v) options:MTLResourceStorageModeShared];
-    if(vb==nil)return;
-    [g_frame_encoder setRenderPipelineState:g_billboard_pipeline];
-    [g_frame_encoder setDepthStencilState:g_no_depth_state];
-    [g_frame_encoder setVertexBuffer:vb offset:0 atIndex:0];
-    [g_frame_encoder setVertexBuffer:g_camera_uniform_buffer offset:0 atIndex:1];
-    [g_frame_encoder setFragmentTexture:tex atIndex:0];
-    [g_frame_encoder setFragmentSamplerState:g_clamp_sampler atIndex:0];
-    [g_frame_encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
-}
-
 static void modern_menu_backdrop(void);
 
 void renderer_metal_draw_home_menu( int selected )
@@ -1513,7 +1493,7 @@ void renderer_metal_draw_home_menu( int selected )
         int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
-        modern_draw_fullscreen_texture(g_menu_home_handle);
+        modern_menu_backdrop();
 
         /*
          * Modern title-screen composition:
