@@ -60,6 +60,7 @@ void renderer_metal_draw_ground_strip( float cx,float cz,float width,float depth
 void renderer_metal_draw_hud( float speed_kmh, float race_time,
                              float energy, int herring );
 int renderer_metal_begin_menu_frame( int width, int height );
+int renderer_metal_load_modern_ui_texture( const char *name, const char *filename );
 void renderer_metal_draw_home_menu( int selected );
 void renderer_metal_draw_course_menu( const char *course_name,
                                       const char *description,
