@@ -40,6 +40,27 @@ typedef struct
 
 IMAGE *ImageLoad(char *);
 
+/* Modern format-neutral image representation. Pixels are tightly packed. */
+typedef enum {
+    TUX_IMAGE_FORMAT_RGB8 = 3,
+    TUX_IMAGE_FORMAT_RGBA8 = 4
+} tux_image_format_t;
+
+typedef struct {
+    int width;
+    int height;
+    int channels;
+    tux_image_format_t format;
+    unsigned char *pixels;
+} tux_image_t;
+
+/*
+ * Loads PNG/JPEG through the native platform decoder where available and
+ * falls back to the preserved SGI loader for legacy .rgb assets.
+ */
+tux_image_t *tux_image_load( const char *filename );
+void tux_image_free( tux_image_t *image );
+
 #endif /* !__IMAGE_H__! */
 
 #ifdef __cplusplus
