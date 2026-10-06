@@ -74,7 +74,9 @@ void renderer_metal_draw_results_menu( const char *headline,
 void renderer_metal_draw_event_menu( const char *event_name,
                                      const char *cup_name,
                                      const char *status,
-                                     int focus_row );
+                                     int focus_row,
+                                     int event_index, int event_total,
+                                     int cup_index, int cup_total );
 void renderer_metal_end_menu_frame( void );
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
