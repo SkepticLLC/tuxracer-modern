@@ -1668,54 +1668,155 @@ void renderer_metal_draw_results_menu( const char *headline,
     }
 }
 
-void renderer_metal_draw_event_menu( const char *event_name,
-                                     const char *cup_name,
-                                     const char *status,
-                                     int focus_row )
+void renderer_metal_draw_event_select_screen( const char *event_name,
+                                              int event_index,
+                                              int event_total )
 {
     @autoreleasepool {
+        static const float slot_x[5]={.055f,.223f,.391f,.559f,.727f};
+        int slot=event_index>0?event_index-1:0;
+        char count[32];
         float ui=(float)g_native_height/2168.0f;
-        float x,y,card_x,card_w;
+        float x,y,w,h;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
-        if(event_name==NULL)event_name="EVENT";
-        if(cup_name==NULL)cup_name="CUP";
-        if(status==NULL)status="";
+        if(slot<0)slot=0;if(slot>4)slot=4;
+        if(!event_name)event_name="EVENT";
 
-        menu_box(0,0,g_native_width,g_native_height,.10f,.30f,.52f,1.0f);
-        renderer_metal_draw_background_mountain_layer(
-            g_menu_mountain_far_handle,-.18f,.72f,.96f,-.015f,1.015f);
-        renderer_metal_draw_background_mountain_layer(
-            g_menu_mountain_mid_handle,-.30f,.53f,.82f,.01f,.99f);
-        renderer_metal_draw_background_mountain_layer(
-            g_menu_mountain_foothill_handle,-.48f,.30f,.76f,.025f,.975f);
-        menu_box(0,0,g_native_width,g_native_height*.22f,.78f,.88f,.96f,.10f);
-        menu_box(0,0,g_native_width*.28f,g_native_height,.006f,.018f,.034f,.48f);
-        menu_box(g_native_width*.28f,0,g_native_width*.14f,g_native_height,.006f,.018f,.034f,.24f);
+        modern_draw_ui_image("event_select");
 
-        x=112.0f*ui;y=(float)g_native_height-205.0f*ui;
-        modern_metal_text(x,y,"modern_hud_small","TUX RACER",1.00f*ui,.72f);
-        y-=64.0f*ui;
-        modern_metal_text(x,y,"modern_hud_speed","EVENT",1.10f*ui,1.0f);
-        y-=58.0f*ui;
-        modern_metal_text(x,y,"modern_hud_small","CHOOSE YOUR CHALLENGE",.86f*ui,.64f);
+        /* Header belongs to the live UI, not the artwork. */
+        modern_metal_text(g_native_width*.055f,g_native_height*.895f,
+                          "modern_hud_speed","RACE",.72f*ui,.98f);
+        modern_metal_text(g_native_width*.055f,g_native_height*.855f,
+                          "modern_hud_small","SELECT EVENT",.58f*ui,.68f);
 
-        card_x=x; card_w=650.0f*ui; y-=150.0f*ui;
-        if(focus_row==0)menu_box(card_x-22*ui,y-22*ui,card_w,92*ui,.04f,.12f,.20f,.56f);
-        modern_metal_text(x,y+38*ui,"modern_hud_small","EVENT",.82f*ui,.62f);
-        modern_metal_text(x,y,"modern_hud_speed",event_name,.78f*ui,focus_row==0?1.0f:.78f);
-        if(focus_row==0)menu_box(x-20*ui,y-8*ui,3*ui,35*ui,.78f,.92f,1.0f,.92f);
+        x=g_native_width*slot_x[slot];
+        y=g_native_height*.285f;
+        w=g_native_width*.145f;
+        h=g_native_height*.385f;
 
-        y-=132.0f*ui;
-        if(focus_row==1)menu_box(card_x-22*ui,y-22*ui,card_w,92*ui,.04f,.12f,.20f,.56f);
-        modern_metal_text(x,y+38*ui,"modern_hud_small","CUP",.82f*ui,.62f);
-        modern_metal_text(x,y,"modern_hud_speed",cup_name,.78f*ui,focus_row==1?1.0f:.78f);
-        if(focus_row==1)menu_box(x-20*ui,y-8*ui,3*ui,35*ui,.78f,.92f,1.0f,.92f);
+        menu_box(x,y,w,h,.015f,.055f,.085f,.24f);
+        menu_box(x,y,4.0f*ui,h,.05f,.82f,1.0f,.98f);
+        menu_box(x,y+h-3.0f*ui,w,3.0f*ui,.05f,.82f,1.0f,.78f);
 
-        y-=130.0f*ui;
-        modern_metal_text(x,y,"modern_hud_small",status,.78f*ui,.76f);
-        y-=120.0f*ui;
-        modern_metal_text(x,y,"modern_hud_speed","START",.72f*ui,.96f);
-        modern_metal_text(x+190*ui,y,"modern_hud_small","BACK",.90f*ui,.58f);
+        modern_metal_text(x+22*ui,y+92*ui,"modern_hud_speed",
+                          event_name,.62f*ui,1.0f);
+        snprintf(count,sizeof(count),"%02d / %02d",event_index,event_total);
+        modern_metal_text(x+22*ui,y+48*ui,"modern_hud_small",
+                          count,.48f*ui,.62f);
+
+        modern_metal_text(g_native_width*.055f,44*ui,
+                          "modern_hud_small","ESC  BACK",.48f*ui,.52f);
+        modern_metal_text(g_native_width*.82f,44*ui,
+                          "modern_hud_small","ENTER  SELECT",.48f*ui,.72f);
+    }
+}
+
+void renderer_metal_draw_cup_select_screen( const char *cup_name,
+                                            const char *status,
+                                            int cup_index,
+                                            int cup_total )
+{
+    @autoreleasepool {
+        static const float slot_x[5]={.185f,.335f,.485f,.635f,.785f};
+        int slot=cup_index>0?cup_index-1:0;
+        char count[32];
+        float ui=(float)g_native_height/2168.0f;
+        float x,y,w,h;
+        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
+        if(slot<0)slot=0;if(slot>4)slot=4;
+        if(!cup_name)cup_name="CUP";
+        if(!status)status="";
+
+        modern_draw_ui_image("cup_select");
+
+        modern_metal_text(g_native_width*.055f,g_native_height*.895f,
+                          "modern_hud_speed","RACE",.72f*ui,.98f);
+        modern_metal_text(g_native_width*.055f,g_native_height*.855f,
+                          "modern_hud_small","SELECT CUP",.58f*ui,.68f);
+
+        x=g_native_width*slot_x[slot];
+        y=g_native_height*.315f;
+        w=g_native_width*.135f;
+        h=g_native_height*.365f;
+
+        menu_box(x,y,w,h,.015f,.055f,.085f,.24f);
+        menu_box(x,y,4.0f*ui,h,.05f,.82f,1.0f,.98f);
+        menu_box(x,y+h-3.0f*ui,w,3.0f*ui,.05f,.82f,1.0f,.78f);
+
+        modern_metal_text(x+20*ui,y+92*ui,"modern_hud_speed",
+                          cup_name,.58f*ui,1.0f);
+        modern_metal_text(x+20*ui,y+58*ui,"modern_hud_small",
+                          status,.44f*ui,.70f);
+        snprintf(count,sizeof(count),"%02d / %02d",cup_index,cup_total);
+        modern_metal_text(x+20*ui,y+30*ui,"modern_hud_small",
+                          count,.44f*ui,.52f);
+
+        modern_metal_text(g_native_width*.055f,44*ui,
+                          "modern_hud_small","ESC  EVENT",.48f*ui,.52f);
+        modern_metal_text(g_native_width*.82f,44*ui,
+                          "modern_hud_small","ENTER  SELECT",.48f*ui,.72f);
+    }
+}
+
+void renderer_metal_draw_race_course_select( const char *course0,
+                                             const char *course1,
+                                             const char *course2,
+                                             int selected_index,
+                                             const char *description,
+                                             const char *requirements,
+                                             int can_start )
+{
+    @autoreleasepool {
+        const char *names[3]={course0,course1,course2};
+        static const float row_y[3]={.725f,.585f,.445f};
+        float ui=(float)g_native_height/2168.0f;
+        float x,w,h,y;
+        int i;
+        if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
+        if(selected_index<0)selected_index=0;if(selected_index>2)selected_index=2;
+        if(!description)description="";
+        if(!requirements)requirements="";
+
+        modern_draw_ui_image("course_select");
+
+        modern_metal_text(g_native_width*.12f,g_native_height*.90f,
+                          "modern_hud_speed","CANADIAN CUP",.70f*ui,.98f);
+        modern_metal_text(g_native_width*.12f,g_native_height*.86f,
+                          "modern_hud_small","SELECT COURSE",.56f*ui,.68f);
+
+        x=g_native_width*.115f;
+        w=g_native_width*.385f;
+        h=g_native_height*.105f;
+        for(i=0;i<3;i++){
+            y=g_native_height*row_y[i];
+            if(i==selected_index){
+                menu_box(x,y,w,h,.015f,.055f,.085f,.28f);
+                menu_box(x,y,4.0f*ui,h,.05f,.82f,1.0f,.98f);
+            }
+            modern_metal_text(x+28*ui,y+34*ui,"modern_hud_speed",
+                              names[i]?names[i]:"",.58f*ui,
+                              i==selected_index?1.0f:.58f);
+        }
+
+        /* Right-side live course information; no preview image is baked in. */
+        x=g_native_width*.56f;
+        y=g_native_height*.47f;
+        menu_box(x-18*ui,y-115*ui,g_native_width*.36f,190*ui,
+                 .008f,.025f,.042f,.34f);
+        modern_metal_text(x,y+38*ui,"modern_hud_small",
+                          description,.52f*ui,.78f);
+        modern_metal_text(x,y-10*ui,"modern_hud_small",
+                          requirements,.52f*ui,.62f);
+        modern_metal_text(x,y-70*ui,"modern_hud_speed",
+                          can_start?"START RACE":"LOCKED",.66f*ui,
+                          can_start?1.0f:.42f);
+
+        modern_metal_text(g_native_width*.055f,44*ui,
+                          "modern_hud_small","ESC  CUP",.48f*ui,.52f);
+        modern_metal_text(g_native_width*.82f,44*ui,
+                          "modern_hud_small","ENTER  START",.48f*ui,
+                          can_start?.72f:.38f);
     }
 }
 
