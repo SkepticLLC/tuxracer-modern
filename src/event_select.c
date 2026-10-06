@@ -445,12 +445,24 @@ static void event_select_loop( scalar_t time_step )
     (void)time_step;
     update_audio();
     modern_event_sync();
+    int event_index=0,event_total=0,cup_index=0,cup_total=0;
+    list_elem_t it;
+    list_t events=get_events_list();
+    list_t cups=NULL;
     if(event_data) event_name=get_event_name(event_data);
     if(cur_cup) cup_name=get_cup_name((cup_data_t*)get_list_elem_data(cur_cup));
+    for(it=get_list_head(events);it!=NULL;it=get_next_list_elem(events,it)){
+        ++event_total;if(it==cur_event)event_index=event_total;
+    }
+    if(event_data)cups=get_event_cup_list(event_data);
+    if(cups)for(it=get_list_head(cups);it!=NULL;it=get_next_list_elem(cups,it)){
+        ++cup_total;if(it==cur_cup)cup_index=cup_total;
+    }
 #ifdef __APPLE__
     if(renderer_metal_begin_menu_frame(w,h)){
         renderer_metal_draw_event_menu(event_name,cup_name,modern_event_status(),
-                                       modern_event_focus);
+                                       modern_event_focus,event_index,event_total,
+                                       cup_index,cup_total);
         renderer_metal_end_menu_frame();
     }
 #else
