@@ -1378,6 +1378,31 @@ static void modern_practice_toggle_mirror( void )
     g_game.race.mirrored = g_game.race.mirrored ? False : True;
 }
 
+
+static void modern_race_select_prev( void )
+{
+    list_elem_t prev;
+    if ( cur_elem == NULL || race_list == NULL ) return;
+    prev = get_prev_list_elem( race_list, cur_elem );
+    if ( prev == NULL ) prev = get_list_tail( race_list );
+    cur_elem = prev;
+    update_race_data();
+    update_button_enabled_states();
+    ui_set_dirty();
+}
+
+static void modern_race_select_next( void )
+{
+    list_elem_t next;
+    if ( cur_elem == NULL || race_list == NULL ) return;
+    next = get_next_list_elem( race_list, cur_elem );
+    if ( next == NULL ) next = get_list_head( race_list );
+    cur_elem = next;
+    update_race_data();
+    update_button_enabled_states();
+    ui_set_dirty();
+}
+
 START_KEYBOARD_CB( race_select_key_cb )
 {
     if ( release ) {
@@ -1422,20 +1447,16 @@ START_KEYBOARD_CB( race_select_key_cb )
     }
 
     if ( special ) {
-	switch (key) {
-	case WSK_UP:
-	case WSK_LEFT:
-	    if ( race_listbox ) {
-		listbox_goto_prev_item( race_listbox );
-	    }
-	    break;
-	case WSK_RIGHT:
-	case WSK_DOWN:
-	    if ( race_listbox ) {
-		listbox_goto_next_item( race_listbox );
-	    }
-	    break;
-	}
+        switch ( key ) {
+        case WSK_UP:
+        case WSK_LEFT:
+            modern_race_select_prev();
+            break;
+        case WSK_RIGHT:
+        case WSK_DOWN:
+            modern_race_select_next();
+            break;
+        }
     } else {
 	key = (int) tolower( (char) key );
 
