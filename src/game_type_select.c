@@ -43,7 +43,8 @@ static void modern_home_activate(void)
     case 0:g_game.practicing=False;set_game_mode(EVENT_SELECT);break;
     case 1:g_game.practicing=True;set_game_mode(RACE_SELECT);break;
     case 2:set_game_mode(CREDITS);break;
-    case 3:winsys_exit(0);break;
+    case 3:/* Modern Settings screen is the next UI milestone. */break;
+    case 4:winsys_exit(0);break;
     }
 }
 static void game_type_select_init(void)
@@ -69,8 +70,8 @@ START_KEYBOARD_CB(game_type_select_cb)
 {
     if(release)return;
     if(special){
-        if(key==WSK_UP)modern_home_selected=(modern_home_selected+3)%4;
-        else if(key==WSK_DOWN)modern_home_selected=(modern_home_selected+1)%4;
+        if(key==WSK_UP)modern_home_selected=(modern_home_selected+4)%5;
+        else if(key==WSK_DOWN)modern_home_selected=(modern_home_selected+1)%5;
     }else{
         if(key==13)modern_home_activate();
         else if(key==27||tolower((char)key)=='q')winsys_exit(0);
