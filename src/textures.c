@@ -90,7 +90,7 @@ int get_min_filter()
 
 bool_t load_texture( char *texname, char *filename, int repeatable )
 {
-    IMAGE *texImage;
+    tux_image_t *texImage;
     texture_node_t *tex;
     int max_texture_size;
 
@@ -101,7 +101,7 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
         check_assertion( 0, "texture module not initialized" );
     } 
 
-    texImage = ImageLoad( filename );
+    texImage = tux_image_load( filename );
 
     if ( texImage == NULL ) {
     	print_warning( IMPORTANT_WARNING, 
@@ -130,7 +130,7 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
     glGenTextures( 1, &(tex->texture_id) );
     glBindTexture( GL_TEXTURE_2D, tex->texture_id );
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 
     if ( repeatable ) {
@@ -146,10 +146,10 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
 
     /* Check if we need to scale image */
     glGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
-    if ( texImage->sizeX > max_texture_size ||
-	 texImage->sizeY > max_texture_size ) 
+    if ( texImage->width > max_texture_size ||
+	 texImage->height > max_texture_size ) 
     {
-	char *newdata = (char*)malloc( texImage->sizeZ *
+	char *newdata = (char*)malloc( texImage->channels *
 				       max_texture_size *
 				       max_texture_size );
 
@@ -161,34 +161,33 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
 
 	/* In the case of large- or small-aspect ratio textures, this
            could end up using *more* space... oh well. */
-	gluScaleImage( texImage->sizeZ == 3 ? GL_RGB : GL_RGBA,
-		       texImage->sizeX, texImage->sizeY, 
+	gluScaleImage( texImage->channels == 3 ? GL_RGB : GL_RGBA,
+		       texImage->width, texImage->height, 
 		       GL_UNSIGNED_BYTE,
-		       texImage->data,
+		       texImage->pixels,
 		       max_texture_size, max_texture_size, 
 		       GL_UNSIGNED_BYTE,
 		       newdata );
 
-	free( texImage->data );
-	texImage->data = (unsigned char*) newdata;
-	texImage->sizeX = max_texture_size;
-	texImage->sizeY = max_texture_size;
+	free( texImage->pixels );
+	texImage->pixels = (unsigned char*) newdata;
+	texImage->width = max_texture_size;
+	texImage->height = max_texture_size;
     }
 
-    gluBuild2DMipmaps( GL_TEXTURE_2D, texImage->sizeZ, texImage->sizeX,
-		       texImage->sizeY, texImage->sizeZ == 3 ? GL_RGB : GL_RGBA, 
-		       GL_UNSIGNED_BYTE, texImage->data );
+    gluBuild2DMipmaps( GL_TEXTURE_2D, texImage->channels, texImage->width,
+		       texImage->height, texImage->channels == 3 ? GL_RGB : GL_RGBA, 
+		       GL_UNSIGNED_BYTE, texImage->pixels );
 
 #ifdef __APPLE__
     renderer_metal_upload_texture( tex->handle,
-                                   texImage->sizeX, texImage->sizeY,
-                                   texImage->sizeZ, texImage->data,
+                                   texImage->width, texImage->height,
+                                   texImage->channels, texImage->pixels,
                                    repeatable );
     renderer_metal_register_named_texture( texname, tex->handle );
 #endif
 
-    free( texImage->data );
-    free( texImage );
+    tux_image_free( texImage );
 
     return True;
 } 
