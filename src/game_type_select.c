@@ -49,7 +49,11 @@ static void modern_home_activate(void)
 static void game_type_select_init(void)
 {
     winsys_set_display_func(main_loop);winsys_set_idle_func(main_loop);winsys_set_reshape_func(reshape);
-    modern_home_selected=0;play_music("start_screen");
+    modern_home_selected=0;
+#ifdef __APPLE__
+    renderer_metal_load_modern_ui_texture("home","data/modern/ui/home/modern_menu_home.png");
+#endif
+    play_music("start_screen");
 }
 static void game_type_select_loop(scalar_t time_step)
 {
