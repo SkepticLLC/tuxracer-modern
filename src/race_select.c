@@ -61,47 +61,7 @@ static list_t race_list = NULL;
 static player_data_t *plyr = NULL;
 
 /* Forward declaration */
-static void race_select_loop( scalar_t time_step )
-{
-    const char *name="",*desc="";
-    char progress[64],requirements[128];
-    int index=0,total=0,can_start=1;
-    list_elem_t e;
-    (void)time_step;
-    update_audio();
-
-    if(cur_elem){
-        if(g_game.practicing){
-            open_course_data_t *d=(open_course_data_t*)get_list_elem_data(cur_elem);
-            name=d->name?d->name:"COURSE"; desc=d->description?d->description:"";
-        }else{
-            race_data_t *d=(race_data_t*)get_list_elem_data(cur_elem);
-            name=d->name?d->name:"RACE"; desc=d->description?d->description:"";
-        }
-    }
-    for(e=get_list_head(race_list);e!=NULL;e=get_next_list_elem(race_list,e)){
-        ++total;if(e==cur_elem)index=total;
-    }
-    snprintf(progress,sizeof(progress),"%02d / %02d",index,total);
-    if(g_game.practicing){
-        snprintf(requirements,sizeof(requirements),"PRACTICE  •  FREE RUN");
-    }else{
-        difficulty_level_t d=g_game.difficulty;
-        can_start=(cup_complete||is_current_race_first_incomplete());
-        snprintf(requirements,sizeof(requirements),"TIME %.0fs  •  HERRING %d",
-                 g_game.race.time_req[d],g_game.race.herring_req[d]);
-    }
-#ifdef __APPLE__
-    if(renderer_metal_begin_menu_frame(getparam_x_resolution(),getparam_y_resolution())){
-        renderer_metal_draw_course_menu(name,desc,progress,requirements,can_start);
-        renderer_metal_end_menu_frame();
-    }
-#else
-    set_gl_options(GUI);clear_rendering_context();ui_setup_display();
-    modern_draw_race_select();reshape(getparam_x_resolution(),getparam_y_resolution());
-    winsys_swap_buffers();
-#endif
-}
+static void race_select_loop( scalar_t time_step );
 
 /*---------------------------------------------------------------------------*/
 /*! 
@@ -1210,17 +1170,45 @@ static void race_select_init(void)
 */
 static void race_select_loop( scalar_t time_step )
 {
+    const char *name="",*desc="";
+    char progress[64],requirements[128];
+    int index=0,total=0,can_start=1;
+    list_elem_t e;
     (void)time_step;
-    check_gl_error();
     update_audio();
-    set_gl_options( GUI );
-    clear_rendering_context();
-    ui_setup_display();
-    modern_draw_race_select();
-    reshape( getparam_x_resolution(), getparam_y_resolution() );
-    winsys_swap_buffers();
-}
 
+    if(cur_elem){
+        if(g_game.practicing){
+            open_course_data_t *d=(open_course_data_t*)get_list_elem_data(cur_elem);
+            name=d->name?d->name:"COURSE"; desc=d->description?d->description:"";
+        }else{
+            race_data_t *d=(race_data_t*)get_list_elem_data(cur_elem);
+            name=d->name?d->name:"RACE"; desc=d->description?d->description:"";
+        }
+    }
+    for(e=get_list_head(race_list);e!=NULL;e=get_next_list_elem(race_list,e)){
+        ++total;if(e==cur_elem)index=total;
+    }
+    snprintf(progress,sizeof(progress),"%02d / %02d",index,total);
+    if(g_game.practicing){
+        snprintf(requirements,sizeof(requirements),"PRACTICE  •  FREE RUN");
+    }else{
+        difficulty_level_t d=g_game.difficulty;
+        can_start=(cup_complete||is_current_race_first_incomplete());
+        snprintf(requirements,sizeof(requirements),"TIME %.0fs  •  HERRING %d",
+                 g_game.race.time_req[d],g_game.race.herring_req[d]);
+    }
+#ifdef __APPLE__
+    if(renderer_metal_begin_menu_frame(getparam_x_resolution(),getparam_y_resolution())){
+        renderer_metal_draw_course_menu(name,desc,progress,requirements,can_start);
+        renderer_metal_end_menu_frame();
+    }
+#else
+    set_gl_options(GUI);clear_rendering_context();ui_setup_display();
+    modern_draw_race_select();reshape(getparam_x_resolution(),getparam_y_resolution());
+    winsys_swap_buffers();
+#endif
+}
 
 /*---------------------------------------------------------------------------*/
 /*! 
