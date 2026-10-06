@@ -514,7 +514,23 @@ int renderer_metal_initialize_resources( void )
                 return 0;
             }
 
+            if ( g_ui_image_pipeline == nil ) {
+                id<MTLFunction> uiVS=[g_terrain_library newFunctionWithName:@"ui_image_vertex"];
+                id<MTLFunction> uiFS=[g_terrain_library newFunctionWithName:@"ui_image_fragment"];
+                MTLRenderPipelineDescriptor *uiPD=[[MTLRenderPipelineDescriptor alloc] init];
+                uiPD.vertexFunction=uiVS;uiPD.fragmentFunction=uiFS;
+                uiPD.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
+                g_ui_image_pipeline=[g_device newRenderPipelineStateWithDescriptor:uiPD error:&error];
+                if(g_ui_image_pipeline==nil){
+                    fprintf(stderr,"Tux Racer Modern: UI image pipeline failed: %s\n",
+                            error?[[error localizedDescription] UTF8String]:"unknown");
+                    return 0;
+                }
+            }
+            if(g_ui_textures==nil)g_ui_textures=[[NSMutableDictionary alloc] init];
+
             fprintf( stderr, "Tux Racer Modern: Metal terrain pipeline ready\n" );
+            fprintf( stderr, "Tux Racer Modern: Modern UI image pipeline ready\n" );
         }
 
         return g_command_queue != nil && g_terrain_pipeline != nil;
@@ -558,17 +574,6 @@ int renderer_metal_upload_course_vertices( const tux_vertex_t *vertices,
                                            size_t vertex_count )
 {
     @autoreleasepool {
-        if ( g_ui_image_pipeline == nil ) {
-            id<MTLFunction> vs=[g_terrain_library newFunctionWithName:@"ui_image_vertex"];
-            id<MTLFunction> fs=[g_terrain_library newFunctionWithName:@"ui_image_fragment"];
-            MTLRenderPipelineDescriptor *pd=[[MTLRenderPipelineDescriptor alloc] init];
-            pd.vertexFunction=vs;pd.fragmentFunction=fs;
-            pd.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
-            g_ui_image_pipeline=[g_device newRenderPipelineStateWithDescriptor:pd error:&error];
-            if(g_ui_image_pipeline==nil){fprintf(stderr,"Tux Racer Modern: UI image pipeline failed: %s\n",[[error localizedDescription] UTF8String]);return 0;}
-        }
-        if(g_ui_textures==nil)g_ui_textures=[[NSMutableDictionary alloc] init];
-
         if ( vertices == NULL || vertex_count == 0 ||
              !renderer_metal_initialize_resources() ) {
             return 0;
@@ -1470,7 +1475,10 @@ int renderer_metal_load_modern_ui_texture( const char *name, const char *filenam
         tux_image_t *img;
         id<MTLTexture> tex;
         MTLTextureDescriptor *td;
-        if(!name||!filename||g_device==nil)return 0;
+        if(!name||!filename||g_device==nil||g_ui_textures==nil||g_ui_image_pipeline==nil){
+            fprintf(stderr,"Tux Racer Modern: Modern UI texture load attempted before UI renderer initialization\n");
+            return 0;
+        }
         img=tux_image_load(filename);if(!img||img->channels!=4){tux_image_free(img);return 0;}
         td=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
               width:(NSUInteger)img->width height:(NSUInteger)img->height mipmapped:NO];
@@ -1534,7 +1542,7 @@ void renderer_metal_draw_home_menu( int selected )
         int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
-        modern_menu_backdrop();
+        modern_draw_ui_image("home");
 
         cx=(float)g_native_width*.5f;
         title_x=cx-205.0f*ui;
