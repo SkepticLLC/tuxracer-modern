@@ -17,6 +17,7 @@
 #include "fonts.h"
 #include "tex_font_metrics.h"
 #include "image.h"
+#include "winsys.h"
 
 static id<MTLDevice> g_device = nil;
 static id<MTLCommandQueue> g_command_queue = nil;
@@ -1629,17 +1630,30 @@ int renderer_metal_begin_menu_frame( int width, int height )
 {
     @autoreleasepool {
         void *opaque;
+        int drawable_width=width;
+        int drawable_height=height;
         if(width<=0||height<=0||g_command_queue==nil||g_overlay_pipeline==nil)return 0;
         renderer_metal_set_native_visible(1);
+
         /*
-         * Keep the CAMetalLayer frame/drawable in sync on every menu frame,
-         * exactly as the gameplay path does. This prevents stale layer
-         * geometry from exposing the underlying black SDL surface.
+         * UI layout uses logical window coordinates, but CAMetalLayer must
+         * render at the true backing-pixel size on Retina displays.
+         * Keeping these two spaces separate prevents macOS from upscaling a
+         * low-resolution menu drawable while preserving all existing layout.
          */
-        metal_present_resize(width,height);
+        winsys_get_drawable_size(&drawable_width,&drawable_height);
+        if(drawable_width<=0||drawable_height<=0){
+            drawable_width=width;
+            drawable_height=height;
+        }
+        metal_present_resize(drawable_width,drawable_height);
+
         opaque=metal_present_next_drawable(); if(!opaque)return 0;
         g_native_drawable=(__bridge_transfer id<CAMetalDrawable>)opaque;
-        g_native_width=width;g_native_height=height;
+
+        /* Logical coordinate space for menu_box/text placement. */
+        g_native_width=width;
+        g_native_height=height;
         g_frame_command_buffer=[g_command_queue commandBuffer];if(!g_frame_command_buffer)return 0;
         g_frame_pass=[MTLRenderPassDescriptor renderPassDescriptor];
         g_frame_pass.colorAttachments[0].texture=g_native_drawable.texture;
