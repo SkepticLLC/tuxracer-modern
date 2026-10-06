@@ -1565,16 +1565,17 @@ void renderer_metal_draw_home_menu( int selected )
          * Coordinates are normalized from the 1672x941 concept plate and
          * therefore scale cleanly with the drawable.
          */
-        static const float row_center_v[4] = {
-            0.405f, /* RACE */
-            0.510f, /* PRACTICE */
-            0.615f, /* CREDITS */
-            0.790f  /* QUIT -- skips baked SETTINGS until Settings is wired */
+        static const float row_center_v[5] = {
+            0.425f, /* RACE */
+            0.525f, /* PRACTICE */
+            0.625f, /* CREDITS */
+            0.725f, /* SETTINGS */
+            0.825f  /* QUIT */
         };
         float h, y, x, w;
 
         if ( selected < 0 ) selected = 0;
-        if ( selected > 3 ) selected = 3;
+        if ( selected > 4 ) selected = 4;
 
         modern_draw_ui_image("home");
 
