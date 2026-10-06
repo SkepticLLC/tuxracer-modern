@@ -48,7 +48,7 @@ target_link_libraries(tuxracer PRIVATE
 
 if(APPLE)
     target_compile_definitions(tuxracer PRIVATE GL_SILENCE_DEPRECATION=1)
-    target_link_libraries(tuxracer PRIVATE OpenGL::GLU "-framework Metal" "-framework Foundation" "-framework AppKit" "-framework QuartzCore")
+    target_link_libraries(tuxracer PRIVATE OpenGL::GLU "-framework Metal" "-framework Foundation" "-framework AppKit" "-framework QuartzCore" "-framework ImageIO" "-framework CoreGraphics")
     set_source_files_properties(src/renderer_metal.mm src/metal_present.mm src/modern_text.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
 elseif(WIN32)
     target_link_libraries(tuxracer PRIVATE OpenGL::GLU)
