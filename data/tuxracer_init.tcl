@@ -109,14 +109,6 @@ tux_bind_texture splash_screen_bl splash_screen_bl
 tux_load_texture snow_particle courses/common/snowparticles.rgb 0
 tux_bind_texture snow_particle snow_particle
 
-# Tux Racer Modern: dedicated cinematic menu artwork.
-# This is intentionally independent of course/world backdrop textures.
-if {[file exists textures/modern_menu_home.rgb]} {
-    tux_load_texture modern_menu_home textures/modern_menu_home.rgb 0
-    tux_bind_texture modern_menu_home modern_menu_home
-    puts "Tux Racer Modern: loaded cinematic Home menu artwork"
-}
-
 # Tux Racer Modern: world-space Rocky Mountain backdrop layers.
 # Keep this deliberately explicit while the Modern asset path is stabilized.
 foreach {binding file} {
