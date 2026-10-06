@@ -354,7 +354,7 @@ static void set_widget_positions_and_draw_decorations()
     }
 }
 
-static int modern_event_focus = 0;
+static int modern_event_phase = 0; /* 0 = Event, 1 = Cup */
 
 static const char *modern_event_status(void)
 {
@@ -403,13 +403,14 @@ static void modern_event_move_cup(int direction)
     cur_cup = next;
 }
 
-static void modern_event_continue(void)
+static void modern_cup_continue(void)
 {
     cup_data_t *cup;
     player_data_t *plyr;
     if ( event_data == NULL || cur_cup == NULL ) return;
     if ( !is_cup_complete( event_data, cur_cup ) &&
          !is_cup_first_incomplete_cup( event_data, cur_cup ) ) return;
+
     cup = (cup_data_t*)get_list_elem_data( cur_cup );
     plyr = get_player_data( local_player() );
     g_game.current_event = get_event_name( event_data );
@@ -422,35 +423,71 @@ static void event_select_init(void)
 {
     list_t events = get_events_list();
     list_t cups;
+
     winsys_set_display_func( main_loop );
     winsys_set_idle_func( main_loop );
     winsys_set_reshape_func( reshape );
-    modern_event_focus = 0;
+
     if ( g_game.prev_mode != RACE_SELECT || cur_event == NULL ) {
         cur_event = get_list_head( events );
         event_data = (event_data_t*)get_list_elem_data( cur_event );
         cups = get_event_cup_list( event_data );
         set_cur_cup_to_first_incomplete( event_data, cups );
+        modern_event_phase = 0;
     } else {
         modern_event_sync();
+        modern_event_phase = 1; /* Back from course select returns to Cup. */
     }
+
+#ifdef __APPLE__
+    renderer_metal_load_modern_ui_texture(
+        "event_select","data/modern/ui/event_select/event_select_bg.png");
+    renderer_metal_load_modern_ui_texture(
+        "cup_select","data/modern/ui/cup_select/cup_select_bg.png");
+#endif
+
     play_music( "start_screen" );
 }
 
 static void event_select_loop( scalar_t time_step )
 {
     int w=getparam_x_resolution(),h=getparam_y_resolution();
+    int event_index=0,event_total=0,cup_index=0,cup_total=0;
     const char *event_name="";
     const char *cup_name="";
+    list_elem_t it;
+    list_t events=get_events_list();
+    list_t cups=NULL;
+
     (void)time_step;
     update_audio();
     modern_event_sync();
-    if(event_data) event_name=get_event_name(event_data);
-    if(cur_cup) cup_name=get_cup_name((cup_data_t*)get_list_elem_data(cur_cup));
+
+    if(event_data)event_name=get_event_name(event_data);
+    if(cur_cup)cup_name=get_cup_name((cup_data_t*)get_list_elem_data(cur_cup));
+
+    for(it=get_list_head(events);it!=NULL;it=get_next_list_elem(events,it)){
+        ++event_total;
+        if(it==cur_event)event_index=event_total;
+    }
+
+    if(event_data)cups=get_event_cup_list(event_data);
+    if(cups){
+        for(it=get_list_head(cups);it!=NULL;it=get_next_list_elem(cups,it)){
+            ++cup_total;
+            if(it==cur_cup)cup_index=cup_total;
+        }
+    }
+
 #ifdef __APPLE__
     if(renderer_metal_begin_menu_frame(w,h)){
-        renderer_metal_draw_event_menu(event_name,cup_name,modern_event_status(),
-                                       modern_event_focus);
+        if(modern_event_phase==0){
+            renderer_metal_draw_event_select_screen(
+                event_name,event_index,event_total);
+        }else{
+            renderer_metal_draw_cup_select_screen(
+                cup_name,modern_event_status(),cup_index,cup_total);
+        }
         renderer_metal_end_menu_frame();
     }
 #else
@@ -466,20 +503,25 @@ static void event_select_term(void)
 START_KEYBOARD_CB( event_select_key_cb )
 {
     if ( release ) return;
+
     if ( special ) {
-        if ( key == WSK_UP || key == WSK_DOWN ) {
-            modern_event_focus = 1-modern_event_focus;
-        } else if ( key == WSK_LEFT ) {
-            if(modern_event_focus==0)modern_event_move_event(-1);
+        if ( key == WSK_LEFT || key == WSK_UP ) {
+            if(modern_event_phase==0)modern_event_move_event(-1);
             else modern_event_move_cup(-1);
-        } else if ( key == WSK_RIGHT ) {
-            if(modern_event_focus==0)modern_event_move_event(1);
+        } else if ( key == WSK_RIGHT || key == WSK_DOWN ) {
+            if(modern_event_phase==0)modern_event_move_event(1);
             else modern_event_move_cup(1);
         }
     } else {
-        if ( key == 13 ) modern_event_continue();
-        else if ( key == 27 ) set_game_mode( GAME_TYPE_SELECT );
+        if ( key == 13 ) {
+            if(modern_event_phase==0)modern_event_phase=1;
+            else modern_cup_continue();
+        } else if ( key == 27 ) {
+            if(modern_event_phase==1)modern_event_phase=0;
+            else set_game_mode( GAME_TYPE_SELECT );
+        }
     }
+
     winsys_post_redisplay();
 }
 END_KEYBOARD_CB
