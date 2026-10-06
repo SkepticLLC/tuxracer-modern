@@ -1489,6 +1489,31 @@ static float modern_metal_text( float x, float y,
     return pen - x;
 }
 
+static void modern_metal_text_shadowed( float x, float y,
+                                        const char *font_binding,
+                                        const char *text,
+                                        float scale,
+                                        float alpha,
+                                        float ui )
+{
+    if ( text == NULL || text[0] == '\0' ) return;
+
+    /* Soft dark offset improves readability over bright snow/sky. */
+    modern_metal_text( x + 2.0f * ui,
+                       y - 2.0f * ui,
+                       font_binding,
+                       text,
+                       scale,
+                       alpha * 0.34f );
+
+    modern_metal_text( x,
+                       y,
+                       font_binding,
+                       text,
+                       scale,
+                       alpha );
+}
+
 int renderer_metal_load_modern_ui_texture( const char *name, const char *filename )
 {
     @autoreleasepool {
@@ -1684,32 +1709,37 @@ void renderer_metal_draw_event_select_screen( const char *event_name,
 
         modern_draw_ui_image("event_select");
 
-        /* Quiet header: scenery and cards are the hierarchy. */
-        modern_metal_text(g_native_width*.055f,g_native_height*.900f,
-                          "modern_hud_small","RACE",1.60f*ui,.94f);
-        modern_metal_text(g_native_width*.055f,g_native_height*.862f,
-                          "modern_hud_small","SELECT EVENT",.92f*ui,.58f);
+        modern_metal_text_shadowed(g_native_width*.055f,g_native_height*.902f,
+                                   "modern_hud_small","RACE",
+                                   1.42f*ui,.96f,ui);
+        modern_metal_text_shadowed(g_native_width*.055f,g_native_height*.866f,
+                                   "modern_hud_small","SELECT EVENT",
+                                   .84f*ui,.74f,ui);
 
-        /* Match the card geometry baked into the neutral Event plate. */
         x=g_native_width*slot_x[slot];
         y=g_native_height*.227f;
         w=g_native_width*.169f;
         h=g_native_height*.382f;
 
-        menu_box(x,y,w,h,.008f,.030f,.052f,.16f);
-        menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.96f);
-        menu_box(x,y+h-2.0f*ui,w,2.0f*ui,.05f,.82f,1.0f,.64f);
+        menu_box(x,y,w,h,.008f,.030f,.052f,.18f);
+        menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.98f);
+        menu_box(x,y+h-2.0f*ui,w,2.0f*ui,.05f,.82f,1.0f,.66f);
 
-        modern_metal_text(x+20*ui,y+72*ui,"modern_hud_small",
-                          event_name,1.35f*ui,1.0f);
         snprintf(count,sizeof(count),"%02d / %02d",event_index,event_total);
-        modern_metal_text(x+20*ui,y+38*ui,"modern_hud_small",
-                          count,.78f*ui,.52f);
 
-        modern_metal_text(g_native_width*.055f,38*ui,
-                          "modern_hud_small","ESC  BACK",.72f*ui,.48f);
-        modern_metal_text(g_native_width*.815f,38*ui,
-                          "modern_hud_small","ENTER  SELECT",.72f*ui,.64f);
+        modern_metal_text_shadowed(x+18.0f*ui,y+68.0f*ui,
+                                   "modern_hud_small",event_name,
+                                   1.18f*ui,.97f,ui);
+        modern_metal_text_shadowed(x+18.0f*ui,y+36.0f*ui,
+                                   "modern_hud_small",count,
+                                   .72f*ui,.66f,ui);
+
+        modern_metal_text_shadowed(g_native_width*.055f,38.0f*ui,
+                                   "modern_hud_small","ESC  BACK",
+                                   .68f*ui,.66f,ui);
+        modern_metal_text_shadowed(g_native_width*.815f,38.0f*ui,
+                                   "modern_hud_small","ENTER  SELECT",
+                                   .68f*ui,.80f,ui);
     }
 }
 
@@ -1731,33 +1761,40 @@ void renderer_metal_draw_cup_select_screen( const char *cup_name,
 
         modern_draw_ui_image("cup_select");
 
-        modern_metal_text(g_native_width*.055f,g_native_height*.900f,
-                          "modern_hud_small","RACE",1.60f*ui,.94f);
-        modern_metal_text(g_native_width*.055f,g_native_height*.862f,
-                          "modern_hud_small","SELECT CUP",.92f*ui,.58f);
+        modern_metal_text_shadowed(g_native_width*.055f,g_native_height*.902f,
+                                   "modern_hud_small","RACE",
+                                   1.42f*ui,.96f,ui);
+        modern_metal_text_shadowed(g_native_width*.055f,g_native_height*.866f,
+                                   "modern_hud_small","SELECT CUP",
+                                   .84f*ui,.74f,ui);
 
-        /* Match the narrower Cup plate cards. */
         x=g_native_width*slot_x[slot];
         y=g_native_height*.333f;
         w=g_native_width*.110f;
         h=g_native_height*.295f;
 
-        menu_box(x,y,w,h,.008f,.030f,.052f,.16f);
-        menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.96f);
-        menu_box(x,y+h-2.0f*ui,w,2.0f*ui,.05f,.82f,1.0f,.64f);
+        menu_box(x,y,w,h,.008f,.030f,.052f,.18f);
+        menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.98f);
+        menu_box(x,y+h-2.0f*ui,w,2.0f*ui,.05f,.82f,1.0f,.66f);
 
-        modern_metal_text(x+16*ui,y+66*ui,"modern_hud_small",
-                          cup_name,1.12f*ui,1.0f);
-        modern_metal_text(x+16*ui,y+42*ui,"modern_hud_small",
-                          status,.70f*ui,.66f);
         snprintf(count,sizeof(count),"%02d / %02d",cup_index,cup_total);
-        modern_metal_text(x+16*ui,y+21*ui,"modern_hud_small",
-                          count,.66f*ui,.46f);
 
-        modern_metal_text(g_native_width*.055f,38*ui,
-                          "modern_hud_small","ESC  EVENT",.72f*ui,.48f);
-        modern_metal_text(g_native_width*.815f,38*ui,
-                          "modern_hud_small","ENTER  SELECT",.72f*ui,.64f);
+        modern_metal_text_shadowed(x+14.0f*ui,y+60.0f*ui,
+                                   "modern_hud_small",cup_name,
+                                   .96f*ui,.97f,ui);
+        modern_metal_text_shadowed(x+14.0f*ui,y+38.0f*ui,
+                                   "modern_hud_small",status,
+                                   .64f*ui,.76f,ui);
+        modern_metal_text_shadowed(x+14.0f*ui,y+18.0f*ui,
+                                   "modern_hud_small",count,
+                                   .60f*ui,.60f,ui);
+
+        modern_metal_text_shadowed(g_native_width*.055f,38.0f*ui,
+                                   "modern_hud_small","ESC  EVENT",
+                                   .68f*ui,.66f,ui);
+        modern_metal_text_shadowed(g_native_width*.815f,38.0f*ui,
+                                   "modern_hud_small","ENTER  SELECT",
+                                   .68f*ui,.80f,ui);
     }
 }
 
@@ -1782,11 +1819,12 @@ void renderer_metal_draw_race_course_select( const char *course0,
 
         modern_draw_ui_image("course_select");
 
-        /* Compact title above the list, not over the first card. */
-        modern_metal_text(g_native_width*.12f,g_native_height*.922f,
-                          "modern_hud_small","CANADIAN CUP",1.55f*ui,.94f);
-        modern_metal_text(g_native_width*.12f,g_native_height*.885f,
-                          "modern_hud_small","SELECT COURSE",.88f*ui,.56f);
+        modern_metal_text_shadowed(g_native_width*.12f,g_native_height*.922f,
+                                   "modern_hud_small","CANADIAN CUP",
+                                   1.38f*ui,.96f,ui);
+        modern_metal_text_shadowed(g_native_width*.12f,g_native_height*.888f,
+                                   "modern_hud_small","SELECT COURSE",
+                                   .80f*ui,.74f,ui);
 
         x=g_native_width*.115f;
         w=g_native_width*.385f;
@@ -1794,36 +1832,50 @@ void renderer_metal_draw_race_course_select( const char *course0,
 
         for(i=0;i<3;i++){
             y=g_native_height*row_y[i];
+
             if(i==selected_index){
-                menu_box(x,y,w,h,.008f,.030f,.052f,.17f);
-                menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.96f);
+                menu_box(x,y,w,h,.008f,.030f,.052f,.18f);
+                menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.98f);
             }
-            modern_metal_text(x+26*ui,y+34*ui,"modern_hud_small",
-                              names[i]?names[i]:"",1.22f*ui,
-                              i==selected_index?.98f:.48f);
+
+            modern_metal_text_shadowed(x+24.0f*ui,y+33.0f*ui,
+                                       "modern_hud_small",
+                                       names[i]?names[i]:"",
+                                       1.04f*ui,
+                                       i==selected_index?.98f:.62f,
+                                       ui);
         }
 
-        /*
-         * Keep course information restrained on the open right side.
-         * The course-specific hero artwork will eventually occupy this area.
-         */
         info_x=g_native_width*.565f;
         info_y=g_native_height*.475f;
-        menu_box(info_x-14*ui,info_y-88*ui,g_native_width*.34f,148*ui,
-                 .006f,.020f,.034f,.25f);
-        modern_metal_text(info_x,info_y+28*ui,"modern_hud_small",
-                          description,.78f*ui,.68f);
-        modern_metal_text(info_x,info_y-5*ui,"modern_hud_small",
-                          requirements,.72f*ui,.52f);
-        modern_metal_text(info_x,info_y-54*ui,"modern_hud_small",
-                          can_start?"START RACE":"LOCKED",1.28f*ui,
-                          can_start?.94f:.36f);
 
-        modern_metal_text(g_native_width*.055f,38*ui,
-                          "modern_hud_small","ESC  CUP",.72f*ui,.48f);
-        modern_metal_text(g_native_width*.815f,38*ui,
-                          "modern_hud_small","ENTER  START",.72f*ui,
-                          can_start?.64f:.30f);
+        menu_box(info_x-14.0f*ui,
+                 info_y-88.0f*ui,
+                 g_native_width*.34f,
+                 148.0f*ui,
+                 .006f,.020f,.034f,.28f);
+
+        modern_metal_text_shadowed(info_x,info_y+28.0f*ui,
+                                   "modern_hud_small",description,
+                                   .72f*ui,.78f,ui);
+        modern_metal_text_shadowed(info_x,info_y-5.0f*ui,
+                                   "modern_hud_small",requirements,
+                                   .66f*ui,.68f,ui);
+        modern_metal_text_shadowed(info_x,info_y-54.0f*ui,
+                                   "modern_hud_small",
+                                   can_start?"START RACE":"LOCKED",
+                                   1.14f*ui,
+                                   can_start?.96f:.42f,
+                                   ui);
+
+        modern_metal_text_shadowed(g_native_width*.055f,38.0f*ui,
+                                   "modern_hud_small","ESC  CUP",
+                                   .68f*ui,.66f,ui);
+        modern_metal_text_shadowed(g_native_width*.815f,38.0f*ui,
+                                   "modern_hud_small","ENTER  START",
+                                   .68f*ui,
+                                   can_start?.80f:.40f,
+                                   ui);
     }
 }
 
