@@ -72,10 +72,20 @@ void renderer_metal_draw_results_menu( const char *headline,
                                        const char *time_text,
                                        int herring,
                                        int score );
-void renderer_metal_draw_event_menu( const char *event_name,
-                                     const char *cup_name,
-                                     const char *status,
-                                     int focus_row );
+void renderer_metal_draw_event_select_screen( const char *event_name,
+                                              int event_index,
+                                              int event_total );
+void renderer_metal_draw_cup_select_screen( const char *cup_name,
+                                            const char *status,
+                                            int cup_index,
+                                            int cup_total );
+void renderer_metal_draw_race_course_select( const char *course0,
+                                             const char *course1,
+                                             const char *course2,
+                                             int selected_index,
+                                             const char *description,
+                                             const char *requirements,
+                                             int can_start );
 void renderer_metal_end_menu_frame( void );
 void renderer_metal_draw_colored_box( float cx,float cy,float cz,
                                      float sx,float sy,float sz,
