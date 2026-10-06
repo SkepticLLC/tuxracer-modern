@@ -1808,7 +1808,7 @@ void renderer_metal_draw_race_course_select( const char *course0,
 {
     @autoreleasepool {
         const char *names[3]={course0,course1,course2};
-        static const float row_y[3]={.786f,.644f,.502f};
+        static const float row_y[3]={.772f,.631f,.486f};
         float ui=(float)g_native_height/2168.0f;
         float x,w,h,y,info_x,info_y;
         int i;
@@ -1821,27 +1821,31 @@ void renderer_metal_draw_race_course_select( const char *course0,
 
         modern_metal_text_shadowed(g_native_width*.12f,g_native_height*.922f,
                                    "modern_hud_small","CANADIAN CUP",
-                                   1.38f*ui,.96f,ui);
+                                   1.30f*ui,1.0f,ui);
         modern_metal_text_shadowed(g_native_width*.12f,g_native_height*.888f,
                                    "modern_hud_small","SELECT COURSE",
-                                   .80f*ui,.74f,ui);
+                                   .74f*ui,.86f,ui);
 
         x=g_native_width*.115f;
         w=g_native_width*.385f;
-        h=g_native_height*.105f;
+        h=g_native_height*.118f;
 
         for(i=0;i<3;i++){
             y=g_native_height*row_y[i];
 
             if(i==selected_index){
-                menu_box(x,y,w,h,.008f,.030f,.052f,.18f);
-                menu_box(x,y,3.0f*ui,h,.05f,.82f,1.0f,.98f);
+                float edge=2.5f*ui;
+                menu_box(x,y,w,h,.015f,.075f,.105f,.30f);
+                menu_box(x,y,w,edge,.05f,.82f,1.0f,.92f);
+                menu_box(x,y+h-edge,w,edge,.05f,.82f,1.0f,.92f);
+                menu_box(x,y,edge,h,.05f,.82f,1.0f,.98f);
+                menu_box(x+w-edge,y,edge,h,.05f,.82f,1.0f,.92f);
             }
 
-            modern_metal_text_shadowed(x+24.0f*ui,y+33.0f*ui,
+            modern_metal_text_shadowed(x+24.0f*ui,y+37.0f*ui,
                                        "modern_hud_small",
                                        names[i]?names[i]:"",
-                                       1.04f*ui,
+                                       0.94f*ui,
                                        i==selected_index?.98f:.62f,
                                        ui);
         }
@@ -1857,15 +1861,15 @@ void renderer_metal_draw_race_course_select( const char *course0,
 
         modern_metal_text_shadowed(info_x,info_y+28.0f*ui,
                                    "modern_hud_small",description,
-                                   .72f*ui,.78f,ui);
+                                   .66f*ui,.90f,ui);
         modern_metal_text_shadowed(info_x,info_y-5.0f*ui,
                                    "modern_hud_small",requirements,
-                                   .66f*ui,.68f,ui);
+                                   .62f*ui,.82f,ui);
         modern_metal_text_shadowed(info_x,info_y-54.0f*ui,
                                    "modern_hud_small",
                                    can_start?"START RACE":"LOCKED",
-                                   1.14f*ui,
-                                   can_start?.96f:.42f,
+                                   1.04f*ui,
+                                   can_start?1.0f:.48f,
                                    ui);
 
         modern_metal_text_shadowed(g_native_width*.055f,38.0f*ui,
