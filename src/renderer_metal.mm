@@ -1481,32 +1481,51 @@ void renderer_metal_draw_home_menu( int selected )
 {
     @autoreleasepool {
         static const char *items[]={"RACE","PRACTICE","CREDITS","QUIT"};
-        float ui=(float)g_native_height/2168.0f,cx,y,title_x;
+        static const char *sub[]={
+            "EVENTS  /  CUPS  /  PROGRESSION",
+            "CHOOSE A COURSE AND RIDE",
+            "THE ORIGINALS AND THE MODERN PORT",
+            "RETURN TO DESKTOP"
+        };
+        float ui=(float)g_native_height/2168.0f;
+        float x,y;
         int i;
         if(ui<.62f)ui=.62f;if(ui>1.45f)ui=1.45f;
 
         modern_menu_backdrop();
 
-        cx=(float)g_native_width*.5f;
-        title_x=cx-205.0f*ui;
-        y=(float)g_native_height-260.0f*ui;
-        modern_metal_text(title_x,y,"modern_hud_small","TUX RACER",1.00f*ui,.72f);
-        y-=66.0f*ui;
-        modern_metal_text(title_x-20.0f*ui,y,"modern_hud_speed","MODERN",1.18f*ui,1.0f);
+        /*
+         * Modern title-screen composition:
+         * artwork owns the frame; navigation is a compact lower-left stack.
+         * No centered dialog, no legacy selection bar, no full-width panels.
+         */
+        menu_box(0,0,g_native_width*.46f,g_native_height,
+                 .004f,.012f,.022f,.22f);
 
-        y-=190.0f*ui;
+        x=92.0f*ui;
+        y=g_native_height-150.0f*ui;
+        modern_metal_text(x,y,"modern_hud_small","TUX RACER",.92f*ui,.72f);
+        y-=58.0f*ui;
+        modern_metal_text(x,y,"modern_hud_speed","MODERN",1.06f*ui,1.0f);
+
+        y=g_native_height*.43f;
         for(i=0;i<4;i++){
-            float alpha=(i==selected)?1.0f:.62f;
-            float item_x=cx-145.0f*ui+(i==selected?10.0f*ui:0.0f);
+            float alpha=(i==selected)?1.0f:.46f;
+            float tx=x+(i==selected?18.0f*ui:0.0f);
             if(i==selected){
-                menu_box(cx-190.0f*ui,y-18.0f*ui,380.0f*ui,66.0f*ui,
-                         .015f,.045f,.075f,.42f);
-                menu_box(cx-190.0f*ui,y-18.0f*ui,3.0f*ui,66.0f*ui,
-                         .78f,.92f,1.0f,.95f);
+                menu_box(x,y-11.0f*ui,4.0f*ui,44.0f*ui,
+                         .86f,.95f,1.0f,.96f);
             }
-            modern_metal_text(item_x,y,"modern_hud_speed",items[i],.88f*ui,alpha);
-            y-=90.0f*ui;
+            modern_metal_text(tx,y,"modern_hud_speed",items[i],.72f*ui,alpha);
+            if(i==selected){
+                modern_metal_text(tx,y-35.0f*ui,"modern_hud_small",
+                                  sub[i],.54f*ui,.58f);
+            }
+            y-=92.0f*ui;
         }
+
+        modern_metal_text(x,52.0f*ui,"modern_hud_small",
+                          "TUX RACER MODERN  /  APPLE SILICON",.52f*ui,.42f);
     }
 }
 
