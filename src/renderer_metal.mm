@@ -515,15 +515,35 @@ int renderer_metal_initialize_resources( void )
             }
 
             if ( g_ui_image_pipeline == nil ) {
-                id<MTLFunction> uiVS=[g_terrain_library newFunctionWithName:@"ui_image_vertex"];
-                id<MTLFunction> uiFS=[g_terrain_library newFunctionWithName:@"ui_image_fragment"];
+                NSString *uiSource =
+                    @"#include <metal_stdlib>\n"
+                     "using namespace metal;\n"
+                     "struct UIVertex { packed_float2 position; packed_float2 uv; };\n"
+                     "struct UIOut { float4 position [[position]]; float2 uv; };\n"
+                     "vertex UIOut ui_image_vertex(uint vid [[vertex_id]], const device UIVertex *v [[buffer(0)]]) { "
+                     "UIOut o; o.position=float4(float2(v[vid].position),0.0,1.0); o.uv=float2(v[vid].uv); return o; }\n"
+                     "fragment float4 ui_image_fragment(UIOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samp [[sampler(0)]]) { "
+                     "return tex.sample(samp,in.uv); }\n";
+                NSError *uiError=nil;
+                id<MTLLibrary> uiLibrary=[g_device newLibraryWithSource:uiSource options:nil error:&uiError];
+                if(uiLibrary==nil){
+                    fprintf(stderr,"Tux Racer Modern: UI shader compile failed: %s\n",
+                            uiError?[[uiError localizedDescription] UTF8String]:"unknown");
+                    return 0;
+                }
+                id<MTLFunction> uiVS=[uiLibrary newFunctionWithName:@"ui_image_vertex"];
+                id<MTLFunction> uiFS=[uiLibrary newFunctionWithName:@"ui_image_fragment"];
+                if(uiVS==nil||uiFS==nil){
+                    fprintf(stderr,"Tux Racer Modern: UI shader functions missing after successful compile\n");
+                    return 0;
+                }
                 MTLRenderPipelineDescriptor *uiPD=[[MTLRenderPipelineDescriptor alloc] init];
                 uiPD.vertexFunction=uiVS;uiPD.fragmentFunction=uiFS;
                 uiPD.colorAttachments[0].pixelFormat=MTLPixelFormatBGRA8Unorm;
-                g_ui_image_pipeline=[g_device newRenderPipelineStateWithDescriptor:uiPD error:&error];
+                g_ui_image_pipeline=[g_device newRenderPipelineStateWithDescriptor:uiPD error:&uiError];
                 if(g_ui_image_pipeline==nil){
                     fprintf(stderr,"Tux Racer Modern: UI image pipeline failed: %s\n",
-                            error?[[error localizedDescription] UTF8String]:"unknown");
+                            uiError?[[uiError localizedDescription] UTF8String]:"unknown");
                     return 0;
                 }
             }
