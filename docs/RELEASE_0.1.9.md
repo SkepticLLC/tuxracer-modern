@@ -56,7 +56,7 @@ export APPLE_NOTARY_PROFILE='tuxracer-modern-notary'
 
 ## Clean-machine beta checklist
 
-1. Test the DMG on a Mac without the development Homebrew packages installed.
+1. Test the packaged app on a Mac without the development Homebrew packages installed.
 2. Copy the app to Applications and launch through Finder with Gatekeeper enabled.
 3. Verify menu navigation, audio, Practice and Event races.
 4. Verify fullscreen and return to windowed mode.
@@ -71,7 +71,7 @@ After validation:
 - tag: `v0.1.9-beta.1`
 - title: `Tux Racer Modern 0.1.9 — Apple Silicon Preservation Beta 1`
 - mark as prerelease
-- attach the notarized DMG and SHA-256 checksum
+- publish the signed/notarized app archive used for distribution and its SHA-256 checksum
 - retain original authorship and GPLv2 notices
 - publish source for the exact tagged revision
 
