@@ -10,9 +10,11 @@
   <key>CFBundleName</key><string>Tux Racer Modern</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>@TUXRACER_VERSION@</string>
-  <key>CFBundleVersion</key><string>@TUXRACER_VERSION@</string>
+  <key>CFBundleVersion</key><string>@TUXRACER_BUILD@</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>Original Tux Racer copyright its original authors and contributors. Modern port maintained by Skeptic.</string>
 </dict>
 </plist>
