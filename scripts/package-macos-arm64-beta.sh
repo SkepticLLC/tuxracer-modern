@@ -6,10 +6,12 @@ BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 APP_NAME="Tux Racer Modern"
 APP="$DIST_DIR/$APP_NAME.app"
-DMG="$DIST_DIR/Tux-Racer-Modern-0.1.9-arm64-beta.dmg"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
 FRAMEWORKS="$APP/Contents/Frameworks"
+ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png"
+ICONSET="$DIST_DIR/AppIcon.iconset"
+ICON_ICNS="$RESOURCES/AppIcon.icns"
 VERSION="$(sed -nE 's/^project\(tuxracer-modern VERSION ([0-9.]+).*/\1/p' "$ROOT/CMakeLists.txt")"
 BUILD_NUMBER="${BUILD_NUMBER:-19}"
 IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
@@ -47,6 +49,29 @@ sed \
   -e "s/@TUXRACER_VERSION@/$VERSION/g" \
   -e "s/@TUXRACER_BUILD@/$BUILD_NUMBER/g" \
   "$ROOT/packaging/macos/Info.plist.in" > "$APP/Contents/Info.plist"
+
+if [[ ! -f "$ICON_SOURCE" ]]; then
+  echo "Missing macOS icon source: $ICON_SOURCE" >&2
+  exit 1
+fi
+
+echo "Generating macOS application icon..."
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+
+sips -z 16 16     "$ICON_SOURCE" --out "$ICONSET/icon_16x16.png" >/dev/null
+sips -z 32 32     "$ICON_SOURCE" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+sips -z 32 32     "$ICON_SOURCE" --out "$ICONSET/icon_32x32.png" >/dev/null
+sips -z 64 64     "$ICON_SOURCE" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+sips -z 128 128   "$ICON_SOURCE" --out "$ICONSET/icon_128x128.png" >/dev/null
+sips -z 256 256   "$ICON_SOURCE" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+sips -z 256 256   "$ICON_SOURCE" --out "$ICONSET/icon_256x256.png" >/dev/null
+sips -z 512 512   "$ICON_SOURCE" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+sips -z 512 512   "$ICON_SOURCE" --out "$ICONSET/icon_512x512.png" >/dev/null
+sips -z 1024 1024 "$ICON_SOURCE" --out "$ICONSET/icon_512x512@2x.png" >/dev/null
+
+iconutil -c icns "$ICONSET" -o "$ICON_ICNS"
+rm -rf "$ICONSET"
 
 xattr -cr "$APP"
 
@@ -120,27 +145,25 @@ fi
 
 codesign --verify --deep --strict --verbose=2 "$APP"
 
-rm -f "$DMG"
-hdiutil create \
-  -volname "$APP_NAME $VERSION Beta" \
-  -srcfolder "$APP" \
-  -ov -format UDZO \
-  "$DMG"
-
-if [[ -n "$IDENTITY" ]]; then
-  codesign --force --timestamp --sign "$IDENTITY" "$DMG"
-fi
-
 if [[ -n "$NOTARY_PROFILE" ]]; then
   if [[ -z "$IDENTITY" ]]; then
     echo "APPLE_NOTARY_PROFILE requires DEVELOPER_ID_APPLICATION." >&2
     exit 1
   fi
+
+  NOTARY_ZIP="$DIST_DIR/.tux-racer-modern-notarization.zip"
+  rm -f "$NOTARY_ZIP"
+
   echo
-  echo "Submitting DMG for notarization..."
-  xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
-  xcrun stapler staple "$DMG"
-  xcrun stapler validate "$DMG"
+  echo "Preparing temporary notarization archive..."
+  ditto -c -k --keepParent "$APP" "$NOTARY_ZIP"
+
+  echo "Submitting app for notarization..."
+  xcrun notarytool submit "$NOTARY_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
+  rm -f "$NOTARY_ZIP"
+
+  xcrun stapler staple "$APP"
+  xcrun stapler validate "$APP"
 fi
 
 echo
@@ -155,12 +178,11 @@ spctl --assess --type execute --verbose=4 "$APP" || {
 echo
 echo "Created:"
 echo "  $APP"
-echo "  $DMG"
 echo
 if [[ -z "$IDENTITY" ]]; then
   echo "QA only: set DEVELOPER_ID_APPLICATION for a public beta."
 elif [[ -z "$NOTARY_PROFILE" ]]; then
   echo "Signed but not notarized: set APPLE_NOTARY_PROFILE for public distribution."
 else
-  echo "Developer ID signed and notarized ARM64 beta is ready for distribution."
+  echo "Developer ID signed and notarized ARM64 app is ready for distribution."
 fi
