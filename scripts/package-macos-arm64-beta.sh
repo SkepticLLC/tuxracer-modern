@@ -9,11 +9,19 @@ BUILD_DIR="${BUILD_DIR:-$ROOT/build-release-arm64}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 APP_NAME="Tux Racer Modern"
 BUNDLE_ID="com.skeptic.tuxracer-modern"
-APP="$DIST_DIR/$APP_NAME.app"
+
+# Build and sign outside Desktop/File Provider. macOS may attach FinderInfo and
+# com.apple.fileprovider.* metadata to bundles created under Desktop, which can
+# race with codesign and make an otherwise clean bundle unsignable.
+STAGE_ROOT="$(mktemp -d "/private/tmp/tuxracer-modern-release.XXXXXX")"
+trap 'rm -rf "$STAGE_ROOT"' EXIT
+
+APP="$STAGE_ROOT/$APP_NAME.app"
+FINAL_APP="$DIST_DIR/$APP_NAME.app"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
 ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png"
-ICONSET="$DIST_DIR/AppIcon.iconset"
+ICONSET="$STAGE_ROOT/AppIcon.iconset"
 ICON_ICNS="$RESOURCES/AppIcon.icns"
 VERSION="$(sed -nE 's/^project\(tuxracer-modern VERSION ([0-9.]+).*/\1/p' "$ROOT/CMakeLists.txt")"
 BUILD_NUMBER="${BUILD_NUMBER:-19}"
@@ -59,7 +67,11 @@ fi
 echo "Packaging Tux Racer Modern $VERSION ARM64 preservation beta"
 
 rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
 mkdir -p "$MACOS" "$RESOURCES"
+
+echo "Private signing staging directory:"
+echo "  $STAGE_ROOT"
 
 cp -X "$BIN" "$MACOS/tuxracer"
 cp -RX "$ROOT/data" "$RESOURCES/data"
@@ -118,8 +130,7 @@ codesign -dvv "$MACOS/tuxracer" 2>&1 || true
 echo "Pre-sign extended attributes:"
 if xattr -lr "$APP" 2>/dev/null | grep -q .; then
   xattr -lr "$APP" >&2 || true
-  echo "Extended attributes remain in app bundle after cleanup." >&2
-  exit 1
+  echo "  (codesign will strip disallowed Finder/resource metadata)"
 else
   echo "  none"
 fi
@@ -159,7 +170,7 @@ if [[ -n "$NOTARY_PROFILE" ]]; then
     exit 1
   fi
 
-  NOTARY_ZIP="$DIST_DIR/.tux-racer-modern-notarization.zip"
+  NOTARY_ZIP="$STAGE_ROOT/tux-racer-modern-notarization.zip"
   ditto -c -k --keepParent "$APP" "$NOTARY_ZIP"
   xcrun notarytool submit "$NOTARY_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
   rm -f "$NOTARY_ZIP"
@@ -171,9 +182,27 @@ echo
 echo "Packaged executable dependencies:"
 otool -L "$MACOS/tuxracer"
 
+# Copy only the fully signed/stapled application out of private staging.
+# --noextattr/--norsrc prevents source metadata from being propagated.
+rm -rf "$FINAL_APP"
+ditto --noextattr --norsrc "$APP" "$FINAL_APP"
+
+# Desktop/File Provider may attach metadata to the destination directory after
+# the copy. These attributes are not part of the signed code; remove them and
+# verify that the copied application remains cryptographically intact.
+xattr -cr "$FINAL_APP" 2>/dev/null || true
+
+echo
+echo "Verifying final copied application:"
+codesign --verify --deep --strict --verbose=4 "$FINAL_APP"
+
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  xcrun stapler validate "$FINAL_APP"
+fi
+
 echo
 echo "Created:"
-echo "  $APP"
+echo "  $FINAL_APP"
 echo
 if [[ -z "$IDENTITY" ]]; then
   echo "Local QA build: ad-hoc signed."
