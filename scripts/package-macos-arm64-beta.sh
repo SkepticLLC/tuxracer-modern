@@ -101,6 +101,14 @@ fi
 
 echo "SDL3 runtime: $SDL3_DYLIB"
 
+# BundleUtilities only fixes explicit libraries that already live inside the
+# application bundle. Copy SDL3 into Contents/Frameworks first, then hand
+# that bundled path to fixup_bundle so its install name/dependencies are
+# rewritten consistently with the rest of the app.
+SDL3_BASENAME="$(basename "$SDL3_DYLIB")"
+SDL3_BUNDLED_PATH="$FRAMEWORKS/$SDL3_BASENAME"
+cp "$SDL3_DYLIB" "$SDL3_BUNDLED_PATH"
+
 SEARCH_JOINED=""
 for d in "${SEARCH_DIRS[@]}"; do
   [[ -d "$d" ]] || continue
@@ -114,19 +122,18 @@ done
 cmake \
   -DAPP="$APP" \
   -DSEARCH_DIRS="$SEARCH_JOINED" \
-  -DEXTRA_LIBS="$SDL3_DYLIB" \
+  -DEXTRA_LIBS="$SDL3_BUNDLED_PATH" \
   -P "$ROOT/packaging/macos/fixup_bundle.cmake"
 
 # sdl2-compat intentionally dlopen()s "libSDL3.dylib" at runtime. BundleUtilities
 # may preserve SDL3's versioned filename, so provide the exact unversioned name
 # beside SDL2 in Contents/Frameworks where @loader_path resolves it.
 if [[ ! -e "$FRAMEWORKS/libSDL3.dylib" ]]; then
-  SDL3_BUNDLED="$(find "$FRAMEWORKS" -maxdepth 1 -type f -name 'libSDL3*.dylib' -print -quit)"
-  if [[ -z "$SDL3_BUNDLED" ]]; then
-    echo "SDL3 was not copied into Contents/Frameworks." >&2
+  if [[ ! -f "$SDL3_BUNDLED_PATH" ]]; then
+    echo "SDL3 is missing from Contents/Frameworks after bundle fixup." >&2
     exit 1
   fi
-  ln -s "$(basename "$SDL3_BUNDLED")" "$FRAMEWORKS/libSDL3.dylib"
+  ln -s "$SDL3_BASENAME" "$FRAMEWORKS/libSDL3.dylib"
 fi
 
 echo
