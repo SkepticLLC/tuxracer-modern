@@ -86,6 +86,18 @@ echo
 echo "Packaged runtime dependencies:"
 otool -L "$MACOS/tuxracer"
 
+# BundleUtilities copies Homebrew dylibs after the initial xattr scrub.
+# Some formulae carry Finder/resource-fork metadata that codesign rejects.
+# Scrub the completed bundle immediately before signing.
+xattr -cr "$APP"
+
+# Sanity check: no extended attributes should remain anywhere in the bundle.
+if xattr -lr "$APP" 2>/dev/null | grep -q .; then
+  echo "Extended attributes remain in the completed app bundle:" >&2
+  xattr -lr "$APP" >&2 || true
+  exit 1
+fi
+
 if [[ -n "$IDENTITY" ]]; then
   echo
   echo "Signing with Developer ID identity: $IDENTITY"
