@@ -89,28 +89,40 @@ rm -rf "$ICONSET"
 
 # Signing must be the final mutation of the app.
 #
-# Historical assets and locally-created icon files can carry FinderInfo,
-# resource forks, quarantine bits, AppleDouble files, or .DS_Store entries.
-# Any of these can make codesign reject an otherwise valid bundle.
-find "$APP" -name '._*' -delete
-find "$APP" -name '.DS_Store' -delete
-dot_clean -m "$APP" >/dev/null 2>&1 || true
-xattr -cr "$APP"
-
-if xattr -lr "$APP" 2>/dev/null | grep -q .; then
-  echo "Extended attributes remain in app bundle after cleanup:" >&2
-  xattr -lr "$APP" >&2 || true
-  exit 1
-fi
-
-# Apple Silicon linkers automatically apply a linker-generated ad-hoc
-# signature to Mach-O executables. Strip it after copying the executable
-# into the completed bundle so codesign can create one coherent bundle seal.
+# First remove any prior bundle signature and the linker's automatic
+# ad-hoc signature from the copied ARM64 executable.
 rm -rf "$APP/Contents/_CodeSignature"
 codesign --remove-signature "$MACOS/tuxracer" 2>/dev/null || true
 
+# Historical assets and locally-created icon files can carry FinderInfo,
+# resource forks, quarantine bits, AppleDouble files, or .DS_Store entries.
+# Clean these only AFTER all other bundle mutations, immediately before signing.
+find "$APP" -name '._*' -delete
+find "$APP" -name '.DS_Store' -delete
+dot_clean -m "$APP" >/dev/null 2>&1 || true
+
+# xattr -cr is normally sufficient, but explicitly remove the two attributes
+# codesign rejects on every bundle path as a defense against Finder metadata
+# being attached to the outer .app directory itself.
+while IFS= read -r -d '' item; do
+  xattr -d com.apple.FinderInfo "$item" 2>/dev/null || true
+  xattr -d com.apple.ResourceFork "$item" 2>/dev/null || true
+  xattr -d com.apple.quarantine "$item" 2>/dev/null || true
+done < <(find "$APP" -print0)
+
+xattr -cr "$APP"
+
 echo "Pre-sign executable state:"
 codesign -dvv "$MACOS/tuxracer" 2>&1 || true
+
+echo "Pre-sign extended attributes:"
+if xattr -lr "$APP" 2>/dev/null | grep -q .; then
+  xattr -lr "$APP" >&2 || true
+  echo "Extended attributes remain in app bundle after cleanup." >&2
+  exit 1
+else
+  echo "  none"
+fi
 
 if [[ -n "$IDENTITY" ]]; then
   echo "Signing app with Developer ID: $IDENTITY"
