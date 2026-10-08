@@ -9,11 +9,16 @@ if(NOT DEFINED SEARCH_DIRS)
     set(SEARCH_DIRS "")
 endif()
 
+if(NOT DEFINED EXTRA_LIBS)
+    set(EXTRA_LIBS "")
+endif()
+
 include(BundleUtilities)
 set(BU_CHMOD_BUNDLE_ITEMS ON)
 
 message(STATUS "Fixing up macOS bundle: ${APP}")
 message(STATUS "Dependency search dirs: ${SEARCH_DIRS}")
+message(STATUS "Explicit runtime libraries: ${EXTRA_LIBS}")
 
-fixup_bundle("${APP}" "" "${SEARCH_DIRS}")
+fixup_bundle("${APP}" "${EXTRA_LIBS}" "${SEARCH_DIRS}")
 verify_app("${APP}")
