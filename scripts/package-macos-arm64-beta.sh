@@ -76,15 +76,30 @@ rm -rf "$ICONSET"
 xattr -cr "$APP"
 
 SEARCH_DIRS=()
+SDL3_DYLIB=""
+
 if command -v brew >/dev/null 2>&1; then
-  for formula in sdl2 sdl2_mixer tcl-tk; do
+  for formula in sdl2 sdl2_mixer sdl3 tcl-tk; do
     if prefix="$(brew --prefix "$formula" 2>/dev/null)"; then
       SEARCH_DIRS+=("$prefix/lib")
+
+      if [[ "$formula" == "sdl3" && -f "$prefix/lib/libSDL3.dylib" ]]; then
+        SDL3_DYLIB="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$prefix/lib/libSDL3.dylib")"
+      fi
     fi
   done
   BREW_PREFIX="$(brew --prefix)"
   SEARCH_DIRS+=("$BREW_PREFIX/lib" "$BREW_PREFIX/opt")
 fi
+
+if [[ -z "$SDL3_DYLIB" || ! -f "$SDL3_DYLIB" ]]; then
+  echo "Could not locate Homebrew SDL3 runtime (libSDL3.dylib)." >&2
+  echo "The current Homebrew SDL2 package is sdl2-compat and requires SDL3 at runtime." >&2
+  echo "Install it with: brew install sdl3" >&2
+  exit 1
+fi
+
+echo "SDL3 runtime: $SDL3_DYLIB"
 
 SEARCH_JOINED=""
 for d in "${SEARCH_DIRS[@]}"; do
@@ -99,7 +114,43 @@ done
 cmake \
   -DAPP="$APP" \
   -DSEARCH_DIRS="$SEARCH_JOINED" \
+  -DEXTRA_LIBS="$SDL3_DYLIB" \
   -P "$ROOT/packaging/macos/fixup_bundle.cmake"
+
+# sdl2-compat intentionally dlopen()s "libSDL3.dylib" at runtime. BundleUtilities
+# may preserve SDL3's versioned filename, so provide the exact unversioned name
+# beside SDL2 in Contents/Frameworks where @loader_path resolves it.
+if [[ ! -e "$FRAMEWORKS/libSDL3.dylib" ]]; then
+  SDL3_BUNDLED="$(find "$FRAMEWORKS" -maxdepth 1 -type f -name 'libSDL3*.dylib' -print -quit)"
+  if [[ -z "$SDL3_BUNDLED" ]]; then
+    echo "SDL3 was not copied into Contents/Frameworks." >&2
+    exit 1
+  fi
+  ln -s "$(basename "$SDL3_BUNDLED")" "$FRAMEWORKS/libSDL3.dylib"
+fi
+
+echo
+echo "Bundled SDL3 runtime:"
+ls -l "$FRAMEWORKS"/libSDL3*.dylib
+otool -L "$FRAMEWORKS/libSDL3.dylib"
+
+echo
+echo "Auditing packaged Mach-O files for Homebrew paths..."
+HOMEBREW_PATH_FOUND=0
+while IFS= read -r -d '' item; do
+  if file "$item" | grep -q "Mach-O"; then
+    if otool -L "$item" | grep -q "/opt/homebrew"; then
+      echo "Homebrew dependency remains in: $item" >&2
+      otool -L "$item" | grep "/opt/homebrew" >&2 || true
+      HOMEBREW_PATH_FOUND=1
+    fi
+  fi
+done < <(find "$MACOS" "$FRAMEWORKS" -type f -print0)
+
+if [[ "$HOMEBREW_PATH_FOUND" -ne 0 ]]; then
+  echo "Packaging aborted: one or more Homebrew runtime paths remain." >&2
+  exit 1
+fi
 
 FINAL_ARCHS="$(lipo -archs "$MACOS/tuxracer" 2>/dev/null || true)"
 if [[ "$FINAL_ARCHS" != *"arm64"* ]]; then
