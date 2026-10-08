@@ -59,11 +59,15 @@ if(TUXRACER_BUNDLED_SDL2)
     set(SDL2MIXER_WAVPACK OFF CACHE BOOL "" FORCE)
     set(SDL2MIXER_WAVE ON CACHE BOOL "" FORCE)
 
+    # SDL2_mixer's release tarball does not contain git submodule contents.
+    # Fetch the exact 2.8.2 release commit and populate only libxmp, which is
+    # the one vendored dependency needed for Tux Racer's .it tracker music.
     FetchContent_Declare(
         SDL2_mixer
-        URL https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.2/SDL2_mixer-2.8.2.tar.gz
-        URL_HASH SHA256=938dff531d00ace2296557a6599abe6f34599e2f34f0a4a08a397e2ccac8b8f7
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer.git
+        GIT_TAG b208916aed9250fe434360e6c6a95f0697bb7b01
+        GIT_SUBMODULES external/libxmp
+        GIT_SUBMODULES_RECURSE FALSE
     )
     FetchContent_MakeAvailable(SDL2_mixer)
 
