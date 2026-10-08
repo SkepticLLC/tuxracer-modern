@@ -126,10 +126,10 @@ fi
 
 if [[ -n "$IDENTITY" ]]; then
   echo "Signing app with Developer ID: $IDENTITY"
-  codesign --force --timestamp --options runtime --sign "$IDENTITY" "$APP"
+  codesign --force --timestamp --options runtime --strip-disallowed-xattrs --sign "$IDENTITY" "$APP"
 else
   echo "Creating sealed ad-hoc local QA app."
-  codesign --force --deep --sign - "$APP"
+  codesign --force --deep --strip-disallowed-xattrs --sign - "$APP"
 fi
 
 if [[ ! -f "$APP/Contents/_CodeSignature/CodeResources" ]]; then
@@ -138,6 +138,10 @@ if [[ ! -f "$APP/Contents/_CodeSignature/CodeResources" ]]; then
 fi
 
 codesign --verify --deep --strict --verbose=4 "$APP"
+
+echo
+echo "Final post-sign extended attributes:"
+xattr -lr "$APP" 2>/dev/null || true
 
 echo
 echo "Final app signature:"
