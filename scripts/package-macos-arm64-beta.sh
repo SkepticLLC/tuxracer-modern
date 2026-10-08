@@ -181,27 +181,47 @@ if xattr -lr "$APP" 2>/dev/null | grep -q .; then
   exit 1
 fi
 
+echo
+echo "Removing stale signatures from rewritten Mach-O files..."
+while IFS= read -r -d '' item; do
+  if file "$item" | grep -q "Mach-O"; then
+    codesign --remove-signature "$item" 2>/dev/null || true
+  fi
+done < <(find "$MACOS" "$FRAMEWORKS" -type f -print0)
+
 if [[ -n "$IDENTITY" ]]; then
   echo
-  echo "Signing with Developer ID identity: $IDENTITY"
+  echo "Signing bundled Mach-O files with Developer ID identity: $IDENTITY"
 
-  if [[ -d "$FRAMEWORKS" ]]; then
-    while IFS= read -r -d '' item; do
-      if file "$item" | grep -q "Mach-O"; then
-        codesign --force --timestamp --options runtime --sign "$IDENTITY" "$item"
-      fi
-    done < <(find "$FRAMEWORKS" -type f -print0)
-  fi
+  while IFS= read -r -d '' item; do
+    if file "$item" | grep -q "Mach-O"; then
+      codesign --force --timestamp --options runtime --sign "$IDENTITY" "$item"
+      codesign --verify --strict --verbose=2 "$item"
+    fi
+  done < <(find "$FRAMEWORKS" -type f -print0)
 
   codesign --force --timestamp --options runtime --sign "$IDENTITY" "$MACOS/tuxracer"
+  codesign --verify --strict --verbose=2 "$MACOS/tuxracer"
+
   codesign --force --timestamp --options runtime --sign "$IDENTITY" "$APP"
 else
   echo
-  echo "DEVELOPER_ID_APPLICATION is not set; creating an ad-hoc QA build."
-  codesign --force --deep --sign - "$APP"
+  echo "Creating deterministic ad-hoc signatures for QA..."
+
+  while IFS= read -r -d '' item; do
+    if file "$item" | grep -q "Mach-O"; then
+      codesign --force --sign - "$item"
+      codesign --verify --strict --verbose=2 "$item"
+    fi
+  done < <(find "$FRAMEWORKS" -type f -print0)
+
+  codesign --force --sign - "$MACOS/tuxracer"
+  codesign --verify --strict --verbose=2 "$MACOS/tuxracer"
+
+  codesign --force --sign - "$APP"
 fi
 
-codesign --verify --deep --strict --verbose=2 "$APP"
+codesign --verify --deep --strict --verbose=4 "$APP"
 
 if [[ -n "$NOTARY_PROFILE" ]]; then
   if [[ -z "$IDENTITY" ]]; then
@@ -223,6 +243,16 @@ if [[ -n "$NOTARY_PROFILE" ]]; then
   xcrun stapler staple "$APP"
   xcrun stapler validate "$APP"
 fi
+
+echo
+echo "Final code-signature inventory:"
+codesign -dvvv "$MACOS/tuxracer" 2>&1 | sed 's/^/  main: /'
+while IFS= read -r -d '' item; do
+  if file "$item" | grep -q "Mach-O"; then
+    echo "  $(basename "$item")"
+    codesign --verify --strict --verbose=2 "$item"
+  fi
+done < <(find "$FRAMEWORKS" -type f -print0)
 
 echo
 echo "Validating distributable:"
