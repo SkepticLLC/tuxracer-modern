@@ -18,6 +18,8 @@ trap 'rm -rf "$STAGE_ROOT"' EXIT
 
 APP="$STAGE_ROOT/$APP_NAME.app"
 FINAL_APP="$DIST_DIR/$APP_NAME.app"
+FINAL_ZIP="$DIST_DIR/Tux-Racer-Modern-0.1.9-beta.1-arm64.zip"
+STAGE_ZIP="$STAGE_ROOT/Tux-Racer-Modern-0.1.9-beta.1-arm64.zip"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
 ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png"
@@ -182,27 +184,40 @@ echo
 echo "Packaged executable dependencies:"
 otool -L "$MACOS/tuxracer"
 
-# Copy only the fully signed/stapled application out of private staging.
-# --noextattr/--norsrc prevents source metadata from being propagated.
+# The authoritative release artifact is a ZIP created while the app is still
+# pristine in private staging. Desktop/File Provider can attach FinderInfo to
+# a bare .app copied into ~/Desktop, which makes codesign verification noisy
+# even though the signed bundle itself is valid. Archiving before the copy
+# preserves the verified/notarized application exactly as signed.
+rm -f "$STAGE_ZIP" "$FINAL_ZIP"
+ditto -c -k --keepParent --noextattr --norsrc "$APP" "$STAGE_ZIP"
+
+echo
+echo "Verifying archived release payload..."
+VERIFY_DIR="$(mktemp -d "$STAGE_ROOT/verify.XXXXXX")"
+ditto -x -k "$STAGE_ZIP" "$VERIFY_DIR"
+codesign --verify --deep --strict --verbose=4 "$VERIFY_DIR/$APP_NAME.app"
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  xcrun stapler validate "$VERIFY_DIR/$APP_NAME.app"
+fi
+rm -rf "$VERIFY_DIR"
+
+cp -X "$STAGE_ZIP" "$FINAL_ZIP"
+
+# Keep a bare app in dist only as a local convenience. The ZIP is the release
+# artifact because it preserves the pristine signed bundle across File Provider.
 rm -rf "$FINAL_APP"
 ditto --noextattr --norsrc "$APP" "$FINAL_APP"
 
-# Desktop/File Provider may attach metadata to the destination directory after
-# the copy. These attributes are not part of the signed code; remove them and
-# verify that the copied application remains cryptographically intact.
-xattr -cr "$FINAL_APP" 2>/dev/null || true
+echo
+echo "Release artifact:"
+echo "  $FINAL_ZIP"
+shasum -a 256 "$FINAL_ZIP"
 
 echo
-echo "Verifying final copied application:"
-codesign --verify --deep --strict --verbose=4 "$FINAL_APP"
-
-if [[ -n "$NOTARY_PROFILE" ]]; then
-  xcrun stapler validate "$FINAL_APP"
-fi
-
-echo
-echo "Created:"
+echo "Local convenience copy:"
 echo "  $FINAL_APP"
+echo "  (Desktop/File Provider may attach FinderInfo to this copy; use the ZIP for distribution.)"
 echo
 if [[ -z "$IDENTITY" ]]; then
   echo "Local QA build: ad-hoc signed."
