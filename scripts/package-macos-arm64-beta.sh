@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Never copy Finder metadata/resource forks into the distributable app.
+export COPYFILE_DISABLE=1
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build-release-arm64}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
@@ -58,11 +61,11 @@ echo "Packaging Tux Racer Modern $VERSION ARM64 preservation beta"
 rm -rf "$DIST_DIR"
 mkdir -p "$MACOS" "$RESOURCES"
 
-cp "$BIN" "$MACOS/tuxracer"
-cp -R "$ROOT/data" "$RESOURCES/data"
-cp "$ROOT/COPYING" "$RESOURCES/COPYING"
-cp "$ROOT/README.md" "$RESOURCES/README.md"
-cp "$ROOT/UPSTREAM.md" "$RESOURCES/UPSTREAM.md"
+cp -X "$BIN" "$MACOS/tuxracer"
+cp -RX "$ROOT/data" "$RESOURCES/data"
+cp -X "$ROOT/COPYING" "$RESOURCES/COPYING"
+cp -X "$ROOT/README.md" "$RESOURCES/README.md"
+cp -X "$ROOT/UPSTREAM.md" "$RESOURCES/UPSTREAM.md"
 
 sed \
   -e "s/@TUXRACER_VERSION@/$VERSION/g" \
@@ -85,13 +88,24 @@ iconutil -c icns "$ICONSET" -o "$ICON_ICNS"
 rm -rf "$ICONSET"
 
 # Signing must be the final mutation of the app.
+#
+# Historical assets and locally-created icon files can carry FinderInfo,
+# resource forks, quarantine bits, AppleDouble files, or .DS_Store entries.
+# Any of these can make codesign reject an otherwise valid bundle.
+find "$APP" -name '._*' -delete
+find "$APP" -name '.DS_Store' -delete
+dot_clean -m "$APP" >/dev/null 2>&1 || true
 xattr -cr "$APP"
 
+if xattr -lr "$APP" 2>/dev/null | grep -q .; then
+  echo "Extended attributes remain in app bundle after cleanup:" >&2
+  xattr -lr "$APP" >&2 || true
+  exit 1
+fi
+
 # Apple Silicon linkers automatically apply a linker-generated ad-hoc
-# signature to Mach-O executables. That signature is valid for a standalone
-# binary but does not seal app-bundle resources. Strip it after copying the
-# executable into the completed bundle so codesign can create one coherent
-# bundle signature and resource seal.
+# signature to Mach-O executables. Strip it after copying the executable
+# into the completed bundle so codesign can create one coherent bundle seal.
 rm -rf "$APP/Contents/_CodeSignature"
 codesign --remove-signature "$MACOS/tuxracer" 2>/dev/null || true
 
