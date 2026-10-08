@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 APP_NAME="Tux Racer Modern"
+BUNDLE_ID="com.skeptic.tuxracer-modern"
 APP="$DIST_DIR/$APP_NAME.app"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
@@ -200,10 +201,10 @@ if [[ -n "$IDENTITY" ]]; then
     fi
   done < <(find "$FRAMEWORKS" -type f -print0)
 
-  codesign --force --timestamp --options runtime --sign "$IDENTITY" "$MACOS/tuxracer"
+  codesign --force --timestamp --options runtime --identifier "$BUNDLE_ID" --sign "$IDENTITY" "$MACOS/tuxracer"
   codesign --verify --strict --verbose=2 "$MACOS/tuxracer"
 
-  codesign --force --timestamp --options runtime --sign "$IDENTITY" "$APP"
+  codesign --force --timestamp --options runtime --identifier "$BUNDLE_ID" --sign "$IDENTITY" "$APP"
 else
   echo
   echo "Creating deterministic ad-hoc signatures for QA..."
@@ -215,13 +216,26 @@ else
     fi
   done < <(find "$FRAMEWORKS" -type f -print0)
 
-  codesign --force --sign - "$MACOS/tuxracer"
+  codesign --force --identifier "$BUNDLE_ID" --sign - "$MACOS/tuxracer"
   codesign --verify --strict --verbose=2 "$MACOS/tuxracer"
 
-  codesign --force --sign - "$APP"
+  codesign --force --identifier "$BUNDLE_ID" --sign - "$APP"
 fi
 
 codesign --verify --deep --strict --verbose=4 "$APP"
+
+echo
+echo "Validating application signing identity..."
+SIGNING_INFO="$(codesign -dvvv "$APP" 2>&1)"
+echo "$SIGNING_INFO"
+if ! grep -Fq "Identifier=$BUNDLE_ID" <<<"$SIGNING_INFO"; then
+  echo "Signing identifier does not match CFBundleIdentifier ($BUNDLE_ID)." >&2
+  exit 1
+fi
+
+echo
+echo "Application entitlements (QA build should have none):"
+codesign -d --entitlements :- "$APP" 2>&1 || true
 
 if [[ -n "$NOTARY_PROFILE" ]]; then
   if [[ -z "$IDENTITY" ]]; then
