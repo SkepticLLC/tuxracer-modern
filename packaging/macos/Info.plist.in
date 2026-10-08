@@ -11,6 +11,9 @@
   <key>CFBundleExecutable</key>
   <string>tuxracer</string>
 
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
+
   <key>CFBundleIdentifier</key>
   <string>com.skeptic.tuxracer-modern</string>
 
