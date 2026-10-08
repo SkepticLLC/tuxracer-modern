@@ -87,19 +87,41 @@ rm -rf "$ICONSET"
 # Signing must be the final mutation of the app.
 xattr -cr "$APP"
 
+# Apple Silicon linkers automatically apply a linker-generated ad-hoc
+# signature to Mach-O executables. That signature is valid for a standalone
+# binary but does not seal app-bundle resources. Strip it after copying the
+# executable into the completed bundle so codesign can create one coherent
+# bundle signature and resource seal.
+rm -rf "$APP/Contents/_CodeSignature"
+codesign --remove-signature "$MACOS/tuxracer" 2>/dev/null || true
+
+echo "Pre-sign executable state:"
+codesign -dvv "$MACOS/tuxracer" 2>&1 || true
+
 if [[ -n "$IDENTITY" ]]; then
   echo "Signing app with Developer ID: $IDENTITY"
   codesign --force --timestamp --options runtime --sign "$IDENTITY" "$APP"
 else
-  echo "Creating ad-hoc signed local QA app."
-  codesign --force --sign - "$APP"
+  echo "Creating sealed ad-hoc local QA app."
+  codesign --force --deep --sign - "$APP"
+fi
+
+if [[ ! -f "$APP/Contents/_CodeSignature/CodeResources" ]]; then
+  echo "Signing failed to create Contents/_CodeSignature/CodeResources." >&2
+  exit 1
 fi
 
 codesign --verify --deep --strict --verbose=4 "$APP"
 
 echo
 echo "Final app signature:"
-codesign -dvvv "$APP" 2>&1
+SIGNING_INFO="$(codesign -dvvv "$APP" 2>&1)"
+echo "$SIGNING_INFO"
+
+if ! grep -q "Sealed Resources" <<<"$SIGNING_INFO"; then
+  echo "App signature does not report a sealed resource envelope." >&2
+  exit 1
+fi
 
 if [[ -n "$NOTARY_PROFILE" ]]; then
   if [[ -z "$IDENTITY" ]]; then
