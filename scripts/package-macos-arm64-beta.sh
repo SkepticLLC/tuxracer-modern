@@ -18,15 +18,15 @@ trap 'rm -rf "$STAGE_ROOT"' EXIT
 
 APP="$STAGE_ROOT/$APP_NAME.app"
 FINAL_APP="$DIST_DIR/$APP_NAME.app"
-FINAL_ZIP="$DIST_DIR/Tux-Racer-Modern-0.1.9-beta.1-arm64.zip"
-STAGE_ZIP="$STAGE_ROOT/Tux-Racer-Modern-0.1.9-beta.1-arm64.zip"
+FINAL_ZIP="$DIST_DIR/Tux-Racer-Modern-0.1.9-rc.1-arm64.zip"
+STAGE_ZIP="$STAGE_ROOT/Tux-Racer-Modern-0.1.9-rc.1-arm64.zip"
 MACOS="$APP/Contents/MacOS"
 RESOURCES="$APP/Contents/Resources"
 ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png"
 ICONSET="$STAGE_ROOT/AppIcon.iconset"
 ICON_ICNS="$RESOURCES/AppIcon.icns"
 VERSION="$(sed -nE 's/^project\(tuxracer-modern VERSION ([0-9.]+).*/\1/p' "$ROOT/CMakeLists.txt")"
-BUILD_NUMBER="${BUILD_NUMBER:-19}"
+BUILD_NUMBER="${BUILD_NUMBER:-20}"
 IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
 NOTARY_PROFILE="${APPLE_NOTARY_PROFILE:-}"
 
@@ -66,7 +66,7 @@ if [[ ! -f "$ICON_SOURCE" ]]; then
   exit 1
 fi
 
-echo "Packaging Tux Racer Modern $VERSION ARM64 preservation beta"
+echo "Packaging Tux Racer Modern $VERSION ARM64 preservation RC1"
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
