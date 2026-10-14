@@ -119,8 +119,15 @@ bool_t load_texture( char *texname, char *filename, int repeatable )
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
     } else {
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+        /*
+         * UI/splash textures are frequently tiled edge-to-edge. Legacy
+         * GL_CLAMP permits linear filtering at UV 0/1 to sample the texture
+         * border colour, which produces visible seams where the four splash
+         * quadrants meet (a vertical + horizontal "crosshair" on modern
+         * HiDPI displays). Clamp to the final texel instead.
+         */
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     }
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 
