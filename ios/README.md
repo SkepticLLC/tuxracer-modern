@@ -1,47 +1,97 @@
-# iOS Metal smoke build
+# Tux Racer Modern — iOS 26+ Metal bootstrap
 
-This is a **native SDL2 + Metal smoke test**, not a playable Tux Racer port.
-It draws a dark blue Metal frame. The desktop engine is intentionally not
-linked because it still requires legacy OpenGL/GLU.
+Status: **SDL2/Metal smoke target only**. This draws a dark blue screen; it does
+not yet compile the original game, load courses, or provide touch controls.
+The macOS preservation build is unaffected.
 
-## Requirements
+## Supported platform / dependency baseline
 
-- macOS, Xcode and its iOS SDK, CMake >= 3.24
-- Network access on first configure to fetch SDL2 release-2.30.12
-- iPhone or iOS simulator with Metal support
+- Minimum device and simulator OS: **iOS 26.0**.
+- Target testing SDK/runtime: **iOS 27.0** (also test an iOS 26 runtime).
+- SDL2: pinned to upstream **release-2.32.10**, built as a static dependency.
+- SDL Metal: enabled. **OpenGL ES and Vulkan backends disabled** for iOS.
+- Xcode plus CMake >= 3.24; network access on first configure.
 
-## Generate and open the Xcode project
+The old `15.0` deployment target was accidental and has been corrected in
+both the CMake target and the project-generator script. SDK version and minimum
+OS version are separate: compiling with SDK 27 does not imply requiring 27.
 
-From the repository root:
+## Verify the previous signing failure *without recompiling*
+
+If an older, already-linked simulator `.app` exists, run:
+
+```sh
+sh ios/repair-simulator-signing.sh
+```
+
+This prints extended attributes on the **existing build product**, strips only
+those bundle attributes, ad-hoc signs the simulator app, and verifies its
+signature. It deliberately never modifies the source checkout. If this works,
+it confirms that the previous failure was invalid extended attributes rather
+than a compiler, linker, certificate, or provisioning problem.
+
+## Generate the new iOS 26+ Xcode project
+
+From the root of the repository:
 
 ```sh
 sh ios/build-xcode.sh iphonesimulator
-open build/ios-iphonesimulator/TuxRacerModernIOS.xcodeproj
+open "$HOME/Library/Caches/tuxracer-modern-ios/iphonesimulator/TuxRacerModernIOS.xcodeproj"
 ```
 
-For a physical iPhone:
+For physical iPhone testing:
 
 ```sh
 sh ios/build-xcode.sh iphoneos
-open build/ios-iphoneos/TuxRacerModernIOS.xcodeproj
+open "$HOME/Library/Caches/tuxracer-modern-ios/iphoneos/TuxRacerModernIOS.xcodeproj"
 ```
 
-Select the TuxRacerModernIOS application scheme and destination. For device
-signing, select your Apple development team in Xcode. The example bundle ID
-may need changing if it is already registered to another team.
+The project-generation script prints its final project path. Generated files
+are intentionally outside Desktop/iCloud-managed source directories to reduce
+Apple extended-attribute contamination. To override the build location, set
+`TUXRACER_IOS_BUILD_ROOT` before generating.
 
-## Expected result
+Select the `TuxRacerModernIOS` scheme. Run on an iOS 27 (or iOS 26)
+simulator. Physical device builds need a valid development team selected in
+Xcode; simulator builds use local ad-hoc signing.
 
-The app launches in landscape and clears its Metal surface to dark blue.
-There is no gameplay, touch HUD, sound, or bundled course data yet.
+## Automated signing safeguards
 
-## Caveats and next gates
+1. `prepare-signing.sh` runs from the generated Xcode target's **PRE_LINK**
+   phase to recursively clear extended attributes on the generated app bundle.
+2. On host versions of `codesign` supporting `--strip-disallowed-xattrs`,
+   CMake configures that code-signing flag as a second line of defense.
+3. Build products live under the user's Library Caches directory, not Desktop.
+4. The one-shot `repair-simulator-signing.sh` can inspect and repair an already
+   compiled simulator app without rebuilding.
 
-- This Xcode project is **generated locally**, not checked in.
-- The CMake/SDL2 iOS bootstrap is not yet verified on Xcode hardware here;
-  report the first configure/build error verbatim.
-- The current smoke implementation exits on background. Production must
-  suspend/resume instead.
-- We still need a complete renderer port, Tcl linkage, immutable asset
-  bundle and sandboxed save paths before gameplay can run.
-- Do not merge into preservation or tag a release until device testing.
+These protect generated artifacts only. Do **not** run `xattr -cr .` against
+the entire repository, and do not disable signing for distributable device
+builds. If code signing still fails, capture the offending app's
+`xattr -lr /path/to/TuxRacerModernIOS.app` output.
+
+Apple reference: Technical Q&A QA1940 on resource-fork/Finder information.
+
+## Warning cleanup strategy
+
+The previous SDK 27 log showed hundreds of SDL2 warnings, overwhelmingly from
+its deprecated OpenGL ES/EAGL render implementation. The new iOS configuration
+does not compile either OpenGL ES renderer; it uses Metal instead. SDL2 was
+updated from 2.30.12 to 2.32.10 for maintenance fixes.
+
+Some SDL2 UIKit/legacy GameController deprecation warnings may remain. Those
+are not errors; do not globally suppress warnings or modify Apple SDK headers.
+Track them separately for the next dependency/platform cleanup.
+
+## Exit criteria
+
+- Xcode project configures with iOS 26.0 minimum.
+- SDL2, UIKit host, and Metal smoke target compile and link.
+- Xcode signs and launches the app on iOS 27 simulator.
+- Screen clears dark blue in landscape without crash.
+- Physical iOS 26+ device test follows once simulator is stable.
+- SDL2 source warning count is reduced; any remaining warnings are categorized.
+
+The smoke source currently exits on background. Gameplay, Tcl, assets, audio
+interruptions, safe areas, touch/game-controller action mapping, and production
+pause/resume are separate future implementation gates.
