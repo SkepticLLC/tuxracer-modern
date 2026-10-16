@@ -21,6 +21,12 @@ FetchContent_Declare(SDL2
 )
 FetchContent_MakeAvailable(SDL2)
 
+# SDL 2.30.12 selects an obsolete OSAtomic branch on recent Apple SDKs.
+# Force its GCC/Clang builtin branch at compile time for this dependency.
+if(TARGET SDL2-static)
+  target_compile_definitions(SDL2-static PRIVATE SDL_USE_GCC_ATOMICS=1)
+endif()
+
 add_executable(TuxRacerModernIOS MACOSX_BUNDLE metal_smoke_main.m)
 set_target_properties(TuxRacerModernIOS PROPERTIES
   C_STANDARD 99
