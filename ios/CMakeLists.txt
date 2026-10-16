@@ -11,6 +11,9 @@ include(FetchContent)
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
+# New iOS SDKs no longer expose legacy OSAtomicCompareAndSwap32Barrier.
+# Select Clang/GCC atomic builtins for SDL_spinlock.c instead.
+set(SDL_GCC_ATOMICS ON CACHE BOOL "Use compiler atomic builtins" FORCE)
 FetchContent_Declare(SDL2
   GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
   GIT_TAG release-2.30.12
