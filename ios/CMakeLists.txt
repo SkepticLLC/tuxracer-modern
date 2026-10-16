@@ -19,7 +19,13 @@ FetchContent_Declare(SDL2
 FetchContent_MakeAvailable(SDL2)
 
 add_executable(TuxRacerModernIOS MACOSX_BUNDLE metal_smoke_main.m)
-target_compile_features(TuxRacerModernIOS PRIVATE c_std_99)
+set_target_properties(TuxRacerModernIOS PROPERTIES
+  C_STANDARD 99
+  C_STANDARD_REQUIRED ON
+  C_EXTENSIONS OFF
+)
+# The iOS Xcode toolchain can leave CMAKE_C_COMPILE_FEATURES empty during
+# cross-configuration; do not require feature-table detection here.
 target_link_libraries(TuxRacerModernIOS PRIVATE SDL2::SDL2 SDL2::SDL2main
   "-framework Metal" "-framework QuartzCore" "-framework Foundation")
 target_include_directories(TuxRacerModernIOS PRIVATE ${sdl2_SOURCE_DIR}/include)
