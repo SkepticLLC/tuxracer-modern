@@ -26,6 +26,22 @@ else()
   message(STATUS "Patched SDL2: defer SDL_main until UIWindowScene connects")
 endif()
 
+# SDL2's launch splash creates a standalone UIWindow via initWithFrame inside
+# application:didFinishLaunching, BEFORE a UIWindowScene exists. Our first-party
+# scene delegate owns a correctly attached placeholder window instead.
+file(READ "${_app_delegate}" _delegate_src)
+set(_legacy_splash "#ifdef SDL_IPHONE_LAUNCHSCREEN")
+set(_scene_splash "#if 0 /* Tux UIScene delegate manages the launch placeholder */")
+if(NOT _delegate_src MATCHES "Tux UIScene delegate manages the launch placeholder")
+  string(FIND "${_delegate_src}" "${_legacy_splash}" _legacy_splash_found)
+  if(_legacy_splash_found EQUAL -1)
+    message(FATAL_ERROR "SDL2 legacy splash anchor changed; inspect upstream source")
+  endif()
+  string(REPLACE "${_legacy_splash}" "${_scene_splash}" _delegate_src "${_delegate_src}")
+  file(WRITE "${_app_delegate}" "${_delegate_src}")
+  message(STATUS "Patched SDL2: prevent unattached UIWindow before scene connection")
+endif()
+
 set(_uikit_window "${sdl2_SOURCE_DIR}/src/video/uikit/SDL_uikitwindow.m")
 file(READ "${_uikit_window}" _window_src)
 if(_window_src MATCHES "TuxGetActiveWindowScene")
