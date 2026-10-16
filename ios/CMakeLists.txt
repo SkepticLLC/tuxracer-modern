@@ -25,13 +25,20 @@ FetchContent_Declare(SDL2
   GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(SDL2)
+# Isolated iOS 27 UIScene backport for pinned SDL2; fail if upstream anchors move.
+include("${CMAKE_CURRENT_SOURCE_DIR}/patch-sdl2-scene.cmake")
 
 # SDL_spinlock.c checks HAVE_GCC_ATOMICS, not SDL_USE_GCC_ATOMICS.
 if(TARGET SDL2-static)
   target_compile_definitions(SDL2-static PRIVATE HAVE_GCC_ATOMICS=1)
 endif()
 
-add_executable(TuxRacerModernIOS MACOSX_BUNDLE metal_smoke_main.m)
+add_executable(TuxRacerModernIOS MACOSX_BUNDLE
+  metal_smoke_main.m
+  scene_lifecycle.m
+)
+# Scene delegate retains UIWindowScene using Objective-C ARC.
+target_compile_options(TuxRacerModernIOS PRIVATE "$<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>")
 set_target_properties(TuxRacerModernIOS PROPERTIES
   C_STANDARD 99
   C_STANDARD_REQUIRED ON
@@ -45,7 +52,10 @@ set_target_properties(TuxRacerModernIOS PROPERTIES
 )
 target_link_libraries(TuxRacerModernIOS PRIVATE SDL2::SDL2 SDL2::SDL2main
   "-framework Metal" "-framework QuartzCore" "-framework Foundation")
-target_include_directories(TuxRacerModernIOS PRIVATE ${sdl2_SOURCE_DIR}/include)
+target_include_directories(TuxRacerModernIOS PRIVATE
+  ${sdl2_SOURCE_DIR}/include
+  ${sdl2_SOURCE_DIR}/src/video/uikit
+)
 
 # Run the cleanup as an Xcode PRE_LINK step, prior to CodeSign.
 # Clean generated app bundles only; do not mutate source checkout metadata.
