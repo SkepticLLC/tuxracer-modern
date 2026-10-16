@@ -51,12 +51,25 @@ int main(int argc, char **argv)
     layer.framebufferOnly = YES;
     id<MTLCommandQueue> queue = [device newCommandQueue];
     bool running = true;
+    bool suspended = false;
 
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
-            if (event.type == SDL_APP_WILLENTERBACKGROUND) running = false;
+            if (event.type == SDL_APP_WILLENTERBACKGROUND ||
+                event.type == SDL_APP_DIDENTERBACKGROUND) {
+                suspended = true;
+            }
+            if (event.type == SDL_APP_WILLENTERFOREGROUND ||
+                event.type == SDL_APP_DIDENTERFOREGROUND) {
+                suspended = false;
+            }
+        }
+        if (!running) break;
+        if (suspended) {
+            SDL_Delay(30);
+            continue;
         }
         @autoreleasepool {
             int width = 0, height = 0;
