@@ -4,6 +4,37 @@ Status: **SDL2/Metal smoke target only**. This draws a dark blue screen; it does
 not yet compile the original game, load courses, or provide touch controls.
 The macOS preservation build is unaffected.
 
+## iOS 27 SDK: UIScene lifecycle migration
+
+Apple requires UIScene lifecycle support for applications built with the iOS 27
+SDK. Unmodified SDL2 2.32.x still uses the older UIKit launch path, and fails
+at startup with `UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`.
+
+The repository includes an **isolated, source-pinned compatibility bridge**:
+
+- `Info.plist` declares a single `UIWindowScene` and `TuxSceneDelegate`.
+- `scene_lifecycle.m` adds the UIKit scene-configuration callback to SDL2's
+  existing application delegate and starts SDL_main only after scene connection.
+- `patch-sdl2-scene.cmake` applies a checked two-file SDL2 source adaptation to
+  the **fetched build checkout** (not the macOS source or upstream repository):
+  it defers the legacy launch callback, disables the unattached SDL2 splash
+  window, and creates SDL2's UIWindow via `initWithWindowScene`.
+- The smoke renderer pauses when the scene enters the background.
+
+This is a compatibility backport, not an upstream SDL2 feature. It must be
+revalidated when SDL2 is updated or before App Store packaging.
+
+Run the fast static check before compiling:
+
+```sh
+sh ios/check-scene-setup.sh
+```
+
+The script validates the plist, integration references, and populated SDL2
+source patches without rebuilding the game. `sh ios/build-xcode.sh
+iphonesimulator` applies/reapplies patches during CMake configuration.
+
+
 ## Supported platform / dependency baseline
 
 - Minimum device and simulator OS: **iOS 26.0**.
@@ -92,6 +123,6 @@ Track them separately for the next dependency/platform cleanup.
 - Physical iOS 26+ device test follows once simulator is stable.
 - SDL2 source warning count is reduced; any remaining warnings are categorized.
 
-The smoke source currently exits on background. Gameplay, Tcl, assets, audio
-interruptions, safe areas, touch/game-controller action mapping, and production
-pause/resume are separate future implementation gates.
+The smoke source now pauses on background. Full gameplay, Tcl, assets, audio
+interruptions, safe areas, touch/game-controller action mapping, and more
+complete scene restoration are separate future implementation gates.
