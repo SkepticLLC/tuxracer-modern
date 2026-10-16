@@ -15,6 +15,22 @@
   <key>UIRequiresFullScreen</key><true/>
   <key>UISupportedInterfaceOrientations</key>
   <array><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+  <!-- iOS 27 requires a UIScene lifecycle for apps built with SDK 27. -->
+  <key>UIApplicationSceneManifest</key>
+  <dict>
+    <key>UIApplicationSupportsMultipleScenes</key><false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+          <key>UISceneConfigurationName</key><string>TuxWindowScene</string>
+          <key>UISceneClassName</key><string>UIWindowScene</string>
+          <key>UISceneDelegateClassName</key><string>TuxSceneDelegate</string>
+        </dict>
+      </array>
+    </dict>
+  </dict>
   <key>UILaunchScreen</key><dict/>
 </dict>
 </plist>
