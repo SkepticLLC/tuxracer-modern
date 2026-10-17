@@ -78,16 +78,17 @@ target_include_directories(TuxRacerModernIOS PRIVATE
   ${sdl2_SOURCE_DIR}/src/video/uikit
 )
 
-# Ship original unmodified game assets/scripts as read-only iOS bundle data.
-# Copying at PRE_LINK keeps assets present before final codesign, with no
-# generated Xcode source list for thousands of original course files.
-add_custom_command(TARGET TuxRacerModernIOS PRE_LINK
-  COMMAND "${CMAKE_COMMAND}" -E copy_directory
-          "${CMAKE_CURRENT_SOURCE_DIR}/../data"
-          "$<TARGET_BUNDLE_DIR:TuxRacerModernIOS>/data"
-  COMMENT "Bundle original Tux Racer courses, Tcl scripts and textures"
-  VERBATIM
-)
+# Have Xcode copy the entire original, unmodified data directory during
+# the native Copy Bundle Resources phase (before signing). A PRE_LINK command
+# does not reliably participate in the Xcode resource lifecycle.
+set(_tux_original_data "${CMAKE_CURRENT_SOURCE_DIR}/../data")
+if(NOT EXISTS "${_tux_original_data}/courses/bunny_hill/course.tcl")
+  message(FATAL_ERROR "Missing original Bunny Hill assets: ${_tux_original_data}")
+endif()
+set_source_files_properties("${_tux_original_data}"
+  PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+target_sources(TuxRacerModernIOS PRIVATE "${_tux_original_data}")
+message(STATUS "Xcode app resource: original data/ directory")
 
 # Run the cleanup as an Xcode PRE_LINK step, prior to CodeSign.
 # Clean generated app bundles only; do not mutate source checkout metadata.
