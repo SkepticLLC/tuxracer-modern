@@ -17,11 +17,14 @@
 #include <string.h>
 #include "mobile_input.h"
 #include "original_course.h"
+#include "original_terrain.h"
 
 #define FALLBACK_TRACK_METERS 1200.0f
 static tux_original_course g_course;
 static float g_track_meters = FALLBACK_TRACK_METERS;
 static int g_original_course_loaded = 0;
+static tux_original_terrain g_terrain = {0};
+static int g_original_terrain_loaded = 0;
 #define PI 3.14159265358979323846f
 
 typedef struct {
@@ -124,6 +127,23 @@ static void load_original_course(void) {
     SDL_Log("ORIGINAL COURSE LOADED: %s, %.0f x %.0f m, slope %.1f deg, %s and %s",
       g_course.name,g_course.width_m,g_course.length_m,g_course.angle_deg,
       g_course.elevation_file,g_course.terrain_file);
+    char prefix[4096],elevation[4096],terrain[4096];
+    char *root=TuxIOSCopyBundleResourcePath();
+    if(!root)return;
+    int n=snprintf(prefix,sizeof(prefix),"%s/data/courses/bunny_hill",root);
+    free(root);
+    if(n<0||(size_t)n>=sizeof(prefix))return;
+    int e=snprintf(elevation,sizeof(e),"%s/%s",prefix,g_course.elevation_file);
+    int t=snprintf(terrain,sizeof(terrain),"%s/%s",prefix,g_course.terrain_file);
+    if(e<0||t<0||(size_t)e>=sizeof(elevation)||(size_t)t>=sizeof(terrain))return;
+    if(tux_original_terrain_load(&g_terrain,elevation,terrain)){
+        g_original_terrain_loaded=1;
+        SDL_Log("ORIGINAL TERRAIN LOADED: %dx%d SGI pixels; elevation and surface arrays ready",
+            g_terrain.width,g_terrain.height);
+    }else{
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+           "ORIGINAL TERRAIN FAILED: elevation=%s terrain=%s",elevation,terrain);
+    }
 }
 static void reset(Race *race) {
     memset(race,0,sizeof(*race));
@@ -169,6 +189,52 @@ static void draw_penguin(SDL_Renderer *r,float x,float y,float s,float tilt,int 
     color(r,255,255,255,255);rect(r,x-s*.12f+tilt,by-s*.76f,s*.08f,s*.07f);
     rect(r,x+s*.04f+tilt,by-s*.76f,s*.08f,s*.07f);
 }
+/* Project original SGI height and snow/rock/ice maps through SDL Metal.
+ * Transitional renderer, not the original OpenGL camera/physics.
+ */
+static void draw_original_terrain(SDL_Renderer *r,int w,int h,const Race *race){
+    enum {ROWS=54,COLS=22,COUNT=ROWS*COLS};
+    SDL_Vertex v[COUNT*4];
+    int indices[COUNT*6],nv=0,ni=0;
+    float cameraX=g_course.width_m*(.5f+race->x*.23f);
+    float relief=g_course.elevation_scale;
+    float baseline=tux_original_elevation(&g_terrain,.5f,
+        clampf(race->distance/g_course.length_m,0,1));
+    for(int iy=ROWS-1;iy>=0;--iy){
+        float a=(float)iy/ROWS,b=(float)(iy+1)/ROWS;
+        float dn=4.0f+a*172.0f,df=4.0f+b*172.0f;
+        for(int ix=0;ix<COLS;ix++){
+            float u0=(float)ix/COLS,u1=(float)(ix+1)/COLS;
+            float z0=clampf((race->distance+dn)/g_course.length_m,0,1);
+            float z1=clampf((race->distance+df)/g_course.length_m,0,1);
+            float px[4]={u0,u1,u1,u0},depth[4]={dn,dn,df,df};
+            float zz[4]={z0,z0,z1,z1};
+            int intensity=tux_original_surface(&g_terrain,(u0+u1)*.5f,(z0+z1)*.5f);
+            int rr=215,gg=236,bb=242;
+            if(abs(intensity)<abs(intensity-255)&&abs(intensity)<abs(intensity-127)){
+                rr=137;gg=194;bb=221;
+            }else if(abs(intensity-127)<abs(intensity-255)){
+                rr=108;gg=120;bb=131;
+            }
+            for(int k=0;k<4;k++){
+                float xworld=px[k]*g_course.width_m;
+                float d=depth[k];
+                float elevation=tux_original_elevation(&g_terrain,px[k],zz[k]);
+                float height=(elevation-baseline)*(relief/255.0f);
+                float scale=(float)w*.55f/(d+18.0f);
+                v[nv+k].position.x=w*.5f+(xworld-cameraX)*scale;
+                v[nv+k].position.y=h*.34f+h*.63f*(26.0f/(d+26.0f))
+                     -height*scale*.75f;
+                v[nv+k].color=(SDL_Color){(Uint8)rr,(Uint8)gg,(Uint8)bb,255};
+                v[nv+k].tex_coord=(SDL_FPoint){0,0};
+            }
+            indices[ni++]=nv;indices[ni++]=nv+1;indices[ni++]=nv+2;
+            indices[ni++]=nv;indices[ni++]=nv+2;indices[ni++]=nv+3;
+            nv+=4;
+        }
+    }
+    SDL_RenderGeometry(r,NULL,v,nv,indices,ni);
+}
 static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mobile_input *in){
     float horizon=h*.34f,ground=h*.83f;
     color(r,10,35,59,255);SDL_RenderClear(r);
@@ -185,6 +251,9 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     }
     color(r,219,238,240,255);rect(r,0,horizon,w,h-horizon);
     color(r,235,247,247,255);rect(r,0,h*.70f,w,h*.30f);
+    if(g_original_terrain_loaded) {
+        draw_original_terrain(r,w,h,race);
+    } else {
     const int strips=65;
     for(int i=strips-1;i>=0;i--){
         float neari=(float)i/strips,far=(float)(i+1)/strips;
@@ -202,6 +271,8 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
             line(r,cn+hn*.80f,yn,cf+hf*.80f,yf);
         }
     }
+    }
+    /* Obstacles are temporary until original trees.rgb placement is loaded. */
     for(int i=0;i<45;i++){
         float dz=obstacle_z(i)-race->distance;
         if(dz<3||dz>160)continue;
@@ -215,7 +286,8 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     color(r,10,40,64,220);rect(r,0,0,w,h*.13f);
     color(r,245,250,252,255);
     char buf[96];
-    text(r,g_original_course_loaded?"BUNNY HILL - ORIGINAL COURSE DATA":"TUX RACER - MOBILE PROTOTYPE",
+    text(r,g_original_terrain_loaded?"BUNNY HILL - ORIGINAL TERRAIN":
+        g_original_course_loaded?"BUNNY HILL - ORIGINAL COURSE DATA":"TUX RACER - MOBILE PROTOTYPE",
       (int)(w*.02f),(int)(h*.024f),clampf(w/250,2,5));
     snprintf(buf,sizeof(buf),"TIME %02d:%02d  SPEED %02d  FISH %d  HITS %d",
       (int)race->time/60,(int)race->time%60,(int)(race->speed*3.6f),race->fish,race->hits);
@@ -372,6 +444,7 @@ int main(int argc,char **argv) {
         if(w>0&&h>0)draw_scene(renderer,w,h,&race,&frame);
         else SDL_Delay(16);
     }
+    tux_original_terrain_free(&g_terrain);
     if(controller)SDL_GameControllerClose(controller);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();return 0;
 }
