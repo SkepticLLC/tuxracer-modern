@@ -1,3 +1,31 @@
+## Modern continuous terrain preview (iOS visual milestone)
+
+Default rendering now uses `ios/modern_terrain.c` for original Bunny Hill
+assets once the SGI maps load. It improves on the initial experimental
+projection:
+
+- A **continuous, shared-vertex** course mesh, drawn back-to-front through
+  SDL2's native Metal renderer; no disconnected terrain quads
+- Chase-camera easing, terrain-relative camera altitude, the course's real
+  downhill angle, and perspective foreshortening
+- Interpolated snow, rock, and ice colors from the original unmodified
+  `terrain.rgb`, height-based lighting from the original `elev.rgb`
+- Atmospheric distance blending and a GPU-drawn sky gradient
+- Temporary trees projected onto actual terrain heights with the same camera
+- Near-field terrain tessellation and avoiding the old background draw calls
+
+This is a **modern visual bridge**. It is not a port of the original full 3D
+Metal engine, character model, object placement, physics or course collision.
+
+In the iOS simulator **press M** to switch between the new continuous
+renderer and the prior terrain projection. Press R to restart the camera.
+For regressions, the older Metal smoke target remains available with
+`-DTUX_IOS_METAL_SMOKE=ON`.
+
+Expected header: `BUNNY HILL - MODERN TERRAIN`. The next step after the
+simulator visual review is to tune camera pitch, slope projection, and
+material colors, then replace temporary Tux/trees with the original models.
+
 # Tux Racer Modern — iOS 26+ Metal bootstrap
 
 Status: **interactive downhill prototype** by default on SDL2's Metal renderer.
