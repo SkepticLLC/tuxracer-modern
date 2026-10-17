@@ -45,6 +45,7 @@ add_executable(TuxRacerModernIOS MACOSX_BUNDLE
   scene_lifecycle.m
   original_course.c
   original_terrain.c
+  course_asset_paths.c
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform/mobile_input.c"
 )
 target_include_directories(TuxRacerModernIOS PRIVATE
