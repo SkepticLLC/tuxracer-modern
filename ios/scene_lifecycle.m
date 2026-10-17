@@ -7,8 +7,18 @@
  */
 #import <UIKit/UIKit.h>
 #import <dispatch/dispatch.h>
+#include <stdlib.h>
+#include <string.h>
 #import "SDL_uikitappdelegate.h"
 #include <SDL.h>
+
+/* Return a heap-owned path resolved by NSBundle, not by the process CWD.
+ * Caller frees this with free(). UIKit may change the CWD at launch. */
+char *TuxIOSCopyBundleResourcePath(void)
+{
+    const char *path = [[[NSBundle mainBundle] resourcePath] fileSystemRepresentation];
+    return path ? strdup(path) : NULL;
+}
 
 static __weak UIWindowScene *g_tuxWindowScene = nil;
 static BOOL g_gameStarted = NO;
