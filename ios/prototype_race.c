@@ -203,7 +203,7 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
       (int)race->time/60,(int)race->time%60,(int)(race->speed*3.6f),race->fish,race->hits);
     text(r,buf,(int)(w*.02f),(int)(h*.085f),clampf(w/280,2,4));
     color(r,15,50,78,190);rect(r,w*.15f,h*.945f,w*.70f,h*.027f);
-    color(r,238,183,56,255);rect(r,w*.15f,h*.945f,w*.70f*clampf(race->distance/TRACK_METERS,0,1),h*.027f);
+    color(r,238,183,56,255);rect(r,w*.15f,h*.945f,w*.70f*clampf(race->distance/g_track_meters,0,1),h*.027f);
     color(r,18,41,66,155);
     rect(r,0,h*.69f,w*.19f,h*.24f);rect(r,w*.81f,h*.69f,w*.19f,h*.24f);
     rect(r,w*.40f,h*.70f,w*.20f,h*.24f);
@@ -348,7 +348,7 @@ int main(int argc,char **argv) {
                     race.hits++;race.speed*=.50f;
                 } else race.fish++;
             }
-            if(race.distance>=TRACK_METERS){race.distance=TRACK_METERS;race.finished=1;}
+            if(race.distance>=g_track_meters){race.distance=g_track_meters;race.finished=1;}
         }
         int w=0,h=0;SDL_GetRendererOutputSize(renderer,&w,&h);
         if(w>0&&h>0)draw_scene(renderer,w,h,&race,&frame);
