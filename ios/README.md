@@ -130,6 +130,39 @@ physics/gameplay, Tcl, bundled courses/assets, audio
 interruptions, safe areas, touch/game-controller action mapping, and more
 complete scene restoration are separate future implementation gates.
 
+## Original Bunny Hill data integration — first engine port slice
+
+The iOS build now bundles the complete, unmodified original `data/` directory
+inside `TuxRacerModernIOS.app/data`. The native `original_course.c` parser
+reads the original `data/courses/bunny_hill/course.tcl` at runtime and passes
+Bunny Hill's playable length (470 meters) to the existing race timer, progress
+bar and finish state. Its 90m x 480m dimensions, 25-degree course angle and
+`elev.rgb` / `terrain.rgb` filenames are also loaded, but their bitmap
+contents are **not yet decoded or used to render terrain**.
+
+This is a compatibility milestone rather than a completed original-engine port.
+The downhill movement and course visuals remain the interim prototype.
+
+The metadata parsing test runs without an iOS build:
+
+```sh
+sh ios/test-original-course.sh
+```
+
+It checks the actual unmodified Bunny Hill file from the repository. The iOS
+debug console will log `Loaded ORIGINAL course metadata` on successful load,
+or explicitly warn that the app bundle lacks the source course.
+
+After the host test succeeds, generate the Xcode project as before and launch
+on the iOS 27 simulator. The header should read
+`BUNNY HILL - ORIGINAL COURSE DATA` and finishing should occur at the real
+470-meter playable length. If the header still says `MOBILE PROTOTYPE`,
+check bundle copy execution and the SDL_GetBasePath debug warning.
+
+**Next port slices:** decode original SGI RGB elevation and terrain maps,
+then connect sampling/collisions and eventually the original physics module
+plus embedded Tcl. Keep the macOS preservation release isolated.
+
 ## Playable control prototype (next development gate)
 
 The default `TuxRacerModernIOS` app now runs `ios/prototype_race.c` instead of
