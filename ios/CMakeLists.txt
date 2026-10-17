@@ -48,8 +48,17 @@ add_executable(TuxRacerModernIOS MACOSX_BUNDLE
 target_include_directories(TuxRacerModernIOS PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform"
 )
-# Scene delegate retains UIWindowScene using Objective-C ARC.
-target_compile_options(TuxRacerModernIOS PRIVATE "$<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>")
+# Xcode's Objective-C target defaults can differ from CMake generator
+# expressions. Enable ARC at both the Xcode target and per-source level.
+# The scene bridge declares a __weak UIWindowScene reference; compiling it
+# with manual reference counting fails before the linker runs.
+set_source_files_properties(
+  scene_lifecycle.m
+  PROPERTIES COMPILE_FLAGS "-fobjc-arc"
+)
+set_target_properties(TuxRacerModernIOS PROPERTIES
+  XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
+)
 set_target_properties(TuxRacerModernIOS PROPERTIES
   C_STANDARD 99
   C_STANDARD_REQUIRED ON
