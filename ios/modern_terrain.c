@@ -135,7 +135,9 @@ tux_modern_terrain *tux_modern_terrain_create(void){
     if(!r->vertices||!r->indices){tux_modern_terrain_destroy(r);return NULL;}
     int n=0;
     /* One connected strip of quads. Shared vertices eliminate cracks. */
-    for(int iz=0;iz<MESH_Z;iz++)for(int ix=0;ix<MESH_X;ix++){
+    /* The SDL 2D Metal backend has no depth buffer: painter-sort from far
+     * terrain to near terrain so the foreground correctly occludes distance. */
+    for(int iz=MESH_Z-1;iz>=0;iz--)for(int ix=0;ix<MESH_X;ix++){
         int a=iz*(MESH_X+1)+ix;
         int b=a+1,c=a+(MESH_X+1),d=c+1;
         r->indices[n++]=a;r->indices[n++]=b;r->indices[n++]=c;
