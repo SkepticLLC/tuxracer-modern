@@ -136,6 +136,31 @@ static void load_original_course(void) {
     int e=snprintf(elevation,sizeof(e),"%s/%s",prefix,g_course.elevation_file);
     int t=snprintf(terrain,sizeof(terrain),"%s/%s",prefix,g_course.terrain_file);
     if(e<0||t<0||(size_t)e>=sizeof(elevation)||(size_t)t>=sizeof(terrain))return;
+    /* Diagnose each bundled input independently before SGI decoding.
+     * The host decoder test already passes against the repository files. */
+    const char *image_paths[2]={elevation,terrain};
+    for(int k=0;k<2;k++){
+        FILE *asset=fopen(image_paths[k],"rb");
+        if(!asset){
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                "SGI ASSET %s NOT OPENABLE: %s (%s)",
+                k==0?"elevation":"terrain",image_paths[k],strerror(errno));
+            continue;
+        }
+        unsigned char header[12]={0};
+        size_t got=fread(header,1,sizeof(header),asset);
+        int seek_ok=fseek(asset,0,SEEK_END);
+        long bytes=seek_ok==0?ftell(asset):-1;
+        fclose(asset);
+        SDL_Log("SGI ASSET %s: bytes=%ld header_read=%zu magic=%02X%02X storage=%u bpc=%u size=%ux%u channels=%u path=%s",
+            k==0?"elevation":"terrain",bytes,got,
+            (unsigned)header[0],(unsigned)header[1],
+            (unsigned)header[2],(unsigned)header[3],
+            (unsigned)((header[6]<<8)|header[7]),
+            (unsigned)((header[8]<<8)|header[9]),
+            (unsigned)((header[10]<<8)|header[11]),
+            image_paths[k]);
+    }
     if(tux_original_terrain_load(&g_terrain,elevation,terrain)){
         g_original_terrain_loaded=1;
         SDL_Log("ORIGINAL TERRAIN LOADED: %dx%d SGI pixels; elevation and surface arrays ready",
