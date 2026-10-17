@@ -196,13 +196,12 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     }
     SDL_RenderPresent(r);
 }
-static void touch_event(tux_mobile_input *in,float x,float y,int down) {
-    if(!down){tux_mobile_input_reset(in);return;}
-    float steer=0;
-    if(x<.32f)steer=-1;
-    else if(x>.68f)steer=1;
-    tux_mobile_input_set_steering(in,steer);
-    tux_mobile_input_set_buttons(in,1,y>.89f&&x>.34f&&x<.66f,x>=.32f&&x<=.68f&&y<.89f,0,0);
+static void accumulate_touch(tux_mobile_input *in,float x,float y){
+    if(x<.32f)in->steering=-1;
+    else if(x>.68f)in->steering=1;
+    if(y>.89f&&x>.34f&&x<.66f)in->brake=1;
+    if(x>=.32f&&x<=.68f&&y<.89f)in->jump=1;
+    in->accelerate=1;
 }
 int main(int argc,char **argv) {
     (void)argc;(void)argv;
@@ -231,7 +230,8 @@ int main(int argc,char **argv) {
         }
     }
     Race race;reset(&race);
-    tux_mobile_input controls;tux_mobile_input_reset(&controls);
+    bool mouse_down=false;
+    float mouse_x=0,mouse_y=0;
     Uint64 last=SDL_GetPerformanceCounter();
     Uint64 frequency=SDL_GetPerformanceFrequency();
     bool running=true;
@@ -253,16 +253,16 @@ int main(int argc,char **argv) {
             case SDL_APP_DIDENTERBACKGROUND:race.paused=1;break;
             case SDL_APP_DIDENTERFOREGROUND:race.paused=0;break;
             case SDL_FINGERDOWN:
-            case SDL_FINGERMOTION:
-                if(race.finished){reset(&race);break;}
-                touch_event(&controls,event.tfinger.x,event.tfinger.y,1);break;
-            case SDL_FINGERUP:touch_event(&controls,0,0,0);break;
-            case SDL_MOUSEBUTTONDOWN: {
-                if(race.finished){reset(&race);break;}
-                int w=0,h=0;SDL_GetWindowSize(window,&w,&h);
-                if(w>0&&h>0)touch_event(&controls,(float)event.button.x/w,(float)event.button.y/h,1);
-            }break;
-            case SDL_MOUSEBUTTONUP:touch_event(&controls,0,0,0);break;
+                if(race.finished)reset(&race);
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                if(event.button.which==SDL_TOUCH_MOUSEID)break;
+                if(race.finished)reset(&race);
+                mouse_down=true;
+                break;
+            case SDL_MOUSEBUTTONUP:
+                if(event.button.which!=SDL_TOUCH_MOUSEID)mouse_down=false;
+                break;
             case SDL_KEYDOWN:
                 if(event.key.keysym.sym==SDLK_p||event.key.keysym.sym==SDLK_ESCAPE)race.paused=!race.paused;
                 if(event.key.keysym.sym==SDLK_r)reset(&race);
@@ -271,7 +271,24 @@ int main(int argc,char **argv) {
             }
         }
         const Uint8 *keys=SDL_GetKeyboardState(NULL);
-        tux_mobile_input frame=controls;
+        tux_mobile_input frame;
+        tux_mobile_input_reset(&frame);
+        /* Recompute simultaneous active touches each frame: steer + jump/brake. */
+        int devices=SDL_GetNumTouchDevices();
+        for(int t=0;t<devices;t++){
+            SDL_TouchID id=SDL_GetTouchDevice(t);
+            int fingers=SDL_GetNumTouchFingers(id);
+            for(int k=0;k<fingers;k++){
+                SDL_Finger *finger=SDL_GetTouchFinger(id,k);
+                if(finger)accumulate_touch(&frame,finger->x,finger->y);
+            }
+        }
+        if(mouse_down){
+            int w=0,h=0,mx=0,my=0;
+            SDL_GetWindowSize(window,&w,&h);
+            SDL_GetMouseState(&mx,&my);
+            if(w>0&&h>0)accumulate_touch(&frame,(float)mx/w,(float)my/h);
+        }
         if(keys[SDL_SCANCODE_LEFT]||keys[SDL_SCANCODE_A])frame.steering=-1;
         if(keys[SDL_SCANCODE_RIGHT]||keys[SDL_SCANCODE_D])frame.steering=1;
         if(keys[SDL_SCANCODE_SPACE]||keys[SDL_SCANCODE_UP])frame.jump=1;
