@@ -12,6 +12,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include "mobile_input.h"
 #include "original_course.h"
@@ -86,26 +88,42 @@ static void text(SDL_Renderer *r,const char *message,int x,int y,int scale) {
     }
 }
 static float clampf(float x,float a,float b) {return x<a?a:x>b?b:x;}
+/* Implemented in the existing Objective-C UIKit bridge. Heap-owned C path. */
+extern char *TuxIOSCopyBundleResourcePath(void);
 static void load_original_course(void) {
-    /* SDL_GetBasePath points into the .app bundle on iOS. Asset paths stay
-     * read-only; save data must use SDL_GetPrefPath separately. */
-    char path[2048];
-    char *base = SDL_GetBasePath();
-    if (!base) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,"SDL_GetBasePath unavailable");
+    char path[4096];
+    char *base=TuxIOSCopyBundleResourcePath();
+    if(!base){
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+          "ORIGINAL COURSE: NSBundle resourcePath unavailable");
         return;
     }
-    int n=snprintf(path,sizeof(path),"%sdata/courses/bunny_hill/course.tcl",base);
-    SDL_free(base);
-    if(n<0||(size_t)n>=sizeof(path))return;
-    if(tux_original_course_load(path,&g_course)){
-        g_original_course_loaded=1;
-        g_track_meters=g_course.play_length_m;
-        SDL_Log("Loaded ORIGINAL course metadata: %s, %.0f x %.0f m, slope %.1f deg, elevation %s, terrain %s",
-          g_course.name,g_course.width_m,g_course.length_m,g_course.angle_deg,
-          g_course.elevation_file,g_course.terrain_file);
-    }else SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-      "Original Bunny Hill course metadata missing at %s; retaining prototype track",path);
+    int n=snprintf(path,sizeof(path),
+      "%s/data/courses/bunny_hill/course.tcl",base);
+    SDL_Log("ORIGINAL COURSE: bundle resource root: %s",base);
+    free(base);
+    if(n<0||(size_t)n>=sizeof(path)){
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,"ORIGINAL COURSE: path overflow");
+        return;
+    }
+    FILE *probe=fopen(path,"rb");
+    if(!probe){
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+          "ORIGINAL COURSE: FILE MISSING: %s (errno %d: %s)",
+          path,errno,strerror(errno));
+        return;
+    }
+    fclose(probe);
+    if(!tux_original_course_load(path,&g_course)){
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+          "ORIGINAL COURSE: FILE EXISTS but parser rejected it: %s",path);
+        return;
+    }
+    g_original_course_loaded=1;
+    g_track_meters=g_course.play_length_m;
+    SDL_Log("ORIGINAL COURSE LOADED: %s, %.0f x %.0f m, slope %.1f deg, %s and %s",
+      g_course.name,g_course.width_m,g_course.length_m,g_course.angle_deg,
+      g_course.elevation_file,g_course.terrain_file);
 }
 static void reset(Race *race) {
     memset(race,0,sizeof(*race));
