@@ -338,26 +338,35 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
         }
     }
     draw_penguin(r,w*.50f,ground+h*.065f,clampf(h*.17f,30,155),-in->steering*w*.013f,race->jump_time>0);
-    color(r,10,40,64,220);rect(r,0,0,w,h*.13f);
+    int modern_ui=g_original_terrain_loaded&&g_modern_enabled&&g_modern_terrain;
+    color(r,8,31,54,modern_ui?184:220);rect(r,0,0,w,h*.13f);
     color(r,245,250,252,255);
+    int title_x=(int)(w*(modern_ui?.07f:.02f));
     char buf[96];
     text(r,g_original_terrain_loaded&&g_modern_enabled&&g_modern_terrain?
         "BUNNY HILL - MODERN TERRAIN":
         g_original_terrain_loaded?"BUNNY HILL - ORIGINAL TERRAIN":
         g_original_course_loaded?"BUNNY HILL - ORIGINAL COURSE DATA":"TUX RACER - MOBILE PROTOTYPE",
-      (int)(w*.02f),(int)(h*.024f),clampf(w/250,2,5));
+      title_x,(int)(h*.024f),clampf(w/250,2,5));
     snprintf(buf,sizeof(buf),"TIME %02d:%02d  SPEED %02d  FISH %d  HITS %d",
       (int)race->time/60,(int)race->time%60,(int)(race->speed*3.6f),race->fish,race->hits);
-    text(r,buf,(int)(w*.02f),(int)(h*.085f),clampf(w/280,2,4));
+    text(r,buf,title_x,(int)(h*.085f),clampf(w/280,2,4));
     color(r,15,50,78,190);rect(r,w*.15f,h*.945f,w*.70f,h*.027f);
     color(r,238,183,56,255);rect(r,w*.15f,h*.945f,w*.70f*clampf(race->distance/g_track_meters,0,1),h*.027f);
-    color(r,18,41,66,155);
-    rect(r,0,h*.69f,w*.19f,h*.24f);rect(r,w*.81f,h*.69f,w*.19f,h*.24f);
-    rect(r,w*.40f,h*.70f,w*.20f,h*.24f);
+    color(r,18,41,66,modern_ui?104:155);
+    if(modern_ui){
+        rect(r,w*.025f,h*.765f,w*.145f,h*.15f);
+        rect(r,w*.83f,h*.765f,w*.145f,h*.15f);
+        rect(r,w*.43f,h*.765f,w*.14f,h*.15f);
+    }else{
+        rect(r,0,h*.69f,w*.19f,h*.24f);
+        rect(r,w*.81f,h*.69f,w*.19f,h*.24f);
+        rect(r,w*.40f,h*.70f,w*.20f,h*.24f);
+    }
     color(r,255,255,255,255);
-    text(r,"LEFT",(int)(w*.025f),(int)(h*.78f),clampf(w/255,2,4));
-    text(r,"RIGHT",(int)(w*.824f),(int)(h*.78f),clampf(w/255,2,4));
-    text(r,"JUMP",(int)(w*.435f),(int)(h*.78f),clampf(w/255,2,4));
+    text(r,"LEFT",(int)(w*.035f),(int)(h*.81f),clampf(w/255,2,4));
+    text(r,"RIGHT",(int)(w*.84f),(int)(h*.81f),clampf(w/255,2,4));
+    text(r,"JUMP",(int)(w*.45f),(int)(h*.81f),clampf(w/255,2,4));
     if(race->finished){
         color(r,11,35,57,240);rect(r,w*.19f,h*.24f,w*.62f,h*.38f);
         color(r,244,240,179,255);
