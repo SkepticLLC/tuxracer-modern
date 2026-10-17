@@ -19,6 +19,7 @@
 #include "original_course.h"
 #include "original_terrain.h"
 #include "course_asset_paths.h"
+#include "modern_terrain.h"
 
 #define FALLBACK_TRACK_METERS 1200.0f
 static tux_original_course g_course;
@@ -26,6 +27,8 @@ static float g_track_meters = FALLBACK_TRACK_METERS;
 static int g_original_course_loaded = 0;
 static tux_original_terrain g_terrain = {0};
 static int g_original_terrain_loaded = 0;
+static tux_modern_terrain *g_modern_terrain = NULL;
+static int g_modern_enabled = 1;
 #define PI 3.14159265358979323846f
 
 typedef struct {
@@ -282,7 +285,12 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     color(r,219,238,240,255);rect(r,0,horizon,w,h-horizon);
     color(r,235,247,247,255);rect(r,0,h*.70f,w,h*.30f);
     if(g_original_terrain_loaded) {
-        draw_original_terrain(r,w,h,race);
+        if(g_modern_enabled && g_modern_terrain) {
+            if(!tux_modern_terrain_draw(g_modern_terrain,r,w,h,&g_terrain,&g_course))
+                draw_original_terrain(r,w,h,race);
+        } else {
+            draw_original_terrain(r,w,h,race);
+        }
     } else {
     const int strips=65;
     for(int i=strips-1;i>=0;i--){
@@ -302,7 +310,8 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
         }
     }
     }
-    /* Obstacles are temporary until original trees.rgb placement is loaded. */
+    /* Legacy floating trees are disabled when using real 3D terrain. */
+    if(!g_original_terrain_loaded || !g_modern_enabled || !g_modern_terrain)
     for(int i=0;i<45;i++){
         float dz=obstacle_z(i)-race->distance;
         if(dz<3||dz>160)continue;
@@ -316,7 +325,9 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     color(r,10,40,64,220);rect(r,0,0,w,h*.13f);
     color(r,245,250,252,255);
     char buf[96];
-    text(r,g_original_terrain_loaded?"BUNNY HILL - ORIGINAL TERRAIN":
+    text(r,g_original_terrain_loaded&&g_modern_enabled&&g_modern_terrain?
+        "BUNNY HILL - MODERN TERRAIN":
+        g_original_terrain_loaded?"BUNNY HILL - ORIGINAL TERRAIN":
         g_original_course_loaded?"BUNNY HILL - ORIGINAL COURSE DATA":"TUX RACER - MOBILE PROTOTYPE",
       (int)(w*.02f),(int)(h*.024f),clampf(w/250,2,5));
     snprintf(buf,sizeof(buf),"TIME %02d:%02d  SPEED %02d  FISH %d  HITS %d",
@@ -376,7 +387,14 @@ int main(int argc,char **argv) {
         }
     }
     load_original_course();
+    if(g_original_terrain_loaded){
+        g_modern_terrain=tux_modern_terrain_create();
+        if(!g_modern_terrain)
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                "MODERN TERRAIN: buffer allocation failed; using legacy projection");
+    }
     Race race;reset(&race);
+    if(g_modern_terrain)tux_modern_terrain_reset(g_modern_terrain,race.distance,race.x);
     bool mouse_down=false;
     float mouse_x=0,mouse_y=0;
     Uint64 last=SDL_GetPerformanceCounter();
@@ -400,7 +418,8 @@ int main(int argc,char **argv) {
             case SDL_APP_DIDENTERBACKGROUND:race.paused=1;break;
             case SDL_APP_DIDENTERFOREGROUND:race.paused=0;break;
             case SDL_FINGERDOWN:
-                if(race.finished)reset(&race);
+                if(race.finished){reset(&race);
+                    tux_modern_terrain_reset(g_modern_terrain,race.distance,race.x);}
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 if(event.button.which==SDL_TOUCH_MOUSEID)break;
@@ -412,7 +431,15 @@ int main(int argc,char **argv) {
                 break;
             case SDL_KEYDOWN:
                 if(event.key.keysym.sym==SDLK_p||event.key.keysym.sym==SDLK_ESCAPE)race.paused=!race.paused;
-                if(event.key.keysym.sym==SDLK_r)reset(&race);
+                if(event.key.keysym.sym==SDLK_r){
+                    reset(&race);
+                    tux_modern_terrain_reset(g_modern_terrain,race.distance,race.x);
+                }
+                if(event.key.keysym.sym==SDLK_m){
+                    g_modern_enabled=!g_modern_enabled;
+                    SDL_Log("Terrain projection: %s",
+                      g_modern_enabled?"modern continuous":"legacy prototype");
+                }
                 break;
             default:break;
             }
@@ -470,10 +497,13 @@ int main(int argc,char **argv) {
             }
             if(race.distance>=g_track_meters){race.distance=g_track_meters;race.finished=1;}
         }
+        if(g_modern_terrain && g_original_terrain_loaded)
+            tux_modern_terrain_update(g_modern_terrain,dt,race.distance,race.x,&g_course);
         int w=0,h=0;SDL_GetRendererOutputSize(renderer,&w,&h);
         if(w>0&&h>0)draw_scene(renderer,w,h,&race,&frame);
         else SDL_Delay(16);
     }
+    tux_modern_terrain_destroy(g_modern_terrain);
     tux_original_terrain_free(&g_terrain);
     if(controller)SDL_GameControllerClose(controller);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();return 0;
