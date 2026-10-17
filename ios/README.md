@@ -130,6 +130,28 @@ physics/gameplay, Tcl, bundled courses/assets, audio
 interruptions, safe areas, touch/game-controller action mapping, and more
 complete scene restoration are separate future implementation gates.
 
+## Troubleshooting: original course header remains prototype
+
+The original data folder now participates in Xcode's native **Copy Bundle
+Resources** build phase; it is no longer copied by a custom PRE_LINK command.
+Course lookup uses `NSBundle.mainBundle.resourcePath` rather than assuming
+the SDL base path or CWD is the app bundle root.
+
+After generating the project and building, verify real bundle contents with:
+
+```sh
+sh ios/verify-bundle-assets.sh
+sh ios/test-original-course.sh
+```
+
+The first check inspects the compiled app for `course.tcl`, `elev.rgb`,
+`terrain.rgb` and the original initialization scripts. It does not rebuild.
+The second checks the parser against the original repository source.
+
+Debug console output now distinguishes **FILE MISSING** (asset packaging or
+runtime path) from **FILE EXISTS but parser rejected it** (content/parser issue).
+The header changes only after the original course metadata has been loaded.
+
 ## Original Bunny Hill data integration — first engine port slice
 
 The iOS build now bundles the complete, unmodified original `data/` directory
