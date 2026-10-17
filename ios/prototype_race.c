@@ -223,6 +223,13 @@ int main(int argc,char **argv) {
     SDL_Log("Tux iOS playable prototype renderer: %s",info.name);
     if(strcmp(info.name,"metal")!=0)SDL_LogWarn(SDL_LOG_CATEGORY_RENDER,"Metal renderer was requested but not selected");
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    SDL_GameController *controller=NULL;
+    for(int i=0;i<SDL_NumJoysticks();i++){
+        if(SDL_IsGameController(i)){
+            controller=SDL_GameControllerOpen(i);
+            if(controller)break;
+        }
+    }
     Race race;reset(&race);
     tux_mobile_input controls;tux_mobile_input_reset(&controls);
     Uint64 last=SDL_GetPerformanceCounter();
@@ -233,6 +240,15 @@ int main(int argc,char **argv) {
         while(SDL_PollEvent(&event)){
             switch(event.type){
             case SDL_QUIT:running=false;break;
+            case SDL_CONTROLLERDEVICEADDED:
+                if(!controller&&SDL_IsGameController(event.cdevice.which))
+                    controller=SDL_GameControllerOpen(event.cdevice.which);
+                break;
+            case SDL_CONTROLLERDEVICEREMOVED:
+                if(controller&&SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))==event.cdevice.which){
+                    SDL_GameControllerClose(controller);controller=NULL;
+                }
+                break;
             case SDL_APP_WILLENTERBACKGROUND:
             case SDL_APP_DIDENTERBACKGROUND:race.paused=1;break;
             case SDL_APP_DIDENTERFOREGROUND:race.paused=0;break;
@@ -260,6 +276,17 @@ int main(int argc,char **argv) {
         if(keys[SDL_SCANCODE_RIGHT]||keys[SDL_SCANCODE_D])frame.steering=1;
         if(keys[SDL_SCANCODE_SPACE]||keys[SDL_SCANCODE_UP])frame.jump=1;
         if(keys[SDL_SCANCODE_DOWN]||keys[SDL_SCANCODE_S])frame.brake=1;
+        if(controller){
+            Sint16 axis=SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_LEFTX);
+            float analog=(float)axis/32768.0f;
+            if(fabsf(analog)>.16f)frame.steering=analog;
+            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_A))
+                frame.jump=1;
+            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_B))
+                frame.brake=1;
+            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_START))
+                frame.pause=1;
+        }
         Uint64 now=SDL_GetPerformanceCounter();
         float dt=clampf((float)((double)(now-last)/(double)frequency),0.0f,.05f);
         last=now;
@@ -283,5 +310,6 @@ int main(int argc,char **argv) {
         if(w>0&&h>0)draw_scene(renderer,w,h,&race,&frame);
         else SDL_Delay(16);
     }
+    if(controller)SDL_GameControllerClose(controller);
     SDL_DestroyRenderer(renderer);SDL_DestroyWindow(window);SDL_Quit();return 0;
 }
