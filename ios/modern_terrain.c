@@ -172,6 +172,31 @@ void tux_modern_terrain_update(tux_modern_terrain *r,float dt,
     r->last_x=player_x;
 }
 
+int tux_modern_terrain_project(const tux_modern_terrain *r,
+                               const tux_original_terrain *map,
+                               const tux_original_course *course,
+                               int width,int height,
+                               float world_x,float world_z,float height_offset,
+                               float *screen_x,float *screen_y,float *pixel_per_meter){
+    if(!r||!map||!course||!screen_x||!screen_y||!pixel_per_meter||
+       course->width_m<=0||course->length_m<=0||height<=0||width<=0)
+        return 0;
+    float dz=world_z-r->camera_z;
+    if(dz<2.5f||dz>215.0f)return 0;
+    float pitch=bound(course->angle_deg+4.0f,18.0f,38.0f)*PI_F/180.0f;
+    float s=sinf(pitch),co=cosf(pitch);
+    float cam_y=ground_y(map,course,r->camera_x,r->camera_z)+4.9f;
+    float dy=ground_y(map,course,world_x,world_z)+height_offset-cam_y;
+    float depth=dz*co-dy*s;
+    if(depth<.1f)return 0;
+    float focal=height*.99f;
+    float scale=focal/depth;
+    *screen_x=width*.5f+(world_x-r->camera_x)*scale;
+    *screen_y=height*.50f-(dy*co+dz*s)*scale;
+    *pixel_per_meter=scale;
+    return 1;
+}
+
 int tux_modern_terrain_draw(tux_modern_terrain *r,SDL_Renderer *render,
                             int width,int height,
                             const tux_original_terrain *map,
