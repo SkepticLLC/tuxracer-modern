@@ -130,9 +130,9 @@ static void load_original_course(void) {
     char prefix[4096],elevation[4096],terrain[4096];
     char *root=TuxIOSCopyBundleResourcePath();
     if(!root)return;
-    int n=snprintf(prefix,sizeof(prefix),"%s/data/courses/bunny_hill",root);
+    int prefix_len=snprintf(prefix,sizeof(prefix),"%s/data/courses/bunny_hill",root);
     free(root);
-    if(n<0||(size_t)n>=sizeof(prefix))return;
+    if(prefix_len<0||(size_t)prefix_len>=sizeof(prefix))return;
     int e=snprintf(elevation,sizeof(e),"%s/%s",prefix,g_course.elevation_file);
     int t=snprintf(terrain,sizeof(terrain),"%s/%s",prefix,g_course.terrain_file);
     if(e<0||t<0||(size_t)e>=sizeof(elevation)||(size_t)t>=sizeof(terrain))return;
