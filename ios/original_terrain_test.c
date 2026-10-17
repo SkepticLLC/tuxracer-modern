@@ -37,7 +37,7 @@ static int write_sgi(const char *path,int rle,int reverse){
     }
     fclose(f);return 1;
 }
-int main(void){
+int main(int argc,char **argv){
     const char *e="/tmp/tux_sgi_elev_test.rgb";
     const char *t="/tmp/tux_sgi_surface_test.rgb";
     tux_original_terrain map={0};
@@ -60,6 +60,21 @@ int main(void){
         fprintf(stderr,"FAIL: truncated map accepted\n");return 1;
     }
     remove(e);remove(t);
+    if(argc==3) {
+        if(!tux_original_terrain_load(&map,argv[1],argv[2])){
+            fprintf(stderr,"FAIL: could not decode real original Bunny Hill maps\n");
+            return 1;
+        }
+        if(map.width!=90 || map.height!=240) {
+            fprintf(stderr,"FAIL: original map dimensions %dx%d expected 90x240\n",
+              map.width,map.height);
+            return 1;
+        }
+        printf("PASS: ORIGINAL Bunny Hill terrain maps %dx%d, center elev %.1f, center type %d\n",
+          map.width,map.height,tux_original_elevation(&map,.5f,.5f),
+          tux_original_surface(&map,.5f,.5f));
+        tux_original_terrain_free(&map);
+    }
     puts("PASS: raw + RLE SGI RGB decoding, original coordinate flip, sampling and invalid-file guard");
     return 0;
 }
