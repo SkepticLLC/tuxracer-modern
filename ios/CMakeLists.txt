@@ -33,9 +33,20 @@ if(TARGET SDL2-static)
   target_compile_definitions(SDL2-static PRIVATE HAVE_GCC_ATOMICS=1)
 endif()
 
+option(TUX_IOS_METAL_SMOKE "Run the known-good dark blue Metal smoke target" OFF)
+if(TUX_IOS_METAL_SMOKE)
+  set(TUX_IOS_ENTRY metal_smoke_main.m)
+else()
+  set(TUX_IOS_ENTRY prototype_race.c)
+endif()
+
 add_executable(TuxRacerModernIOS MACOSX_BUNDLE
-  metal_smoke_main.m
+  ${TUX_IOS_ENTRY}
   scene_lifecycle.m
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform/mobile_input.c"
+)
+target_include_directories(TuxRacerModernIOS PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform"
 )
 # Scene delegate retains UIWindowScene using Objective-C ARC.
 target_compile_options(TuxRacerModernIOS PRIVATE "$<$<COMPILE_LANGUAGE:OBJC>:-fobjc-arc>")
