@@ -18,6 +18,7 @@
 #include "mobile_input.h"
 #include "original_course.h"
 #include "original_terrain.h"
+#include "course_asset_paths.h"
 
 #define FALLBACK_TRACK_METERS 1200.0f
 static tux_original_course g_course;
@@ -127,24 +128,27 @@ static void load_original_course(void) {
     SDL_Log("ORIGINAL COURSE LOADED: %s, %.0f x %.0f m, slope %.1f deg, %s and %s",
       g_course.name,g_course.width_m,g_course.length_m,g_course.angle_deg,
       g_course.elevation_file,g_course.terrain_file);
-    char prefix[4096],elevation[4096],terrain[4096];
-    char *root=TuxIOSCopyBundleResourcePath();
-    if(!root)return;
-    int prefix_len=snprintf(prefix,sizeof(prefix),"%s/data/courses/bunny_hill",root);
-    free(root);
-    if(prefix_len<0||(size_t)prefix_len>=sizeof(prefix))return;
-    int e=snprintf(elevation,sizeof(e),"%s/%s",prefix,g_course.elevation_file);
-    int t=snprintf(terrain,sizeof(terrain),"%s/%s",prefix,g_course.terrain_file);
-    if(e<0||t<0||(size_t)e>=sizeof(elevation)||(size_t)t>=sizeof(terrain))return;
-    /* Diagnose each bundled input independently before SGI decoding.
-     * The host decoder test already passes against the repository files. */
+    /* course.tcl already opened and parsed successfully. Resolve the SGI
+     * siblings directly from that proven pathname, not via three additional
+     * 4 KiB stack buffers and a second independent bundle path lookup. */
+    char *elevation=NULL,*terrain=NULL;
+    if(!tux_course_asset_paths(path,g_course.elevation_file,g_course.terrain_file,
+                               &elevation,&terrain)){
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+          "ORIGINAL TERRAIN: sibling asset paths rejected");
+        return;
+    }
+    SDL_Log("ORIGINAL TERRAIN PATHS: elevation='%s' (%zu bytes), terrain='%s' (%zu bytes)",
+        elevation,strlen(elevation),terrain,strlen(terrain));
     const char *image_paths[2]={elevation,terrain};
+    int accessible=1;
     for(int k=0;k<2;k++){
         FILE *asset=fopen(image_paths[k],"rb");
         if(!asset){
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                 "SGI ASSET %s NOT OPENABLE: %s (%s)",
                 k==0?"elevation":"terrain",image_paths[k],strerror(errno));
+            accessible=0;
             continue;
         }
         unsigned char header[12]={0};
@@ -152,23 +156,24 @@ static void load_original_course(void) {
         int seek_ok=fseek(asset,0,SEEK_END);
         long bytes=seek_ok==0?ftell(asset):-1;
         fclose(asset);
-        SDL_Log("SGI ASSET %s: bytes=%ld header_read=%zu magic=%02X%02X storage=%u bpc=%u size=%ux%u channels=%u path=%s",
+        SDL_Log("SGI ASSET %s: bytes=%ld header_read=%zu magic=%02X%02X storage=%u bpc=%u size=%ux%u channels=%u",
             k==0?"elevation":"terrain",bytes,got,
             (unsigned)header[0],(unsigned)header[1],
             (unsigned)header[2],(unsigned)header[3],
             (unsigned)((header[6]<<8)|header[7]),
             (unsigned)((header[8]<<8)|header[9]),
-            (unsigned)((header[10]<<8)|header[11]),
-            image_paths[k]);
+            (unsigned)((header[10]<<8)|header[11]));
     }
-    if(tux_original_terrain_load(&g_terrain,elevation,terrain)){
+    if(accessible&&tux_original_terrain_load(&g_terrain,elevation,terrain)){
         g_original_terrain_loaded=1;
         SDL_Log("ORIGINAL TERRAIN LOADED: %dx%d SGI pixels; elevation and surface arrays ready",
             g_terrain.width,g_terrain.height);
     }else{
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-           "ORIGINAL TERRAIN FAILED: elevation=%s terrain=%s",elevation,terrain);
+           "ORIGINAL TERRAIN FAILED: elevation='%s' terrain='%s'",elevation,terrain);
     }
+    free(elevation);
+    free(terrain);
 }
 static void reset(Race *race) {
     memset(race,0,sizeof(*race));
