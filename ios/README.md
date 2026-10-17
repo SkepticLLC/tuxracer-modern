@@ -1,7 +1,9 @@
 # Tux Racer Modern — iOS 26+ Metal bootstrap
 
-Status: **SDL2/Metal smoke target only**. This draws a dark blue screen; it does
-not yet compile the original game, load courses, or provide touch controls.
+Status: **interactive downhill prototype** by default on SDL2's Metal renderer.
+This is a playable *control sandbox*, **not yet the original Tux Racer engine,
+physics, character model, or original Tcl courses**. The tested dark-blue
+Metal smoke app remains available using `-DTUX_IOS_METAL_SMOKE=ON`.
 The macOS preservation build is unaffected.
 
 ## iOS 27 SDK: UIScene lifecycle migration
@@ -123,6 +125,55 @@ Track them separately for the next dependency/platform cleanup.
 - Physical iOS 26+ device test follows once simulator is stable.
 - SDL2 source warning count is reduced; any remaining warnings are categorized.
 
-The smoke source now pauses on background. Full gameplay, Tcl, assets, audio
+The interactive prototype and smoke source pause on background. Original
+physics/gameplay, Tcl, bundled courses/assets, audio
 interruptions, safe areas, touch/game-controller action mapping, and more
 complete scene restoration are separate future implementation gates.
+
+## Playable control prototype (next development gate)
+
+The default `TuxRacerModernIOS` app now runs `ios/prototype_race.c` instead of
+`metal_smoke_main.m`. It uses `SDL_CreateRenderer` with the Metal driver,
+imports the existing cross-platform `src/platform/mobile_input.c` abstraction,
+and provides an interactive downhill race with a finish line, timer, touch
+steering, braking, jumping, collisions and score. It is a deliberately small
+throwaway **playability test** while the original OpenGL-dependent renderer,
+physics and Tcl are ported. No claim of original gameplay parity is made.
+
+**Controls:** hold the lower-left or lower-right overlay to steer; tap/hold
+center to jump; press lower center edge to brake. In the simulator keyboard:
+left/right or A/D steer, Space/up jumps, S/down brakes, P or Escape pauses,
+R restarts. Game controllers: left stick steer, A jump, B brake.
+
+**Launch:**
+
+```sh
+sh ios/build-xcode.sh iphonesimulator
+open "$HOME/Library/Caches/tuxracer-modern-ios/iphonesimulator/TuxRacerModernIOS.xcodeproj"
+```
+
+Select a concrete iOS 27 simulator destination and press Command+R. The screen
+should show a TUX RACER - MOBILE PROTOTYPE header, track, moving penguin,
+controls, timer and progress bar. Expect warnings from SDL2 dependency code;
+report fatal compile/link errors separately. This new target has **not yet been
+built on the developer's iOS 27 Xcode SDK**.
+
+To return to the known-good original dark-blue smoke target:
+
+```sh
+cmake -S ios -B "$HOME/Library/Caches/tuxracer-modern-ios/iphonesimulator" -G Xcode \\
+  -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \\
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=26.0 -DTUX_IOS_METAL_SMOKE=ON
+```
+
+Disable fallback later with `-DTUX_IOS_METAL_SMOKE=OFF`.
+
+### Full Tux Racer port blocker
+
+The macOS Modern branch (`feature/renderer-abstraction`) has substantial Metal
+work, but its CMake target still requires `OpenGL::GL`, `OpenGL::GLU`, Tcl,
+SDL2_mixer and macOS `AppKit`. Its renderer also uses some legacy GL paths.
+The original game cannot simply be added to this iOS target. The next real
+port gate is to extract a platform-agnostic game loop/physics and adapt the
+Modern Metal renderer from macOS window presentation to iOS SDL Metal layer.
+This prototype must not be shipped as a replacement for the original game.
