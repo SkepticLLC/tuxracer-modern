@@ -14,8 +14,12 @@
 #include <stdio.h>
 #include <string.h>
 #include "mobile_input.h"
+#include "original_course.h"
 
-#define TRACK_METERS 1200.0f
+#define FALLBACK_TRACK_METERS 1200.0f
+static tux_original_course g_course;
+static float g_track_meters = FALLBACK_TRACK_METERS;
+static int g_original_course_loaded = 0;
 #define PI 3.14159265358979323846f
 
 typedef struct {
@@ -82,6 +86,27 @@ static void text(SDL_Renderer *r,const char *message,int x,int y,int scale) {
     }
 }
 static float clampf(float x,float a,float b) {return x<a?a:x>b?b:x;}
+static void load_original_course(void) {
+    /* SDL_GetBasePath points into the .app bundle on iOS. Asset paths stay
+     * read-only; save data must use SDL_GetPrefPath separately. */
+    char path[2048];
+    char *base = SDL_GetBasePath();
+    if (!base) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,"SDL_GetBasePath unavailable");
+        return;
+    }
+    int n=snprintf(path,sizeof(path),"%sdata/courses/bunny_hill/course.tcl",base);
+    SDL_free(base);
+    if(n<0||(size_t)n>=sizeof(path))return;
+    if(tux_original_course_load(path,&g_course)){
+        g_original_course_loaded=1;
+        g_track_meters=g_course.play_length_m;
+        SDL_Log("Loaded ORIGINAL course metadata: %s, %.0f x %.0f m, slope %.1f deg, elevation %s, terrain %s",
+          g_course.name,g_course.width_m,g_course.length_m,g_course.angle_deg,
+          g_course.elevation_file,g_course.terrain_file);
+    }else SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+      "Original Bunny Hill course metadata missing at %s; retaining prototype track",path);
+}
 static void reset(Race *race) {
     memset(race,0,sizeof(*race));
     race->speed=9.0f;
@@ -172,7 +197,8 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     color(r,10,40,64,220);rect(r,0,0,w,h*.13f);
     color(r,245,250,252,255);
     char buf[96];
-    text(r,"TUX RACER - MOBILE PROTOTYPE",(int)(w*.02f),(int)(h*.024f),clampf(w/215,2,5));
+    text(r,g_original_course_loaded?"BUNNY HILL - ORIGINAL COURSE DATA":"TUX RACER - MOBILE PROTOTYPE",
+      (int)(w*.02f),(int)(h*.024f),clampf(w/250,2,5));
     snprintf(buf,sizeof(buf),"TIME %02d:%02d  SPEED %02d  FISH %d  HITS %d",
       (int)race->time/60,(int)race->time%60,(int)(race->speed*3.6f),race->fish,race->hits);
     text(r,buf,(int)(w*.02f),(int)(h*.085f),clampf(w/280,2,4));
@@ -229,6 +255,7 @@ int main(int argc,char **argv) {
             if(controller)break;
         }
     }
+    load_original_course();
     Race race;reset(&race);
     bool mouse_down=false;
     float mouse_x=0,mouse_y=0;
