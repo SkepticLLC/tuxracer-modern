@@ -319,7 +319,7 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
             float sx=0,sy=0,scale=0;
             if(tux_modern_terrain_project(g_modern_terrain,&g_terrain,&g_course,
                 w,h,x,z,0,&sx,&sy,&scale)){
-                float size=bound(scale*3.2f,2,220);
+                float size=clampf(scale*3.2f,2,220);
                 if(sx>-size&&sx<w+size&&sy>-size&&sy<h+size)
                     draw_tree(r,sx,sy,size);
             }
