@@ -310,16 +310,30 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
         }
     }
     }
-    /* Legacy floating trees are disabled when using real 3D terrain. */
-    if(!g_original_terrain_loaded || !g_modern_enabled || !g_modern_terrain)
-    for(int i=0;i<45;i++){
-        float dz=obstacle_z(i)-race->distance;
-        if(dz<3||dz>160)continue;
-        float p=1.0f/(1.0f+dz*.045f);
-        float cy=ground-(ground-horizon)*(dz/(dz+30.0f));
-        float cx=w*.5f+(path(race->distance+dz)-race->x*.24f)*w*.18f;
-        float treeX=cx+obstacle_x(i)*w*(.12f+.30f*p);
-        draw_tree(r,treeX,cy,clampf(p*w*.095f,4,125));
+    /* Place temporary scenery on the actual original elevation surface,
+     * using the same camera as the terrain, far-to-near for layering. */
+    if(g_original_terrain_loaded && g_modern_enabled && g_modern_terrain){
+        for(int i=44;i>=0;i--){
+            float x=g_course.width_m*(.5f+obstacle_x(i)*.23f);
+            float z=obstacle_z(i);
+            float sx=0,sy=0,scale=0;
+            if(tux_modern_terrain_project(g_modern_terrain,&g_terrain,&g_course,
+                w,h,x,z,0,&sx,&sy,&scale)){
+                float size=bound(scale*3.2f,2,220);
+                if(sx>-size&&sx<w+size&&sy>-size&&sy<h+size)
+                    draw_tree(r,sx,sy,size);
+            }
+        }
+    }else{
+        for(int i=0;i<45;i++){
+            float dz=obstacle_z(i)-race->distance;
+            if(dz<3||dz>160)continue;
+            float p=1.0f/(1.0f+dz*.045f);
+            float cy=ground-(ground-horizon)*(dz/(dz+30.0f));
+            float cx=w*.5f+(path(race->distance+dz)-race->x*.24f)*w*.18f;
+            float treeX=cx+obstacle_x(i)*w*(.12f+.30f*p);
+            draw_tree(r,treeX,cy,clampf(p*w*.095f,4,125));
+        }
     }
     draw_penguin(r,w*.50f,ground+h*.065f,clampf(h*.17f,30,155),-in->steering*w*.013f,race->jump_time>0);
     color(r,10,40,64,220);rect(r,0,0,w,h*.13f);
