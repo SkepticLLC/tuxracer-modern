@@ -130,6 +130,33 @@ physics/gameplay, Tcl, bundled courses/assets, audio
 interruptions, safe areas, touch/game-controller action mapping, and more
 complete scene restoration are separate future implementation gates.
 
+## Original Bunny Hill elevation and snow/rock/ice surface rendering
+
+The playable prototype now decodes the **original, unmodified** SGI RGB
+`data/courses/bunny_hill/elev.rgb` and `terrain.rgb` maps (90x240).
+The lightweight C decoder supports both raw and run-length-encoded SGI data
+and follows the original Tux Racer `course_load.c` X/Y inversion. Its output
+feeds a perspective-projected SDL geometry mesh, rendered by the Metal
+backend. Snow/rock/ice colors derive from the original surface pixel values
+using the same reference intensities (0 / 127 / 255).
+
+The new visuals are an **intermediate terrain renderer**, not a completed port
+of the Modern Metal terrain pipeline or original camera/physics. Trees,
+collectibles, movement, and the penguin graphic remain placeholders.
+
+Before any costly iOS build, validate the actual binary source maps on macOS:
+
+```sh
+sh ios/test-original-terrain.sh
+```
+
+This builds a tiny native C test program, checks synthetic raw and RLE images,
+then reads and validates the real original Bunny Hill 90x240 RGB maps.
+A successful iOS launch logs `ORIGINAL TERRAIN LOADED` and shows
+`BUNNY HILL - ORIGINAL TERRAIN` in the header. If decoding fails, it logs
+`ORIGINAL TERRAIN FAILED` and displays the previous prototype course
+without crashing.
+
 ## Troubleshooting: original course header remains prototype
 
 The original data folder now participates in Xcode's native **Copy Bundle
