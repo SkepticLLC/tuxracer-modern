@@ -43,6 +43,7 @@ endif()
 add_executable(TuxRacerModernIOS MACOSX_BUNDLE
   ${TUX_IOS_ENTRY}
   scene_lifecycle.m
+  original_course.c
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform/mobile_input.c"
 )
 target_include_directories(TuxRacerModernIOS PRIVATE
@@ -75,6 +76,17 @@ target_link_libraries(TuxRacerModernIOS PRIVATE SDL2::SDL2 SDL2::SDL2main
 target_include_directories(TuxRacerModernIOS PRIVATE
   ${sdl2_SOURCE_DIR}/include
   ${sdl2_SOURCE_DIR}/src/video/uikit
+)
+
+# Ship original unmodified game assets/scripts as read-only iOS bundle data.
+# Copying at PRE_LINK keeps assets present before final codesign, with no
+# generated Xcode source list for thousands of original course files.
+add_custom_command(TARGET TuxRacerModernIOS PRE_LINK
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory
+          "${CMAKE_CURRENT_SOURCE_DIR}/../data"
+          "$<TARGET_BUNDLE_DIR:TuxRacerModernIOS>/data"
+  COMMENT "Bundle original Tux Racer courses, Tcl scripts and textures"
+  VERBATIM
 )
 
 # Run the cleanup as an Xcode PRE_LINK step, prior to CodeSign.
