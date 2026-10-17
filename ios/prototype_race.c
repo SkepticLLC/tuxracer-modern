@@ -271,6 +271,7 @@ static void draw_original_terrain(SDL_Renderer *r,int w,int h,const Race *race){
 static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mobile_input *in){
     float horizon=h*.34f,ground=h*.83f;
     color(r,10,35,59,255);SDL_RenderClear(r);
+    if(!g_original_terrain_loaded || !g_modern_enabled || !g_modern_terrain) {
     color(r,21,60,85,255);rect(r,0,h*.18f,w,h*.20f);
     color(r,175,209,220,255);
     for(int k=0;k<24;k++){
@@ -284,6 +285,7 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     }
     color(r,219,238,240,255);rect(r,0,horizon,w,h-horizon);
     color(r,235,247,247,255);rect(r,0,h*.70f,w,h*.30f);
+    }
     if(g_original_terrain_loaded) {
         if(g_modern_enabled && g_modern_terrain) {
             if(!tux_modern_terrain_draw(g_modern_terrain,r,w,h,&g_terrain,&g_course))
