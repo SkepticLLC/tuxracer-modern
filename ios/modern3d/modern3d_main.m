@@ -27,7 +27,7 @@ typedef struct {
 static const char *shaderSource =
 "#include <metal_stdlib>\n"
 "using namespace metal;\n"
-"struct V { packed_float3 p; packed_float3 n; float4 color; };\n"
+"struct V { float3 p; float3 n; float4 color; };\n"
 "struct U { float4x4 mvp; float4x4 model; };\n"
 "struct Out { float4 position [[position]]; float4 color; float3 normal; float haze; };\n"
 "vertex Out vertex_main(uint id [[vertex_id]], const device V *v [[buffer(0)]],"
