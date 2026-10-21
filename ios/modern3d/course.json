@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "summit-run",
+  "name": "Summit Run",
+  "description": "Original mobile downhill course — first native Metal 3D slice",
+  "lengthMeters": 600,
+  "widthMeters": 62,
+  "startingSpeedMps": 11,
+  "maxSpeedMps": 30,
+  "slopeDegrees": 18,
+  "terrain": {
+    "heightVariationMeters": 4,
+    "rollingWavelengthMeters": 70
+  },
+  "environment": {
+    "theme": "alpine-day",
+    "pineDensity": 0.28
+  },
+  "collectibles": {
+    "type": "fish",
+    "spacingMeters": 20
+  },
+  "flags": {
+    "start": true,
+    "finish": true,
+    "checkpointEveryMeters": 150
+  }
+}
