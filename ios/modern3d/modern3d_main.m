@@ -129,6 +129,62 @@ static Vertex *make_course(CourseConfig c,unsigned *count) {
     return v;
 }
 
+/* Procedural three-dimensional penguin for renderer validation only.
+ * The final character will be a rigged, textured asset with animations.
+ * Each part uses tessellated ellipsoids with its own material color.
+ */
+static void add_ellipsoid(Vertex *verts,unsigned *count,unsigned maximum,
+                          vector_float3 center,vector_float3 radii,
+                          vector_float4 pigment){
+    const int segments=16,rings=12;
+    for(int j=0;j<rings;j++){
+        float p0=(float)j/rings*3.14159265f;
+        float p1=(float)(j+1)/rings*3.14159265f;
+        for(int i=0;i<segments;i++){
+            float t0=(float)i/segments*6.2831853f;
+            float t1=(float)(i+1)/segments*6.2831853f;
+            float ps[6]={p0,p1,p0,p0,p1,p1};
+            float ts[6]={t0,t0,t1,t1,t0,t1};
+            for(int k=0;k<6;k++){
+                vector_float3 normal={sinf(ps[k])*cosf(ts[k]),cosf(ps[k]),sinf(ps[k])*sinf(ts[k])};
+                vector_float3 pos=center+normal*radii;
+                add_vertex(verts,count,maximum,pos,normal,pigment);
+            }
+        }
+    }
+}
+static Vertex *make_penguin(unsigned *count){
+    const unsigned max=11000;
+    Vertex *v=(Vertex *)calloc(max,sizeof(Vertex));
+    if(!v)return NULL;
+    *count=0;
+    const vector_float4 black={.065f,.12f,.18f,1};
+    const vector_float4 white={.93f,.96f,.93f,1};
+    const vector_float4 orange={1.0f,.58f,.09f,1};
+    add_ellipsoid(v,count,max,(vector_float3){0,1.10f,0},
+                  (vector_float3){.51f,.86f,.39f},black);
+    add_ellipsoid(v,count,max,(vector_float3){0,1.03f,-.285f},
+                  (vector_float3){.37f,.67f,.16f},white);
+    add_ellipsoid(v,count,max,(vector_float3){0,1.94f,0},
+                  (vector_float3){.39f,.43f,.34f},black);
+    add_ellipsoid(v,count,max,(vector_float3){0,1.83f,-.355f},
+                  (vector_float3){.24f,.11f,.15f},orange);
+    add_ellipsoid(v,count,max,(vector_float3){-.50f,1.05f,0},
+                  (vector_float3){.18f,.49f,.20f},black);
+    add_ellipsoid(v,count,max,(vector_float3){.50f,1.05f,0},
+                  (vector_float3){.18f,.49f,.20f},black);
+    add_ellipsoid(v,count,max,(vector_float3){-.25f,.19f,-.20f},
+                  (vector_float3){.23f,.12f,.35f},orange);
+    add_ellipsoid(v,count,max,(vector_float3){.25f,.19f,-.20f},
+                  (vector_float3){.23f,.12f,.35f},orange);
+    return v;
+}
+static matrix_float4x4 translate(float x,float y,float z){
+    matrix_float4x4 result=matrix_identity_float4x4;
+    result.columns[3]=(vector_float4){x,y,z,1};
+    return result;
+}
+
 int main(int argc,char **argv){
     (void)argc;(void)argv;
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMECONTROLLER|SDL_INIT_EVENTS)!=0){
@@ -172,6 +228,14 @@ int main(int argc,char **argv){
         length:sizeof(Vertex)*vertexCount options:MTLResourceStorageModeShared];
     free(vertices);
     if(!terrainBuffer){SDL_Log("Terrain GPU buffer failed");return 8;}
+
+    unsigned tuxCount=0;
+    Vertex *tuxVertices=make_penguin(&tuxCount);
+    if(!tuxVertices){SDL_Log("Tux mesh allocation failed");return 9;}
+    id<MTLBuffer> tuxBuffer=[device newBufferWithBytes:tuxVertices
+        length:sizeof(Vertex)*tuxCount options:MTLResourceStorageModeShared];
+    free(tuxVertices);
+    if(!tuxBuffer){SDL_Log("Tux GPU buffer failed");return 10;}
 
     int previousWidth=0,previousHeight=0;
     id<MTLTexture> depthTexture=nil;
@@ -252,6 +316,12 @@ int main(int argc,char **argv){
             [encoder setVertexBuffer:terrainBuffer offset:0 atIndex:0];
             [encoder setVertexBytes:&uniform length:sizeof(uniform) atIndex:1];
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
+            matrix_float4x4 tuxModel=translate(lateral,
+                ground(lateral,distance+3.5f,course.slope),distance+3.5f);
+            Uniforms tuxUniform={simd_mul(proj,simd_mul(view,tuxModel)),tuxModel};
+            [encoder setVertexBuffer:tuxBuffer offset:0 atIndex:0];
+            [encoder setVertexBytes:&tuxUniform length:sizeof(tuxUniform) atIndex:1];
+            [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:tuxCount];
             [encoder endEncoding];
             [command presentDrawable:drawable];
             [command commit];
