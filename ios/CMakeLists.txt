@@ -34,8 +34,11 @@ if(TARGET SDL2-static)
 endif()
 
 option(TUX_IOS_METAL_SMOKE "Run the known-good dark blue Metal smoke target" OFF)
+option(TUX_IOS_MODERN3D "Run the clean-slate native Metal 3D vertical slice" ON)
 if(TUX_IOS_METAL_SMOKE)
   set(TUX_IOS_ENTRY metal_smoke_main.m)
+elseif(TUX_IOS_MODERN3D)
+  set(TUX_IOS_ENTRY modern3d/modern3d_main.m)
 else()
   set(TUX_IOS_ENTRY prototype_race.c)
 endif()
@@ -92,6 +95,14 @@ set_source_files_properties("${_tux_original_data}"
   PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 target_sources(TuxRacerModernIOS PRIVATE "${_tux_original_data}")
 message(STATUS "Xcode app resource: original data/ directory")
+
+# Data-driven original course manifest for the new native Metal engine.
+# Keep the classic unmodified data tree on this branch during the transition,
+# but the new game does not depend on its Tcl / SGI assets.
+set(_modern_course "${CMAKE_CURRENT_SOURCE_DIR}/modern3d/course.json")
+set_source_files_properties("${_modern_course}" PROPERTIES
+  MACOSX_PACKAGE_LOCATION "Resources/modern3d")
+target_sources(TuxRacerModernIOS PRIVATE "${_modern_course}")
 
 # Run the cleanup as an Xcode PRE_LINK step, prior to CodeSign.
 # Clean generated app bundles only; do not mutate source checkout metadata.
