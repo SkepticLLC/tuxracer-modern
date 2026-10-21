@@ -337,7 +337,23 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
             draw_tree(r,treeX,cy,clampf(p*w*.095f,4,125));
         }
     }
-    draw_penguin(r,w*.50f,ground+h*.065f,clampf(h*.17f,30,155),-in->steering*w*.013f,race->jump_time>0);
+    /* Anchor the temporary character to Bunny Hill's actual heightmap.
+     * The same chase camera projects the terrain and the player. */
+    if(g_original_terrain_loaded && g_modern_enabled && g_modern_terrain) {
+        float sx=0,sy=0,ppm=0;
+        float world_x=g_course.width_m*(.5f+race->x*.23f);
+        float jump_height=race->jump_time>0?
+            sinf((.75f-race->jump_time)/.75f*PI)*1.8f:0.0f;
+        if(tux_modern_terrain_project(g_modern_terrain,&g_terrain,&g_course,
+            w,h,world_x,race->distance+.5f,jump_height,
+            &sx,&sy,&ppm)){
+            float character_size=clampf(1.7f*ppm,28.0f,h*.24f);
+            draw_penguin(r,sx,sy,character_size,-in->steering*character_size*.11f,0);
+        }
+    }else{
+        draw_penguin(r,w*.50f,ground+h*.065f,clampf(h*.17f,30,155),
+                     -in->steering*w*.013f,race->jump_time>0);
+    }
     int modern_ui=g_original_terrain_loaded&&g_modern_enabled&&g_modern_terrain;
     color(r,8,31,54,modern_ui?184:220);rect(r,0,0,w,h*.13f);
     color(r,245,250,252,255);
