@@ -84,17 +84,21 @@ target_include_directories(TuxRacerModernIOS PRIVATE
   ${sdl2_SOURCE_DIR}/src/video/uikit
 )
 
-# Have Xcode copy the entire original, unmodified data directory during
-# the native Copy Bundle Resources phase (before signing). A PRE_LINK command
-# does not reliably participate in the Xcode resource lifecycle.
-set(_tux_original_data "${CMAKE_CURRENT_SOURCE_DIR}/../data")
-if(NOT EXISTS "${_tux_original_data}/courses/bunny_hill/course.tcl")
-  message(FATAL_ERROR "Missing original Bunny Hill assets: ${_tux_original_data}")
+# The new 3D game does not ship the old Tcl/SGI course tree by default.
+# Retain classic assets only for the legacy fallback target.
+if(NOT TUX_IOS_MODERN3D OR TUX_IOS_METAL_SMOKE)
+  # Have Xcode copy the entire original, unmodified data directory during
+  # the native Copy Bundle Resources phase (before signing). A PRE_LINK command
+  # does not reliably participate in the Xcode resource lifecycle.
+  set(_tux_original_data "${CMAKE_CURRENT_SOURCE_DIR}/../data")
+  if(NOT EXISTS "${_tux_original_data}/courses/bunny_hill/course.tcl")
+    message(FATAL_ERROR "Missing original Bunny Hill assets: ${_tux_original_data}")
+  endif()
+  set_source_files_properties("${_tux_original_data}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+  target_sources(TuxRacerModernIOS PRIVATE "${_tux_original_data}")
+  message(STATUS "Xcode app resource: original data/ directory")
 endif()
-set_source_files_properties("${_tux_original_data}"
-  PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-target_sources(TuxRacerModernIOS PRIVATE "${_tux_original_data}")
-message(STATUS "Xcode app resource: original data/ directory")
 
 # Data-driven original course manifest for the new native Metal engine.
 # Keep the classic unmodified data tree on this branch during the transition,
