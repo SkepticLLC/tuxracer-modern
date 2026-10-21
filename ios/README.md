@@ -1,3 +1,19 @@
+## Grounded Tux and cleaner playfield (next simulator pass)
+
+The Modern Terrain path now places the interim penguin at Bunny Hill's actual
+height-sampled surface position using the same perspective projection as the
+course mesh and trees. Jump height offsets the player in world-space; steering
+changes the character's world X position while the chase camera follows with
+smoothing. The original tree models and penguin hierarchy are **not** ported
+yet; the temporary trees use triangle billboards rather than stepped boxes.
+
+The in-game touch hints are now smaller and more transparent, but the actual
+multitouch input regions remain unchanged. Keyboard/game-controller mapping
+and the race state are unchanged. Press **M** to compare against the original
+projection; the known-good iOS scene/Metal foundation remains untouched.
+
+Expected heading: `BUNNY HILL - MODERN TERRAIN`.
+
 ## Modern continuous terrain preview (iOS visual milestone)
 
 Default rendering now uses `ios/modern_terrain.c` for original Bunny Hill
