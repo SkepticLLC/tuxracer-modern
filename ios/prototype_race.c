@@ -369,20 +369,27 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
     text(r,buf,title_x,(int)(h*.085f),clampf(w/280,2,4));
     color(r,15,50,78,190);rect(r,w*.15f,h*.945f,w*.70f,h*.027f);
     color(r,238,183,56,255);rect(r,w*.15f,h*.945f,w*.70f*clampf(race->distance/g_track_meters,0,1),h*.027f);
-    color(r,18,41,66,modern_ui?104:155);
     if(modern_ui){
-        rect(r,w*.025f,h*.765f,w*.145f,h*.15f);
-        rect(r,w*.83f,h*.765f,w*.145f,h*.15f);
-        rect(r,w*.43f,h*.765f,w*.14f,h*.15f);
+        /* Compact touch hints; large invisible left/right input zones remain.
+         * Frame border and labels are intentionally less intrusive. */
+        color(r,7,37,61,72);
+        rect(r,w*.035f,h*.832f,w*.105f,h*.065f);
+        rect(r,w*.86f,h*.832f,w*.105f,h*.065f);
+        rect(r,w*.445f,h*.832f,w*.11f,h*.065f);
+        color(r,242,250,252,218);
+        text(r,"LEFT",(int)(w*.049f),(int)(h*.847f),clampf(w/310,2,3));
+        text(r,"RIGHT",(int)(w*.865f),(int)(h*.847f),clampf(w/310,2,3));
+        text(r,"JUMP",(int)(w*.455f),(int)(h*.847f),clampf(w/310,2,3));
     }else{
+        color(r,18,41,66,155);
         rect(r,0,h*.69f,w*.19f,h*.24f);
         rect(r,w*.81f,h*.69f,w*.19f,h*.24f);
         rect(r,w*.40f,h*.70f,w*.20f,h*.24f);
+        color(r,255,255,255,255);
+        text(r,"LEFT",(int)(w*.035f),(int)(h*.81f),clampf(w/255,2,4));
+        text(r,"RIGHT",(int)(w*.84f),(int)(h*.81f),clampf(w/255,2,4));
+        text(r,"JUMP",(int)(w*.45f),(int)(h*.81f),clampf(w/255,2,4));
     }
-    color(r,255,255,255,255);
-    text(r,"LEFT",(int)(w*.035f),(int)(h*.81f),clampf(w/255,2,4));
-    text(r,"RIGHT",(int)(w*.84f),(int)(h*.81f),clampf(w/255,2,4));
-    text(r,"JUMP",(int)(w*.45f),(int)(h*.81f),clampf(w/255,2,4));
     if(race->finished){
         color(r,11,35,57,240);rect(r,w*.19f,h*.24f,w*.62f,h*.38f);
         color(r,244,240,179,255);
