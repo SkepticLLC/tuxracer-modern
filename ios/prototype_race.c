@@ -208,6 +208,30 @@ static void draw_tree(SDL_Renderer *r,float x,float y,float s){
         }
     }
 }
+/* Small modern billboard pine used until the original tree sprites/models are
+ * brought across. All sizes come from the same terrain world projection.
+ * Use vertex geometry rather than stair-stepped scanline rectangles. */
+static void draw_tree_modern(SDL_Renderer *r,float x,float y,float s){
+    if(s<3.0f)return;
+    s=clampf(s,3.0f,185.0f);
+    color(r,76,65,60,255);
+    rect(r,x-s*.055f,y-s*.25f,s*.11f,s*.30f);
+    SDL_Vertex verts[12];
+    const SDL_Color foliage[4]={
+        {13,64,62,255},{15,80,72,255},{19,98,80,255},{26,111,89,255}
+    };
+    for(int layer=0;layer<4;layer++){
+        float level=(float)layer/4.0f;
+        float top=y-s*(1.14f-level*.24f);
+        float bottom=top+s*.47f;
+        float radius=s*(.22f+level*.07f);
+        SDL_Color shade=foliage[layer];
+        verts[layer*3]=(SDL_Vertex){{x,top},shade,{0,0}};
+        verts[layer*3+1]=(SDL_Vertex){{x-radius,bottom},shade,{0,0}};
+        verts[layer*3+2]=(SDL_Vertex){{x+radius,bottom},shade,{0,0}};
+    }
+    SDL_RenderGeometry(r,NULL,verts,12,NULL,0);
+}
 static void draw_penguin(SDL_Renderer *r,float x,float y,float s,float tilt,int airborne) {
     color(r,16,28,40,120);
     rect(r,x-s*.40f,y+s*.22f,s*.8f,s*.12f);
@@ -323,7 +347,7 @@ static void draw_scene(SDL_Renderer *r,int w,int h,const Race *race,const tux_mo
                 w,h,x,z,0,&sx,&sy,&scale)){
                 float size=clampf(scale*3.2f,2,220);
                 if(sx>-size&&sx<w+size&&sy>-size&&sy<h+size)
-                    draw_tree(r,sx,sy,size);
+                    draw_tree_modern(r,sx,sy,size);
             }
         }
     }else{
