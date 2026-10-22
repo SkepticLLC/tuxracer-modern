@@ -116,6 +116,21 @@ set_source_files_properties("${_modern_course}" PROPERTIES
   MACOSX_PACKAGE_LOCATION "Resources/modern3d")
 target_sources(TuxRacerModernIOS PRIVATE "${_modern_course}")
 
+# Native Xcode app icon and launch UI. Asset catalog is compiled by actool;
+# the storyboard is compiled by ibtool. Both must be app resources, not a
+# post-build folder copy (which could break code signing).
+if(TUX_IOS_MODERN3D AND NOT TUX_IOS_METAL_SMOKE)
+  set(_tux_asset_catalog "${CMAKE_CURRENT_SOURCE_DIR}/modern3d/Assets.xcassets")
+  set(_tux_launch_storyboard "${CMAKE_CURRENT_SOURCE_DIR}/modern3d/LaunchScreen.storyboard")
+  set_source_files_properties("${_tux_asset_catalog}" "${_tux_launch_storyboard}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+  target_sources(TuxRacerModernIOS PRIVATE
+    "${_tux_asset_catalog}"
+    "${_tux_launch_storyboard}")
+  set_target_properties(TuxRacerModernIOS PROPERTIES
+    XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
+endif()
+
 # Run the cleanup as an Xcode PRE_LINK step, prior to CodeSign.
 # Clean generated app bundles only; do not mutate source checkout metadata.
 add_custom_command(TARGET TuxRacerModernIOS PRE_LINK
