@@ -397,6 +397,7 @@ int main(int argc,char **argv){
     RaceState race={0};
     race_reset(&race,&settings);
     bool was_finished=false;
+    bool showHat=true,showScarf=true;
     int previousWidth=0,previousHeight=0;
     id<MTLTexture> depthTexture=nil;
     float smoothCameraX=0,smoothCameraZ=-11.0f,smoothCameraY=7;
@@ -416,6 +417,8 @@ int main(int argc,char **argv){
                 if(ev.type==SDL_KEYDOWN && ev.key.repeat==0){
                     if(ev.key.keysym.sym==SDLK_r || ev.key.keysym.sym==SDLK_RETURN)restart=1;
                     if(ev.key.keysym.sym==SDLK_p || ev.key.keysym.sym==SDLK_ESCAPE)pause=1;
+                    if(ev.key.keysym.sym==SDLK_h)showHat=!showHat;
+                    if(ev.key.keysym.sym==SDLK_c)showScarf=!showScarf;
                 }
                 if(ev.type==SDL_CONTROLLERDEVICEADDED && !controller &&
                    SDL_IsGameController(ev.cdevice.which))
@@ -552,6 +555,7 @@ int main(int argc,char **argv){
             characterBase=simd_mul(characterBase,rotate_z(pose.lean));
             characterBase=simd_mul(characterBase,rotate_x(pose.pitch));
             for(int part=0;part<TUX_PART_COUNT;part++){
+                if((part==TUX_HAT&&!showHat)||(part==TUX_SCARF&&!showScarf))continue;
                 matrix_float4x4 model=characterBase;
                 if(part==TUX_LEFT_WING||part==TUX_RIGHT_WING){
                     float side=part==TUX_LEFT_WING?-1.0f:1.0f;
