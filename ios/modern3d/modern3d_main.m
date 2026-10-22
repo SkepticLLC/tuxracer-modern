@@ -304,9 +304,11 @@ int main(int argc,char **argv){
     UIView *metalUIKitView=(__bridge UIView *)metalView;
     UILabel *hud=[[UILabel alloc] initWithFrame:CGRectZero];
     hud.textColor=[UIColor whiteColor];
-    hud.font=[UIFont monospacedSystemFontOfSize:15 weight:UIFontWeightSemibold];
+    hud.font=[UIFont monospacedSystemFontOfSize:13 weight:UIFontWeightSemibold];
+    hud.adjustsFontSizeToFitWidth=YES;
+    hud.minimumScaleFactor=.78f;
     hud.numberOfLines=3;
-    hud.text=@"SUMMIT RUN\\nStarting race...";
+    hud.text=@"SUMMIT RUN\nStarting race...";
     hud.backgroundColor=[[UIColor colorWithRed:.02 green:.10 blue:.18 alpha:1] colorWithAlphaComponent:.57];
     hud.layer.cornerRadius=11;
     hud.layer.masksToBounds=YES;
@@ -381,7 +383,7 @@ int main(int argc,char **argv){
     bool was_finished=false;
     int previousWidth=0,previousHeight=0;
     id<MTLTexture> depthTexture=nil;
-    float smoothCameraX=0,smoothCameraZ=-15.0f,smoothCameraY=7;
+    float smoothCameraX=0,smoothCameraZ=-11.0f,smoothCameraY=7;
     bool running=true,suspended=false;
     SDL_GameController *controller=NULL;
     for(int i=0;i<SDL_NumJoysticks();i++)
@@ -440,7 +442,7 @@ int main(int argc,char **argv){
                 if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_A))input.jump=1;
                 if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_B))input.brake=1;
             }
-            if(input.restart){smoothCameraX=0;smoothCameraZ=-15;smoothCameraY=7;was_finished=false;}
+            if(input.restart){smoothCameraX=0;smoothCameraZ=-11;smoothCameraY=7;was_finished=false;}
             race_step(&race,&settings,input,dt);
             if(race.phase==RACE_FINISHED && !was_finished){
                 NSString *medal=race.time_seconds<=course.goldTime?@"GOLD":
@@ -458,8 +460,8 @@ int main(int argc,char **argv){
             }
             CGRect display=metalUIKitView.bounds;
             CGFloat screenWidth=display.size.width,screenHeight=display.size.height;
-            hud.frame=CGRectMake(screenWidth*.075,screenHeight*.025,
-                                  screenWidth*.62,screenHeight*.125);
+            hud.frame=CGRectMake(screenWidth*.085,screenHeight*.028,
+                                  screenWidth*.64,screenHeight*.15);
             controls.frame=CGRectMake(screenWidth*.14,screenHeight*.91,
                                       screenWidth*.72,screenHeight*.045);
             if((int)(race.time_seconds*6)!=(int)((race.time_seconds-dt)*6)
@@ -467,7 +469,7 @@ int main(int argc,char **argv){
                 NSString *status=race.phase==RACE_FINISHED?@"FINISHED! TAP TO RESTART":
                                  race.phase==RACE_PAUSED?@"PAUSED  P TO RESUME":@"SUMMIT RUN";
                 hud.text=[NSString stringWithFormat:
-                    @"  %@\\n  %03.0f / %.0fm   %02.0f km/h\\n  TIME %.1fs   FISH %d   HITS %d",
+                    @"  %@\n  %03.0f / %.0fm   %02.0f km/h\n  TIME %.1fs   FISH %d   HITS %d",
                     status,race.distance,course.length,race.speed*3.6f,
                     race.time_seconds,race.fish,race.hits];
             }
@@ -488,7 +490,7 @@ int main(int argc,char **argv){
             /* Chase camera follows the sampled snow surface, not an arbitrary
              * fixed Y target; avoids looking through/under the hill. */
             float desiredCamX=race.lateral*.82f;
-            float desiredCamZ=race.distance-15.0f;
+            float desiredCamZ=race.distance-11.0f;
             float desiredCamY=ground(desiredCamX,desiredCamZ,course.slope)+6.5f;
             float spring=1.0f-expf(-5.5f*dt);
             smoothCameraX+=(desiredCamX-smoothCameraX)*spring;
@@ -498,11 +500,11 @@ int main(int argc,char **argv){
             float minCameraY=ground(smoothCameraX,smoothCameraZ,course.slope)+4.6f;
             if(smoothCameraY<minCameraY)smoothCameraY=minCameraY;
             vector_float3 eye={smoothCameraX,smoothCameraY,smoothCameraZ};
-            float lookZ=race.distance+24.0f;
+            float lookZ=race.distance+21.0f;
             float lookY=ground(race.lateral,lookZ,course.slope)+2.2f;
             vector_float3 target={race.lateral,lookY,lookZ};
             matrix_float4x4 view=view_matrix(eye,target);
-            matrix_float4x4 proj=perspective(65.0f*.01745329252f,(float)width/height,.12f,800.0f);
+            matrix_float4x4 proj=perspective(61.0f*.01745329252f,(float)width/height,.12f,800.0f);
             Uniforms uniform={simd_mul(proj,view),matrix_identity_float4x4};
 
             MTLRenderPassDescriptor *pass=[MTLRenderPassDescriptor renderPassDescriptor];
