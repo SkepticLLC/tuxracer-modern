@@ -6,6 +6,25 @@ No classic course is imported into the new game. The default iOS bundle excludes
 the original Tcl/SGI assets and does not compile the legacy course parser.
 The new game is authored using JSON, original geometry, and native Metal.
 
+## Modular character/animation milestone
+
+The native Metal renderer now composes the character from separate replaceable
+mesh parts under `character_mesh.h`: body, left/right flippers, scarf, and
+hat. Each part owns a GPU buffer and model transform. Carving lean,
+flipper motion, jump pitch, and cloth movement come from the platform-neutral
+`character_animation.c` pose solver.
+
+**These are enhanced procedural meshes, not a rigged production model or a
+glTF importer yet.** The purpose of this milestone is proving the runtime
+mesh/animation/accessory contract before introducing externally authored
+assets, textures, and skeleton skinning.
+
+In the simulator, use **H** to toggle the hat and **C** to toggle the scarf.
+Steering animates the character's body lean, and jumping lifts the flippers.
+Run `sh ios/modern3d/test-race.sh` to execute the animation tests alongside
+the previous game-state tests without opening Xcode. The character module
+is compiled only into the clean-slate iOS target, not macOS preservation.
+
 ## Playable milestone 2: Summit Run
 
 Native Metal 3D with real depth testing and a procedurally generated
