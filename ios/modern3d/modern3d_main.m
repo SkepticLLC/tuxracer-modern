@@ -131,6 +131,25 @@ static void add_vertex(Vertex *v,unsigned *count,unsigned max,
     if(*count>=max)return;
     v[(*count)++]=(Vertex){pos,normal,color};
 }
+/* Smooth material weights replace hard per-quad snow/ice/rock colors. */
+static float smooth01(float x){x=fmaxf(0.0f,fminf(1.0f,x));return x*x*(3.0f-2.0f*x);}
+static vector_float4 terrain_color(float x,float z){
+    float ice=sinf(x*.20f+z*.072f)*cosf(z*.043f);
+    float ice_weight=smooth01((ice-.48f)/.38f);
+    float rock_weight=smooth01((-.55f-ice)/.32f);
+    /* Mostly pale snow, with subdued blue ice and slate rock. */
+    vector_float4 snow={.87f,.94f,.97f,1};
+    vector_float4 blue={.32f,.70f,.80f,1};
+    vector_float4 rock={.48f,.58f,.62f,1};
+    vector_float4 mixed=snow*(1-ice_weight)+blue*ice_weight;
+    return mixed*(1-rock_weight)+rock*rock_weight;
+}
+static vector_float3 terrain_normal(float x,float z,float slope){
+    const float step=.32f;
+    float dx=ground(x+step,z,slope)-ground(x-step,z,slope);
+    float dz=ground(x,z+step,slope)-ground(x,z-step,slope);
+    return simd_normalize((vector_float3){-dx,step*2.0f,-dz});
+}
 static Vertex *make_course(CourseConfig c,unsigned *count) {
     const unsigned nx=72,nz=240,max=nx*nz*6;
     Vertex *v=(Vertex *)calloc(max,sizeof(Vertex));
@@ -149,18 +168,22 @@ static Vertex *make_course(CourseConfig c,unsigned *count) {
             vector_float3 b={x1,ground(x1,z0,c.slope),z0};
             vector_float3 d={x0,ground(x0,z1,c.slope),z1};
             vector_float3 e={x1,ground(x1,z1,c.slope),z1};
-            vector_float3 n=simd_normalize(simd_cross(d-a,b-a));
-            float ice=sinf(x0*.20f+z0*.072f)*cosf(z0*.043f);
-            vector_float4 snow={.87f,.95f,.99f,1};
-            vector_float4 blue={.31f,.76f,.90f,1};
-            vector_float4 rock={.48f,.58f,.62f,1};
-            vector_float4 color=ice>.68f?blue:ice<-.78f?rock:snow;
-            add_vertex(v,count,max,a,n,color);
-            add_vertex(v,count,max,d,n,color);
-            add_vertex(v,count,max,b,n,color);
-            add_vertex(v,count,max,b,n,color);
-            add_vertex(v,count,max,d,n,color);
-            add_vertex(v,count,max,e,n,color);
+            /* Each shared position gets a continuous sampled normal and
+             * interpolated material so the GPU can blend between vertices. */
+            vector_float3 na=terrain_normal(x0,z0,c.slope);
+            vector_float3 nb=terrain_normal(x1,z0,c.slope);
+            vector_float3 nd=terrain_normal(x0,z1,c.slope);
+            vector_float3 ne=terrain_normal(x1,z1,c.slope);
+            vector_float4 ca=terrain_color(x0,z0);
+            vector_float4 cb=terrain_color(x1,z0);
+            vector_float4 cd=terrain_color(x0,z1);
+            vector_float4 ce=terrain_color(x1,z1);
+            add_vertex(v,count,max,a,na,ca);
+            add_vertex(v,count,max,d,nd,cd);
+            add_vertex(v,count,max,b,nb,cb);
+            add_vertex(v,count,max,b,nb,cb);
+            add_vertex(v,count,max,d,nd,cd);
+            add_vertex(v,count,max,e,ne,ce);
         }
     }
     return v;
