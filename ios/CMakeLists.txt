@@ -48,7 +48,10 @@ set(_tux_ios_sources
   scene_lifecycle.m
 )
 if(TUX_IOS_MODERN3D AND NOT TUX_IOS_METAL_SMOKE)
-  list(APPEND _tux_ios_sources modern3d/race_system.c)
+  list(APPEND _tux_ios_sources
+    modern3d/race_system.c
+    modern3d/character_animation.c
+    modern3d/character_mesh.c)
 elseif(NOT TUX_IOS_METAL_SMOKE)
   # Optional legacy visual comparison only, never used in the new 3D game.
   list(APPEND _tux_ios_sources
