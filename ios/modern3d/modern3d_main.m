@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#import <UIKit/UIKit.h>
 #include <SDL.h>
 #include <SDL_metal.h>
 #include <simd/simd.h>
@@ -265,6 +266,25 @@ int main(int argc,char **argv){
     layer.pixelFormat=MTLPixelFormatBGRA8Unorm;
     layer.framebufferOnly=YES;
     id<MTLCommandQueue> queue=[device newCommandQueue];
+    UIView *metalUIKitView=(__bridge UIView *)metalView;
+    UILabel *hud=[[UILabel alloc] initWithFrame:CGRectZero];
+    hud.textColor=[UIColor whiteColor];
+    hud.font=[UIFont monospacedSystemFontOfSize:15 weight:UIFontWeightSemibold];
+    hud.numberOfLines=3;
+    hud.text=@"SUMMIT RUN\\nStarting race...";
+    hud.backgroundColor=[[UIColor colorWithRed:.02 green:.10 blue:.18 alpha:1] colorWithAlphaComponent:.57];
+    hud.layer.cornerRadius=11;
+    hud.layer.masksToBounds=YES;
+    [metalUIKitView addSubview:hud];
+
+    UILabel *controls=[[UILabel alloc] initWithFrame:CGRectZero];
+    controls.text=@"◀ STEER       TAP CENTER TO JUMP / HOLD LOWER CENTER TO BRAKE       STEER ▶";
+    controls.textAlignment=NSTextAlignmentCenter;
+    controls.textColor=[[UIColor whiteColor] colorWithAlphaComponent:.85];
+    controls.font=[UIFont systemFontOfSize:11 weight:UIFontWeightMedium];
+    controls.backgroundColor=[[UIColor blackColor] colorWithAlphaComponent:.22];
+    [metalUIKitView addSubview:controls];
+
 
     NSError *error=nil;
     NSString *source=[NSString stringWithUTF8String:shaderSource];
@@ -396,6 +416,21 @@ int main(int argc,char **argv){
                 SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
                   "Summit Run %.0f/%.0fm speed %.0f km/h fish %d hits %d",
                   race.distance,settings.length,race.speed*3.6f,race.fish,race.hits);
+            }
+            CGRect display=metalUIKitView.bounds;
+            CGFloat screenWidth=display.size.width,screenHeight=display.size.height;
+            hud.frame=CGRectMake(screenWidth*.075,screenHeight*.025,
+                                  screenWidth*.62,screenHeight*.125);
+            controls.frame=CGRectMake(screenWidth*.14,screenHeight*.91,
+                                      screenWidth*.72,screenHeight*.045);
+            if((int)(race.time_seconds*6)!=(int)((race.time_seconds-dt)*6)
+                ||race.phase!=RACE_RUNNING){
+                NSString *status=race.phase==RACE_FINISHED?@"FINISHED! TAP TO RESTART":
+                                 race.phase==RACE_PAUSED?@"PAUSED  P TO RESUME":@"SUMMIT RUN";
+                hud.text=[NSString stringWithFormat:
+                    @"  %@\\n  %03.0f / %.0fm   %02.0f km/h\\n  TIME %.1fs   FISH %d   HITS %d",
+                    status,race.distance,course.length,race.speed*3.6f,
+                    race.time_seconds,race.fish,race.hits];
             }
             int width=0,height=0;
             SDL_Metal_GetDrawableSize(window,&width,&height);
