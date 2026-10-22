@@ -545,6 +545,22 @@ int main(int argc,char **argv){
                 [encoder drawPrimitives:MTLPrimitiveTypeTriangle
                     vertexStart:0 vertexCount:(gate?finishCount:startCount)];
             }
+            /* Course-defined checkpoint arches, using the same original
+             * (non-legacy) reusable mesh as the start checkpoint. */
+            if(settings.checkpoint_spacing>0){
+                int checkpoints=(int)(settings.length/settings.checkpoint_spacing);
+                for(int i=1;i<=checkpoints;i++){
+                    float z=i*settings.checkpoint_spacing;
+                    if(z>=settings.length-12 || z<race.distance-25 ||
+                       z>race.distance+175)continue;
+                    matrix_float4x4 model=translate(0,ground(0,z,course.slope),z);
+                    Uniforms u={simd_mul(proj,simd_mul(view,model)),model};
+                    [encoder setVertexBuffer:startBuffer offset:0 atIndex:0];
+                    [encoder setVertexBytes:&u length:sizeof(u) atIndex:1];
+                    [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                        vertexStart:0 vertexCount:startCount];
+                }
+            }
             [encoder endEncoding];
             [command presentDrawable:drawable];
             [command commit];
