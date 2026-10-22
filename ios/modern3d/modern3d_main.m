@@ -299,45 +299,104 @@ int main(int argc,char **argv){
     free(tuxVertices);
     if(!tuxBuffer){SDL_Log("Tux GPU buffer failed");return 10;}
 
+    unsigned treeCount=0,fishCount=0,startCount=0,finishCount=0;
+    Vertex *treeVertices=make_tree(&treeCount),*fishVertices=make_fish(&fishCount);
+    Vertex *startVertices=make_gate(&startCount,0),*finishVertices=make_gate(&finishCount,1);
+    if(!treeVertices||!fishVertices||!startVertices||!finishVertices){
+        SDL_Log("World object mesh allocation failed");return 11;
+    }
+    id<MTLBuffer> treeBuffer=[device newBufferWithBytes:treeVertices
+        length:treeCount*sizeof(Vertex) options:MTLResourceStorageModeShared];
+    id<MTLBuffer> fishBuffer=[device newBufferWithBytes:fishVertices
+        length:fishCount*sizeof(Vertex) options:MTLResourceStorageModeShared];
+    id<MTLBuffer> startBuffer=[device newBufferWithBytes:startVertices
+        length:startCount*sizeof(Vertex) options:MTLResourceStorageModeShared];
+    id<MTLBuffer> finishBuffer=[device newBufferWithBytes:finishVertices
+        length:finishCount*sizeof(Vertex) options:MTLResourceStorageModeShared];
+    free(treeVertices);free(fishVertices);free(startVertices);free(finishVertices);
+    if(!treeBuffer||!fishBuffer||!startBuffer||!finishBuffer){
+        SDL_Log("World object GPU buffer creation failed");return 12;
+    }
+
+    RaceConfig settings={course.length,course.width,course.startSpeed,
+       course.maxSpeed,20.0f,38.0f,150.0f,8241u};
+    RaceState race={0};
+    race_reset(&race,&settings);
+    bool was_finished=false;
     int previousWidth=0,previousHeight=0;
     id<MTLTexture> depthTexture=nil;
-    float distance=0,lateral=0,speed=course.startSpeed,steer=0;
-    bool running=true,suspended=false,braking=false;
+    float smoothCameraX=0,smoothCameraZ=-15.0f,smoothCameraY=7;
+    bool running=true,suspended=false;
+    SDL_GameController *controller=NULL;
+    for(int i=0;i<SDL_NumJoysticks();i++)
+        if(SDL_IsGameController(i)){controller=SDL_GameControllerOpen(i);if(controller)break;}
     Uint64 last=SDL_GetPerformanceCounter(),frequency=SDL_GetPerformanceFrequency();
     while(running){
         @autoreleasepool {
             SDL_Event ev;
+            int restart=0,pause=0;
             while(SDL_PollEvent(&ev)){
                 if(ev.type==SDL_QUIT)running=false;
                 if(ev.type==SDL_APP_WILLENTERBACKGROUND || ev.type==SDL_APP_DIDENTERBACKGROUND)suspended=true;
                 if(ev.type==SDL_APP_WILLENTERFOREGROUND || ev.type==SDL_APP_DIDENTERFOREGROUND)suspended=false;
-                if(ev.type==SDL_KEYDOWN && ev.key.keysym.sym==SDLK_r){distance=0;lateral=0;speed=course.startSpeed;}
+                if(ev.type==SDL_KEYDOWN && ev.key.repeat==0){
+                    if(ev.key.keysym.sym==SDLK_r || ev.key.keysym.sym==SDLK_RETURN)restart=1;
+                    if(ev.key.keysym.sym==SDLK_p || ev.key.keysym.sym==SDLK_ESCAPE)pause=1;
+                }
+                if(ev.type==SDL_CONTROLLERDEVICEADDED && !controller &&
+                   SDL_IsGameController(ev.cdevice.which))
+                    controller=SDL_GameControllerOpen(ev.cdevice.which);
+                if(ev.type==SDL_CONTROLLERDEVICEREMOVED && controller &&
+                   SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))==ev.cdevice.which){
+                    SDL_GameControllerClose(controller);controller=NULL;
+                }
             }
             if(!running)break;
             if(suspended){SDL_Delay(30);last=SDL_GetPerformanceCounter();continue;}
             Uint64 now=SDL_GetPerformanceCounter();
             float dt=fminf((float)((double)(now-last)/frequency),.033f);last=now;
             const Uint8 *keys=SDL_GetKeyboardState(NULL);
-            steer=(keys[SDL_SCANCODE_A]||keys[SDL_SCANCODE_LEFT])?-1:
+            RaceInput input={0};
+            input.steer=(keys[SDL_SCANCODE_A]||keys[SDL_SCANCODE_LEFT])?-1:
                   (keys[SDL_SCANCODE_D]||keys[SDL_SCANCODE_RIGHT])?1:0;
-            braking=keys[SDL_SCANCODE_S]||keys[SDL_SCANCODE_DOWN];
-            /* Multitouch regions are deliberately independent of UI graphics. */
+            input.brake=keys[SDL_SCANCODE_S]||keys[SDL_SCANCODE_DOWN];
+            input.jump=keys[SDL_SCANCODE_SPACE]||keys[SDL_SCANCODE_UP];
+            input.restart=restart;
+            input.pause=pause;
             int touches=SDL_GetNumTouchDevices();
             for(int i=0;i<touches;i++){
                 SDL_TouchID id=SDL_GetTouchDevice(i);
                 for(int j=0;j<SDL_GetNumTouchFingers(id);j++){
                     SDL_Finger *finger=SDL_GetTouchFinger(id,j);
                     if(!finger)continue;
-                    if(finger->x<.30f)steer=-1;
-                    if(finger->x>.70f)steer=1;
-                    if(finger->x>.36f&&finger->x<.64f&&finger->y>.8f)braking=true;
+                    if(finger->x<.30f)input.steer=-1;
+                    if(finger->x>.70f)input.steer=1;
+                    if(finger->x>.36f&&finger->x<.64f){
+                       if(finger->y>.83f)input.brake=1;
+                       else input.jump=1;
+                    }
+                    if(race.phase==RACE_FINISHED)input.restart=1;
                 }
             }
-            speed=fminf(course.maxSpeed,fmaxf(4,speed+(braking?-22.0f:6.0f)*dt));
-            lateral=fminf(course.width*.43f,fmaxf(-course.width*.43f,
-               lateral+steer*dt*(5.0f+speed*.4f)));
-            distance+=speed*dt;
-            if(distance>=course.length){distance=0;speed=course.startSpeed;}
+            if(controller){
+                float lx=SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_LEFTX)/32768.0f;
+                if(fabsf(lx)>.17f)input.steer=lx;
+                if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_A))input.jump=1;
+                if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_B))input.brake=1;
+            }
+            if(input.restart){smoothCameraX=0;smoothCameraZ=-15;smoothCameraY=7;was_finished=false;}
+            race_step(&race,&settings,input,dt);
+            if(race.phase==RACE_FINISHED && !was_finished){
+                SDL_Log("FINISH Summit Run: %.2fs, fish %d, hits %d, checkpoints %d",
+                        race.time_seconds,race.fish,race.hits,race.checkpoints);
+                was_finished=true;
+            }
+            if((int)(race.time_seconds*2)!=(int)((race.time_seconds-dt)*2) &&
+                race.phase==RACE_RUNNING){
+                SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+                  "Summit Run %.0f/%.0fm speed %.0f km/h fish %d hits %d",
+                  race.distance,settings.length,race.speed*3.6f,race.fish,race.hits);
+            }
             int width=0,height=0;
             SDL_Metal_GetDrawableSize(window,&width,&height);
             if(width<1||height<1){SDL_Delay(15);continue;}
@@ -352,9 +411,19 @@ int main(int argc,char **argv){
             }
             id<CAMetalDrawable> drawable=[layer nextDrawable];
             if(!drawable||!depthTexture){SDL_Delay(15);continue;}
-            float y=ground(lateral,distance,course.slope);
-            vector_float3 eye={lateral,y+5,distance-14};
-            vector_float3 target={lateral,y-3,distance+29};
+            /* Chase camera follows the sampled snow surface, not an arbitrary
+             * fixed Y target; avoids looking through/under the hill. */
+            float desiredCamX=race.lateral*.82f;
+            float desiredCamZ=race.distance-15.0f;
+            float desiredCamY=ground(desiredCamX,desiredCamZ,course.slope)+6.5f;
+            float spring=1.0f-expf(-5.5f*dt);
+            smoothCameraX+=(desiredCamX-smoothCameraX)*spring;
+            smoothCameraZ+=(desiredCamZ-smoothCameraZ)*spring;
+            smoothCameraY+=(desiredCamY-smoothCameraY)*spring;
+            vector_float3 eye={smoothCameraX,smoothCameraY,smoothCameraZ};
+            float lookZ=race.distance+24.0f;
+            float lookY=ground(race.lateral,lookZ,course.slope)+2.2f;
+            vector_float3 target={race.lateral,lookY,lookZ};
             matrix_float4x4 view=view_matrix(eye,target);
             matrix_float4x4 proj=perspective(65.0f*.01745329252f,(float)width/height,.12f,800.0f);
             Uniforms uniform={simd_mul(proj,view),matrix_identity_float4x4};
@@ -378,8 +447,9 @@ int main(int argc,char **argv){
             [encoder setVertexBuffer:terrainBuffer offset:0 atIndex:0];
             [encoder setVertexBytes:&uniform length:sizeof(uniform) atIndex:1];
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
-            matrix_float4x4 tuxModel=translate(lateral,
-                ground(lateral,distance+3.5f,course.slope),distance+3.5f);
+            matrix_float4x4 tuxModel=translate(race.lateral,
+                ground(race.lateral,race.distance+3.5f,course.slope)+race.jump_height,
+                race.distance+3.5f);
             Uniforms tuxUniform={simd_mul(proj,simd_mul(view,tuxModel)),tuxModel};
             [encoder setVertexBuffer:tuxBuffer offset:0 atIndex:0];
             [encoder setVertexBytes:&tuxUniform length:sizeof(tuxUniform) atIndex:1];
@@ -389,6 +459,7 @@ int main(int argc,char **argv){
             [command commit];
         }
     }
+    if(controller)SDL_GameControllerClose(controller);
     SDL_Metal_DestroyView(metalView);
     SDL_DestroyWindow(window);
     SDL_Quit();
