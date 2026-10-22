@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "race_system.h"
 
 typedef struct { vector_float3 position; vector_float3 normal; vector_float4 color; } Vertex;
 typedef struct { matrix_float4x4 mvp; matrix_float4x4 model; } Uniforms;
@@ -177,6 +178,67 @@ static Vertex *make_penguin(unsigned *count){
                   (vector_float3){.23f,.12f,.35f},orange);
     add_ellipsoid(v,count,max,(vector_float3){.25f,.19f,-.20f},
                   (vector_float3){.23f,.12f,.35f},orange);
+    return v;
+}
+static void add_cone(Vertex *v,unsigned *count,unsigned max,
+                     float base_y,float tip_y,float radius,vector_float4 tint){
+    const int sides=12;
+    for(int i=0;i<sides;i++){
+        float a=(float)i/sides*6.2831853f,b=(float)(i+1)/sides*6.2831853f;
+        vector_float3 tip={0,tip_y,0};
+        vector_float3 left={cosf(a)*radius,base_y,sinf(a)*radius};
+        vector_float3 right={cosf(b)*radius,base_y,sinf(b)*radius};
+        vector_float3 normal=simd_normalize(simd_cross(right-tip,left-tip));
+        add_vertex(v,count,max,tip,normal,tint);
+        add_vertex(v,count,max,right,normal,tint);
+        add_vertex(v,count,max,left,normal,tint);
+    }
+}
+static Vertex *make_tree(unsigned *count){
+    Vertex *v=(Vertex *)calloc(1300,sizeof(Vertex));if(!v)return NULL;
+    *count=0;
+    vector_float4 green={.08f,.43f,.29f,1},green2={.06f,.32f,.25f,1};
+    vector_float4 brown={.32f,.22f,.16f,1};
+    add_ellipsoid(v,count,1300,(vector_float3){0,.6f,0},(vector_float3){.18f,.7f,.18f},brown);
+    add_cone(v,count,1300,.9f,4.0f,1.24f,green);
+    add_cone(v,count,1300,1.5f,4.7f,.91f,green2);
+    return v;
+}
+static Vertex *make_fish(unsigned *count){
+    Vertex *v=(Vertex *)calloc(3500,sizeof(Vertex));if(!v)return NULL;
+    *count=0;
+    vector_float4 gold={1.0f,.72f,.13f,1},fin={1.0f,.50f,.08f,1};
+    add_ellipsoid(v,count,3500,(vector_float3){0,0,0},
+                  (vector_float3){.60f,.24f,.22f},gold);
+    add_cone(v,count,3500,-.15f,.48f,.23f,fin);
+    return v;
+}
+static void add_box(Vertex *v,unsigned *count,unsigned max,vector_float3 a,
+                    vector_float3 b,vector_float4 tint){
+    const int faces[6][4]={{0,1,3,2},{4,6,7,5},{0,2,6,4},
+      {1,5,7,3},{2,3,7,6},{0,4,5,1}};
+    vector_float3 p[8];
+    for(int i=0;i<8;i++)p[i]=(vector_float3){
+      (i&1)?b.x:a.x,(i&2)?b.y:a.y,(i&4)?b.z:a.z};
+    for(int i=0;i<6;i++){
+        vector_float3 u=p[faces[i][1]]-p[faces[i][0]];
+        vector_float3 w=p[faces[i][2]]-p[faces[i][0]];
+        vector_float3 norm=simd_normalize(simd_cross(u,w));
+        int tri[6]={0,1,2,0,2,3};
+        for(int j=0;j<6;j++)add_vertex(v,count,max,p[faces[i][tri[j]]],norm,tint);
+    }
+}
+static Vertex *make_gate(unsigned *count,int finish){
+    Vertex *v=(Vertex *)calloc(256,sizeof(Vertex));if(!v)return NULL;*count=0;
+    vector_float4 pole={.12f,.20f,.28f,1};
+    vector_float4 beam=finish?(vector_float4){1.0f,.72f,.10f,1}:
+                              (vector_float4){.19f,.83f,.91f,1};
+    add_box(v,count,256,(vector_float3){-8,0,-.20f},
+            (vector_float3){-7.45f,6,.20f},pole);
+    add_box(v,count,256,(vector_float3){7.45f,0,-.20f},
+            (vector_float3){8,6,.20f},pole);
+    add_box(v,count,256,(vector_float3){-8,5.4f,-.4f},
+            (vector_float3){8,6,.4f},beam);
     return v;
 }
 static matrix_float4x4 translate(float x,float y,float z){
