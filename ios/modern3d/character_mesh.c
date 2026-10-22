@@ -27,7 +27,7 @@ static void ellipsoid(Vertex *v,unsigned *count,unsigned max,
  }
 }
 Vertex *tux_make_part(TuxPart part,unsigned *count){
- const unsigned max=16000;
+ const unsigned max=36000;
  Vertex *v=(Vertex *)calloc(max,sizeof(Vertex));
  if(!v)return NULL;
  *count=0;
