@@ -6,6 +6,45 @@ No classic course is imported into the new game. The default iOS bundle excludes
 the original Tcl/SGI assets and does not compile the legacy course parser.
 The new game is authored using JSON, original geometry, and native Metal.
 
+## Tux Racer app icon and launch branding
+
+The iOS app is named **Tux Racer** (the branch/repository may retain the
+historical Modern identifier). The three approved images belong here:
+
+```text
+ios/modern3d/Assets.xcassets/
+├── AppIcon.appiconset/AppIcon.png                (1024 × 1024, RGB)
+├── SplashLandscape.imageset/SplashLandscape.png (1672 × 941, RGB)
+└── SplashPortrait.imageset/SplashPortrait.png   (863 × 1822, RGB)
+```
+
+The asset catalogs' `Contents.json` files are tracked on the branch.
+The storyboard `ios/modern3d/LaunchScreen.storyboard` shows the landscape
+splash as a full-bleed, aspect-fill launch image. The app is currently
+landscape-only; the portrait image is retained for future promotional or
+portrait screens. The 1024px app icon is compiled by Xcode `actool`.
+
+**Install the downloadable artwork ZIP once** by extracting it at the
+repository root, then run:
+
+```sh
+sh ios/modern3d/check-branding.sh
+sh ios/build-xcode.sh iphonesimulator
+```
+
+The binary images need to be added to Git after extraction:
+
+```sh
+git add ios/modern3d/Assets.xcassets
+git commit -m "assets(ios): add approved Tux Racer app icon and splash art"
+git push origin feature/ios-modern-3d
+```
+
+The source branch already contains the plist, storyboard, and CMake settings.
+Do not add launch images manually in Xcode; it would create duplicate resource
+entries. The OS launch storyboard is a brief static startup screen; a timed
+in-game title screen is a separate feature.
+
 ## Modular character/animation milestone
 
 The native Metal renderer now composes the character from separate replaceable
