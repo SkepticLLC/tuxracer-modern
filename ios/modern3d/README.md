@@ -1,22 +1,38 @@
-# Modern iOS 3D vertical slice
+# Tux Racer Modern — clean-slate iOS game
 
-This directory is a clean-slate iOS gameplay experiment, **not** the original Tux Racer engine or preservation project.
+**Branch:** `feature/ios-modern-3d` — macOS preservation remains on its own release branch.
 
-Run with the CMake option `-DTUX_IOS_MODERN3D=ON` (enabled by default on `feature/ios-modern-3d`). The last working 2.5D SDL renderer remains selectable via `-DTUX_IOS_MODERN3D=OFF`.
+No classic course is imported into the new game. The default iOS bundle excludes
+the original Tcl/SGI assets and does not compile the legacy course parser.
+The new game is authored using JSON, original geometry, and native Metal.
 
-## First milestone
-- Use the proven SDL2 / UIKit UIScene bootstrap to create an actual CAMetalLayer
-- Render a 3D downhill course with a depth buffer, real perspective projection, shading, and a mobile-friendly render loop
-- Parse `course.json` as the first data-driven course definition; **this initial slice uses only course length, width, slope and speeds**
-- Provide steering and braking using touch zones and keyboard, with a simple course-following placeholder player
-- Keep course assets and rendering source entirely outside the macOS preservation release
+## Playable milestone 2: Summit Run
 
-## Planned game content
-The next gates are a rigged/high-resolution Tux mesh, a genuine glTF / asset conversion pipeline, materials and lighting, fish and collision, 3D trees, course authoring, clothing/hat attachment points, animations and saved race results.
+Native Metal 3D with real depth testing and a procedurally generated
+snow-covered track. The course mesh now extends before its start and beyond
+the finish, while a terrain-following chase camera maintains above-snow
+clearance. This targets the earlier 'looking under the snow' bug.
 
-Avoid confusing a 3D rendering slice with a finished game. It does not yet include the original code-driven physics or modern authored models.
+Gameplay is isolated in `race_system.c/.h`: deterministic fish and tree
+locations, steering, braking, jumping/landing, collision penalties, race
+timer, course checkpoints, finish state, and restart. The render layer draws
+a 3D procedural penguin, evergreen trees, golden collectible fish, start,
+checkpoint and finish arches. A native UIKit HUD shows time, distance,
+speed and scores. These meshes are *provisional geometry*, not final
+art-quality rigged assets.
 
-## Simulator build
+### Quick regression test (no Xcode)
+
+```sh
+sh ios/modern3d/test-race.sh
+```
+
+This compiles the pure C game logic, tests object determinism, fish pickup,
+jump/landing, pause, finish and restart, and validates the JSON manifest.
+The test is provided for running on the developer's Mac; it has not been
+executed on that machine in this session.
+
+### Run on iOS 27 simulator
 
 ```sh
 cd ~/Desktop/tuxracer-modern-github
@@ -27,31 +43,38 @@ sh ios/build-xcode.sh iphonesimulator
 open "$HOME/Library/Caches/tuxracer-modern-ios/iphonesimulator/TuxRacerModernIOS.xcodeproj"
 ```
 
-Because the build directory is shared with the previous branch, the CMake
-cache can be made explicit with:
+Select an iPhone simulator and press Command+R. `TUX_IOS_MODERN3D` is on by
+default for this branch. If your CMake cache has previous options, set
+`-DTUX_IOS_MODERN3D=ON -DTUX_IOS_METAL_SMOKE=OFF` when regenerating the
+Xcode project.
 
-```sh
-cmake -S ios -B "$HOME/Library/Caches/tuxracer-modern-ios/iphonesimulator" \
-  -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=26.0 -DTUX_IOS_MODERN3D=ON \
-  -DTUX_IOS_METAL_SMOKE=OFF
-```
+### Controls
 
-Expected first result: a native 3D snow-covered slope and a small
-procedurally modeled 3D penguin, not the old 2D overlay. This new slice has
-**not been compiled or simulator-tested on the developer's machine**.
-On a linker/compiler failure, collect the first error (not only the final
-`clang` summary). The original iOS prototype is selectable with
-`-DTUX_IOS_MODERN3D=OFF`.
+- Left/right thirds of the display, A/D, arrows, or controller left stick: steer
+- Center touch (above 83% of height), space/up, or controller A: jump
+- Center touch (lower 17%), S/down, or controller B: brake
+- R / Enter: restart; P / Escape: pause or resume
+- Touch the display after finishing: restart
 
-### Input
-- Left/right arrow keys, A/D, or hold left/right sides of the touchscreen to steer
-- Down arrow, S, or hold the lower center of the touchscreen to brake
-- R restarts the initial camera position and speed
+### World authoring
 
-### Content strategy
-- New authored courses are defined in versioned JSON, then compiled into
-  efficient runtime terrain and object buffers.
-- New character and scenery assets are authored separately, with rigged,
-  textured models replacing the procedural penguin.
-- The original macOS preservation branch remains unchanged.
+`modern3d/course.json` defines the original Summit Run's length, width,
+slope, starting/max speed, fish spacing, pine density and checkpoint spacing.
+This is the seed of a multiple-course content pipeline; it isn't yet a level
+editor. World objects currently use deterministic seeded positions.
+
+### Roadmap to a complete game
+
+1. Test first: verify camera clearance, actual rendering and hit-box feel on iPhone
+2. Replace procedural penguin with a **rigged, skinned original 3D Tux asset**
+   and sliding/carving/jumping animations
+3. Proper asset pipeline (glTF ingestion -> optimized engine format and textures)
+4. Better trees, snow/ice materials, flag fabric, fish pickup VFX, particles,
+   snowboard tracks, shadows and spatial audio
+5. Course select/menu, medal goals, difficulty, checkpoints, records,
+   clothing and hat inventory, saves
+6. More authored original courses, iOS performance profiling, accessibility,
+   device testing, packaging and App Store readiness
+
+Work is segmented into small modules and host regression gates to avoid
+repeating the expensive Xcode / simulator bring-up for every gameplay tweak.
