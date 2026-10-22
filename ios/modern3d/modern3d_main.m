@@ -25,6 +25,8 @@ typedef struct { matrix_float4x4 mvp; matrix_float4x4 model; } Uniforms;
 typedef struct {
     float length, width, slope, startSpeed, maxSpeed;
     float fishSpacing, treeSpacing, checkpointSpacing;
+    unsigned seed;
+    float goldTime,silverTime,bronzeTime;
 } CourseConfig;
 
 static const char *shaderSource =
@@ -67,7 +69,7 @@ static matrix_float4x4 view_matrix(vector_float3 eye,vector_float3 target) {
     return m;
 }
 static CourseConfig read_course(void) {
-    CourseConfig c={600,62,18,11,30,20,38,150};
+    CourseConfig c={600,62,18,11,30,20,38,150,8241,36,43,52};
     NSString *path=[[NSBundle mainBundle] pathForResource:@"course" ofType:@"json" inDirectory:@"modern3d"];
     if(!path) {
         NSLog(@"Modern3D: course.json not found; using defaults");
@@ -102,6 +104,18 @@ static CourseConfig read_course(void) {
     if([flags isKindOfClass:[NSDictionary class]]){
         NSNumber *checkpoints=flags[@"checkpointEveryMeters"];
         if(checkpoints.floatValue>=20)c.checkpointSpacing=checkpoints.floatValue;
+    }
+    NSNumber *seed=json[@"seed"];
+    if([seed isKindOfClass:[NSNumber class]])c.seed=seed.unsignedIntValue;
+    NSDictionary *medals=json[@"medalTimesSeconds"];
+    if([medals isKindOfClass:[NSDictionary class]]){
+        NSNumber *gold=medals[@"gold"],*silver=medals[@"silver"],*bronze=medals[@"bronze"];
+        if(gold.floatValue>0 && silver.floatValue>gold.floatValue
+           && bronze.floatValue>silver.floatValue){
+            c.goldTime=gold.floatValue;
+            c.silverTime=silver.floatValue;
+            c.bronzeTime=bronze.floatValue;
+        }
     }
     NSLog(@"Modern3D course: %@ — %.0fm, %.0fm wide",json[@"name"],c.length,c.width);
     return c;
@@ -361,7 +375,7 @@ int main(int argc,char **argv){
 
     RaceConfig settings={course.length,course.width,course.startSpeed,
        course.maxSpeed,course.fishSpacing,course.treeSpacing,
-       course.checkpointSpacing,8241u};
+       course.checkpointSpacing,course.seed};
     RaceState race={0};
     race_reset(&race,&settings);
     bool was_finished=false;
@@ -429,8 +443,11 @@ int main(int argc,char **argv){
             if(input.restart){smoothCameraX=0;smoothCameraZ=-15;smoothCameraY=7;was_finished=false;}
             race_step(&race,&settings,input,dt);
             if(race.phase==RACE_FINISHED && !was_finished){
-                SDL_Log("FINISH Summit Run: %.2fs, fish %d, hits %d, checkpoints %d",
-                        race.time_seconds,race.fish,race.hits,race.checkpoints);
+                NSString *medal=race.time_seconds<=course.goldTime?@"GOLD":
+                               race.time_seconds<=course.silverTime?@"SILVER":
+                               race.time_seconds<=course.bronzeTime?@"BRONZE":@"FINISHER";
+                SDL_Log("FINISH Summit Run: %.2fs, %s, fish %d, hits %d, checkpoints %d",
+                        race.time_seconds,medal.UTF8String,race.fish,race.hits,race.checkpoints);
                 was_finished=true;
             }
             if((int)(race.time_seconds*2)!=(int)((race.time_seconds-dt)*2) &&
