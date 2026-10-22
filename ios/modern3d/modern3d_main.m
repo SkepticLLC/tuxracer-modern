@@ -454,6 +454,37 @@ int main(int argc,char **argv){
             [encoder setVertexBuffer:tuxBuffer offset:0 atIndex:0];
             [encoder setVertexBytes:&tuxUniform length:sizeof(tuxUniform) atIndex:1];
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:tuxCount];
+            /* Draw authored-course objects with the same depth buffer and
+             * world coordinates as terrain and player. Cull behind-camera
+             * instances to keep command count bounded on mobile. */
+            const int max_tree=race_objects_count(&settings,0);
+            const int max_fish=race_objects_count(&settings,1);
+            for(int kind=0;kind<2;kind++){
+                int count=kind?max_fish:max_tree;
+                for(int i=0;i<count;i++){
+                    float x=0,z=0;race_object_at(&settings,kind,i,&x,&z);
+                    if(z<race.distance-11.0f||z>race.distance+170.0f)continue;
+                    if(kind && z<race.distance-2.0f)continue;
+                    float groundHeight=ground(x,z,course.slope);
+                    float hover=kind?(1.20f+.22f*sinf(race.time_seconds*3.2f+i)):0;
+                    matrix_float4x4 model=translate(x,groundHeight+hover,z);
+                    Uniforms u={simd_mul(proj,simd_mul(view,model)),model};
+                    [encoder setVertexBuffer:(kind?fishBuffer:treeBuffer) offset:0 atIndex:0];
+                    [encoder setVertexBytes:&u length:sizeof(u) atIndex:1];
+                    [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                        vertexStart:0 vertexCount:(kind?fishCount:treeCount)];
+                }
+            }
+            for(int gate=0;gate<2;gate++){
+                float z=gate?course.length:8.0f;
+                if(z<race.distance-30.0f||z>race.distance+175.0f)continue;
+                matrix_float4x4 model=translate(0,ground(0,z,course.slope),z);
+                Uniforms u={simd_mul(proj,simd_mul(view,model)),model};
+                [encoder setVertexBuffer:(gate?finishBuffer:startBuffer) offset:0 atIndex:0];
+                [encoder setVertexBytes:&u length:sizeof(u) atIndex:1];
+                [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                    vertexStart:0 vertexCount:(gate?finishCount:startCount)];
+            }
             [encoder endEncoding];
             [command presentDrawable:drawable];
             [command commit];
