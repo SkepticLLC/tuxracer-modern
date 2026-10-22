@@ -106,7 +106,11 @@ static Vertex *make_course(CourseConfig c,unsigned *count) {
     if(!v)return NULL;
     *count=0;
     for(unsigned iz=0;iz<nz;iz++){
-        float z0=(float)iz/nz*c.length,z1=(float)(iz+1)/nz*c.length;
+        /* Extend snow before the start and well beyond the finish so neither
+         * the chase camera nor the finish view can expose an open edge. */
+        float full_length=c.length+250.0f;
+        float z0=-45.0f+(float)iz/nz*full_length;
+        float z1=-45.0f+(float)(iz+1)/nz*full_length;
         for(unsigned ix=0;ix<nx;ix++){
             float x0=((float)ix/nx-.5f)*c.width;
             float x1=((float)(ix+1)/nx-.5f)*c.width;
@@ -455,6 +459,9 @@ int main(int argc,char **argv){
             smoothCameraX+=(desiredCamX-smoothCameraX)*spring;
             smoothCameraZ+=(desiredCamZ-smoothCameraZ)*spring;
             smoothCameraY+=(desiredCamY-smoothCameraY)*spring;
+            /* Never let camera smoothing put our eye below a crest. */
+            float minCameraY=ground(smoothCameraX,smoothCameraZ,course.slope)+4.6f;
+            if(smoothCameraY<minCameraY)smoothCameraY=minCameraY;
             vector_float3 eye={smoothCameraX,smoothCameraY,smoothCameraZ};
             float lookZ=race.distance+24.0f;
             float lookY=ground(race.lateral,lookZ,course.slope)+2.2f;
