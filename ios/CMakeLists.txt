@@ -43,15 +43,20 @@ else()
   set(TUX_IOS_ENTRY prototype_race.c)
 endif()
 
-add_executable(TuxRacerModernIOS MACOSX_BUNDLE
+set(_tux_ios_sources
   ${TUX_IOS_ENTRY}
   scene_lifecycle.m
-  original_course.c
-  original_terrain.c
-  modern_terrain.c
-  course_asset_paths.c
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform/mobile_input.c"
 )
+if(TUX_IOS_MODERN3D AND NOT TUX_IOS_METAL_SMOKE)
+  list(APPEND _tux_ios_sources modern3d/race_system.c)
+elseif(NOT TUX_IOS_METAL_SMOKE)
+  # Optional legacy visual comparison only, never used in the new 3D game.
+  list(APPEND _tux_ios_sources
+    original_course.c original_terrain.c modern_terrain.c
+    course_asset_paths.c
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform/mobile_input.c")
+endif()
+add_executable(TuxRacerModernIOS MACOSX_BUNDLE ${_tux_ios_sources})
 target_include_directories(TuxRacerModernIOS PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/platform"
 )
@@ -86,7 +91,7 @@ target_include_directories(TuxRacerModernIOS PRIVATE
 
 # The new 3D game does not ship the old Tcl/SGI course tree by default.
 # Retain classic assets only for the legacy fallback target.
-if(NOT TUX_IOS_MODERN3D OR TUX_IOS_METAL_SMOKE)
+if(NOT TUX_IOS_MODERN3D AND NOT TUX_IOS_METAL_SMOKE)
   # Have Xcode copy the entire original, unmodified data directory during
   # the native Copy Bundle Resources phase (before signing). A PRE_LINK command
   # does not reliably participate in the Xcode resource lifecycle.
