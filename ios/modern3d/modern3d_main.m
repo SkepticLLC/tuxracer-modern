@@ -17,9 +17,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "character_mesh.h"
+#include "character_animation.h"
 #include "race_system.h"
 
-typedef struct { vector_float3 position; vector_float3 normal; vector_float4 color; } Vertex;
 typedef struct { matrix_float4x4 mvp; matrix_float4x4 model; } Uniforms;
 
 typedef struct {
@@ -213,32 +214,6 @@ static void add_ellipsoid(Vertex *verts,unsigned *count,unsigned maximum,
         }
     }
 }
-static Vertex *make_penguin(unsigned *count){
-    const unsigned max=11000;
-    Vertex *v=(Vertex *)calloc(max,sizeof(Vertex));
-    if(!v)return NULL;
-    *count=0;
-    const vector_float4 black={.065f,.12f,.18f,1};
-    const vector_float4 white={.93f,.96f,.93f,1};
-    const vector_float4 orange={1.0f,.58f,.09f,1};
-    add_ellipsoid(v,count,max,(vector_float3){0,1.10f,0},
-                  (vector_float3){.51f,.86f,.39f},black);
-    add_ellipsoid(v,count,max,(vector_float3){0,1.03f,-.285f},
-                  (vector_float3){.37f,.67f,.16f},white);
-    add_ellipsoid(v,count,max,(vector_float3){0,1.94f,0},
-                  (vector_float3){.39f,.43f,.34f},black);
-    add_ellipsoid(v,count,max,(vector_float3){0,1.83f,-.355f},
-                  (vector_float3){.24f,.11f,.15f},orange);
-    add_ellipsoid(v,count,max,(vector_float3){-.50f,1.05f,0},
-                  (vector_float3){.18f,.49f,.20f},black);
-    add_ellipsoid(v,count,max,(vector_float3){.50f,1.05f,0},
-                  (vector_float3){.18f,.49f,.20f},black);
-    add_ellipsoid(v,count,max,(vector_float3){-.25f,.19f,-.20f},
-                  (vector_float3){.23f,.12f,.35f},orange);
-    add_ellipsoid(v,count,max,(vector_float3){.25f,.19f,-.20f},
-                  (vector_float3){.23f,.12f,.35f},orange);
-    return v;
-}
 static void add_cone(Vertex *v,unsigned *count,unsigned max,
                      float base_y,float tip_y,float radius,vector_float4 tint){
     const int sides=12;
@@ -299,6 +274,20 @@ static Vertex *make_gate(unsigned *count,int finish){
     add_box(v,count,256,(vector_float3){-8,5.4f,-.4f},
             (vector_float3){8,6,.4f},beam);
     return v;
+}
+static matrix_float4x4 rotate_z(float a){
+    matrix_float4x4 m=matrix_identity_float4x4;
+    float s=sinf(a),c=cosf(a);
+    m.columns[0]=(vector_float4){c,s,0,0};
+    m.columns[1]=(vector_float4){-s,c,0,0};
+    return m;
+}
+static matrix_float4x4 rotate_x(float a){
+    matrix_float4x4 m=matrix_identity_float4x4;
+    float s=sinf(a),c=cosf(a);
+    m.columns[1]=(vector_float4){0,c,s,0};
+    m.columns[2]=(vector_float4){0,-s,c,0};
+    return m;
 }
 static matrix_float4x4 translate(float x,float y,float z){
     matrix_float4x4 result=matrix_identity_float4x4;
@@ -371,13 +360,17 @@ int main(int argc,char **argv){
     free(vertices);
     if(!terrainBuffer){SDL_Log("Terrain GPU buffer failed");return 8;}
 
-    unsigned tuxCount=0;
-    Vertex *tuxVertices=make_penguin(&tuxCount);
-    if(!tuxVertices){SDL_Log("Tux mesh allocation failed");return 9;}
-    id<MTLBuffer> tuxBuffer=[device newBufferWithBytes:tuxVertices
-        length:sizeof(Vertex)*tuxCount options:MTLResourceStorageModeShared];
-    free(tuxVertices);
-    if(!tuxBuffer){SDL_Log("Tux GPU buffer failed");return 10;}
+    id<MTLBuffer> tuxBuffers[TUX_PART_COUNT]={nil};
+    unsigned tuxCounts[TUX_PART_COUNT]={0};
+    for(int part=0;part<TUX_PART_COUNT;part++){
+        Vertex *mesh=tux_make_part((TuxPart)part,&tuxCounts[part]);
+        if(!mesh||tuxCounts[part]==0){free(mesh);SDL_Log("Tux part %d allocation failed",part);return 9;}
+        tuxBuffers[part]=[device newBufferWithBytes:mesh
+            length:sizeof(Vertex)*tuxCounts[part]
+            options:MTLResourceStorageModeShared];
+        free(mesh);
+        if(!tuxBuffers[part]){SDL_Log("Tux part %d GPU buffer failed",part);return 10;}
+    }
 
     unsigned treeCount=0,fishCount=0,startCount=0,finishCount=0;
     Vertex *treeVertices=make_tree(&treeCount),*fishVertices=make_fish(&fishCount);
@@ -549,13 +542,32 @@ int main(int argc,char **argv){
             [encoder setVertexBuffer:terrainBuffer offset:0 atIndex:0];
             [encoder setVertexBytes:&uniform length:sizeof(uniform) atIndex:1];
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
-            matrix_float4x4 tuxModel=translate(race.lateral,
-                ground(race.lateral,race.distance+3.5f,course.slope)+race.jump_height,
-                race.distance+3.5f);
-            Uniforms tuxUniform={simd_mul(proj,simd_mul(view,tuxModel)),tuxModel};
-            [encoder setVertexBuffer:tuxBuffer offset:0 atIndex:0];
-            [encoder setVertexBytes:&tuxUniform length:sizeof(tuxUniform) atIndex:1];
-            [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:tuxCount];
+            /* Art pipeline seam: independent swappable meshes with per-part
+             * transforms. Pose comes from a pure C animation controller. */
+            TuxPose pose=tux_pose(race.time_seconds,race.speed,
+                race.steer_visual,race.jump_height,race.vertical_velocity);
+            matrix_float4x4 characterBase=translate(race.lateral,
+                ground(race.lateral,race.distance+3.5f,course.slope)
+                   +race.jump_height+pose.bob,race.distance+3.5f);
+            characterBase=simd_mul(characterBase,rotate_z(pose.lean));
+            characterBase=simd_mul(characterBase,rotate_x(pose.pitch));
+            for(int part=0;part<TUX_PART_COUNT;part++){
+                matrix_float4x4 model=characterBase;
+                if(part==TUX_LEFT_WING||part==TUX_RIGHT_WING){
+                    float side=part==TUX_LEFT_WING?-1.0f:1.0f;
+                    matrix_float4x4 pivot=translate(side*.51f,1.55f,0);
+                    matrix_float4x4 unpivot=translate(-side*.51f,-1.55f,0);
+                    model=simd_mul(model,simd_mul(pivot,
+                       simd_mul(rotate_z(side*pose.flap),unpivot)));
+                }else if(part==TUX_SCARF){
+                    model=simd_mul(model,rotate_x(pose.scarfWave*.14f));
+                }
+                Uniforms tuxUniform={simd_mul(proj,simd_mul(view,model)),model};
+                [encoder setVertexBuffer:tuxBuffers[part] offset:0 atIndex:0];
+                [encoder setVertexBytes:&tuxUniform length:sizeof(tuxUniform) atIndex:1];
+                [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                    vertexStart:0 vertexCount:tuxCounts[part]];
+            }
             /* Draw authored-course objects with the same depth buffer and
              * world coordinates as terrain and player. Cull behind-camera
              * instances to keep command count bounded on mobile. */
