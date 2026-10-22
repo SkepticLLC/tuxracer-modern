@@ -24,5 +24,12 @@
     "start": true,
     "finish": true,
     "checkpointEveryMeters": 150
+  },
+  "seed": 8241,
+  "difficulty": "beginner",
+  "medalTimesSeconds": {
+    "gold": 36,
+    "silver": 43,
+    "bronze": 52
   }
 }
