@@ -24,6 +24,7 @@ typedef struct { matrix_float4x4 mvp; matrix_float4x4 model; } Uniforms;
 
 typedef struct {
     float length, width, slope, startSpeed, maxSpeed;
+    float fishSpacing, treeSpacing, checkpointSpacing;
 } CourseConfig;
 
 static const char *shaderSource =
@@ -66,7 +67,7 @@ static matrix_float4x4 view_matrix(vector_float3 eye,vector_float3 target) {
     return m;
 }
 static CourseConfig read_course(void) {
-    CourseConfig c={600,62,18,11,30};
+    CourseConfig c={600,62,18,11,30,20,38,150};
     NSString *path=[[NSBundle mainBundle] pathForResource:@"course" ofType:@"json" inDirectory:@"modern3d"];
     if(!path) {
         NSLog(@"Modern3D: course.json not found; using defaults");
@@ -86,6 +87,22 @@ static CourseConfig read_course(void) {
     if(slope.floatValue>0 && slope.floatValue<45)c.slope=slope.floatValue;
     if(speed.floatValue>0 && speed.floatValue<60)c.startSpeed=speed.floatValue;
     if(max.floatValue>=c.startSpeed && max.floatValue<90)c.maxSpeed=max.floatValue;
+    NSDictionary *collectibles=json[@"collectibles"];
+    if([collectibles isKindOfClass:[NSDictionary class]]){
+        NSNumber *spacing=collectibles[@"spacingMeters"];
+        if(spacing.floatValue>=5 && spacing.floatValue<=100)c.fishSpacing=spacing.floatValue;
+    }
+    NSDictionary *environment=json[@"environment"];
+    if([environment isKindOfClass:[NSDictionary class]]){
+        NSNumber *density=environment[@"pineDensity"];
+        if(density.floatValue>.05f && density.floatValue<=1.0f)
+            c.treeSpacing=fmaxf(12.0f,48.0f-density.floatValue*36.0f);
+    }
+    NSDictionary *flags=json[@"flags"];
+    if([flags isKindOfClass:[NSDictionary class]]){
+        NSNumber *checkpoints=flags[@"checkpointEveryMeters"];
+        if(checkpoints.floatValue>=20)c.checkpointSpacing=checkpoints.floatValue;
+    }
     NSLog(@"Modern3D course: %@ — %.0fm, %.0fm wide",json[@"name"],c.length,c.width);
     return c;
 }
@@ -343,7 +360,8 @@ int main(int argc,char **argv){
     }
 
     RaceConfig settings={course.length,course.width,course.startSpeed,
-       course.maxSpeed,20.0f,38.0f,150.0f,8241u};
+       course.maxSpeed,course.fishSpacing,course.treeSpacing,
+       course.checkpointSpacing,8241u};
     RaceState race={0};
     race_reset(&race,&settings);
     bool was_finished=false;
