@@ -1,35 +1,35 @@
 {
   "schemaVersion": 1,
   "id": "summit-run",
-  "name": "Summit Run",
-  "description": "Original mobile downhill course — first native Metal 3D slice",
-  "lengthMeters": 600,
-  "widthMeters": 62,
-  "startingSpeedMps": 11,
-  "maxSpeedMps": 30,
-  "slopeDegrees": 18,
+  "name": "Summit Run — Alpine Descent",
+  "description": "An extended modern alpine downhill course for tilt and touch play",
+  "lengthMeters": 1600,
+  "widthMeters": 76,
+  "startingSpeedMps": 12,
+  "maxSpeedMps": 36,
+  "slopeDegrees": 16,
   "terrain": {
-    "heightVariationMeters": 4,
-    "rollingWavelengthMeters": 70
+    "heightVariationMeters": 3.2,
+    "rollingWavelengthMeters": 105
   },
   "environment": {
     "theme": "alpine-day",
-    "pineDensity": 0.28
+    "pineDensity": 0.23
   },
   "collectibles": {
     "type": "fish",
-    "spacingMeters": 20
+    "spacingMeters": 28
   },
   "flags": {
     "start": true,
     "finish": true,
-    "checkpointEveryMeters": 150
+    "checkpointEveryMeters": 320
   },
   "seed": 8241,
   "difficulty": "beginner",
   "medalTimesSeconds": {
-    "gold": 36,
-    "silver": 43,
-    "bronze": 52
+    "gold": 59,
+    "silver": 70,
+    "bronze": 85
   }
 }
