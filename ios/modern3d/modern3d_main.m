@@ -340,23 +340,15 @@ int main(int argc,char **argv){
      * branded opening; this is not an interactive loading screen. */
     UIImage *openingImage=[UIImage imageNamed:@"SplashLandscape"];
     UIImageView *openingView=nil;
-    UIImageView *openingBackdrop=nil;
     Uint64 openingStart=SDL_GetTicks64();
     if(openingImage){
-        /* Layer a full-bleed background behind the uncropped 16:9 artwork.
-         * The image's central TUX RACER title remains fully in frame. */
-        openingBackdrop=[[UIImageView alloc] initWithImage:openingImage];
-        openingBackdrop.contentMode=UIViewContentModeScaleAspectFill;
-        openingBackdrop.clipsToBounds=YES;
-        openingBackdrop.userInteractionEnabled=NO;
-        [metalUIKitView addSubview:openingBackdrop];
+        /* One full-width image, top aligned. The lower snow may crop on
+         * extra-wide iPhones, but the TUX RACER title never does. */
         openingView=[[UIImageView alloc] initWithImage:openingImage];
-        /* The source artwork is 16:9 while modern landscape iPhones are
-         * substantially wider. AspectFill crops the top/bottom of the logo. */
-        openingView.contentMode=UIViewContentModeScaleAspectFit;
-        openingView.backgroundColor=[UIColor colorWithRed:.05 green:.31 blue:.59 alpha:1];
+        openingView.contentMode=UIViewContentModeScaleAspectFill;
         openingView.clipsToBounds=YES;
         openingView.userInteractionEnabled=NO;
+        metalUIKitView.clipsToBounds=YES;
         [metalUIKitView addSubview:openingView];
         NSLog(@"Tux Racer: landscape opening artwork found in asset catalog");
     }else{
@@ -509,13 +501,12 @@ int main(int argc,char **argv){
             CGRect display=metalUIKitView.bounds;
             CGFloat screenWidth=display.size.width,screenHeight=display.size.height;
             if(openingView){
-                openingBackdrop.frame=display;
-                openingView.frame=display;
+                CGFloat sourceRatio=openingImage.size.height/openingImage.size.width;
+                CGFloat fullHeight=MAX(screenHeight,screenWidth*sourceRatio);
+                openingView.frame=CGRectMake(0,0,screenWidth,fullHeight);
                 if(SDL_GetTicks64()-openingStart>=2200){
                     [openingView removeFromSuperview];
-                    [openingBackdrop removeFromSuperview];
                     openingView=nil;
-                    openingBackdrop=nil;
                 }
             }
             hud.frame=CGRectMake(screenWidth*.085,screenHeight*.028,
