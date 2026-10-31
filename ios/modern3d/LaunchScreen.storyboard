@@ -10,29 +10,25 @@
         <scene sceneID="launch-scene">
             <objects>
                 <viewController id="launch-controller" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="launch-root">
+                    <view key="view" clipsSubviews="YES" contentMode="scaleToFill" id="launch-root">
                         <rect key="frame" x="0.0" y="0.0" width="852" height="393"/>
                         <viewLayoutGuide key="safeArea" id="launch-safe"/>
+                        <!-- One image, full width, pinned to the top. Its aspect ratio
+                             follows the source artwork; extra-wide iPhones crop
+                             only the lower snow, never the TUX logo. -->
                         <subviews>
-                            <!-- Full-bleed backdrop fills wide iPhones. The second copy
-                                 preserves the complete title/logo at 16:9. -->
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" image="SplashLandscape" translatesAutoresizingMaskIntoConstraints="NO" id="launch-backdrop">
-                                <rect key="frame" x="0.0" y="0.0" width="852" height="393"/>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="SplashLandscape" translatesAutoresizingMaskIntoConstraints="NO" id="launch-art">
-                                <rect key="frame" x="0.0" y="0.0" width="852" height="393"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" image="SplashLandscape" translatesAutoresizingMaskIntoConstraints="NO" id="launch-art">
+                                <rect key="frame" x="0.0" y="0.0" width="852" height="480"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" secondItem="launch-art" secondAttribute="width" multiplier="941:1672" id="launch-image-ratio"/>
+                                </constraints>
                             </imageView>
                         </subviews>
                         <color key="backgroundColor" red="0.05" green="0.31" blue="0.59" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="launch-backdrop" firstAttribute="leading" secondItem="launch-root" secondAttribute="leading" id="backdrop-left"/>
-                            <constraint firstItem="launch-backdrop" firstAttribute="trailing" secondItem="launch-root" secondAttribute="trailing" id="backdrop-right"/>
-                            <constraint firstItem="launch-backdrop" firstAttribute="top" secondItem="launch-root" secondAttribute="top" id="backdrop-top"/>
-                            <constraint firstItem="launch-backdrop" firstAttribute="bottom" secondItem="launch-root" secondAttribute="bottom" id="backdrop-bottom"/>
                             <constraint firstItem="launch-art" firstAttribute="leading" secondItem="launch-root" secondAttribute="leading" id="launch-left"/>
                             <constraint firstItem="launch-art" firstAttribute="trailing" secondItem="launch-root" secondAttribute="trailing" id="launch-right"/>
                             <constraint firstItem="launch-art" firstAttribute="top" secondItem="launch-root" secondAttribute="top" id="launch-top"/>
-                            <constraint firstItem="launch-art" firstAttribute="bottom" secondItem="launch-root" secondAttribute="bottom" id="launch-bottom"/>
                         </constraints>
                     </view>
                 </viewController>
