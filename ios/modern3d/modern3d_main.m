@@ -124,8 +124,8 @@ static CourseConfig read_course(void) {
 
 static float ground(float x,float z,float slope){
     return -tanf(slope*0.01745329252f)*z
-        +2.3f*sinf(x*.085f+z*.039f)*cosf(z*.024f)
-        +.75f*sinf(x*.26f-z*.058f);
+        +1.7f*sinf(x*.058f+z*.025f)*cosf(z*.014f)
+        +.45f*sinf(x*.17f-z*.042f);
 }
 static void add_vertex(Vertex *v,unsigned *count,unsigned max,
                        vector_float3 pos,vector_float3 normal,vector_float4 color){
@@ -152,7 +152,7 @@ static vector_float3 terrain_normal(float x,float z,float slope){
     return simd_normalize((vector_float3){-dx,step*2.0f,-dz});
 }
 static Vertex *make_course(CourseConfig c,unsigned *count) {
-    const unsigned nx=72,nz=240,max=nx*nz*6;
+    const unsigned nx=104,nz=560,max=nx*nz*6;
     Vertex *v=(Vertex *)calloc(max,sizeof(Vertex));
     if(!v)return NULL;
     *count=0;
