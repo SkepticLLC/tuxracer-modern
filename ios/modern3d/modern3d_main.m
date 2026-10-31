@@ -334,6 +334,24 @@ int main(int argc,char **argv){
     controls.backgroundColor=[[UIColor blackColor] colorWithAlphaComponent:.22];
     [metalUIKitView addSubview:controls];
 
+    /* UIKit's OS launch storyboard is intentionally brief and may disappear
+     * before game assets are initialized. Show the approved launch artwork
+     * above the Metal view during the first rendered frames as a separate
+     * branded opening; this is not an interactive loading screen. */
+    UIImage *openingImage=[UIImage imageNamed:@"SplashLandscape"];
+    UIImageView *openingView=nil;
+    Uint64 openingStart=SDL_GetTicks64();
+    if(openingImage){
+        openingView=[[UIImageView alloc] initWithImage:openingImage];
+        openingView.contentMode=UIViewContentModeScaleAspectFill;
+        openingView.clipsToBounds=YES;
+        openingView.userInteractionEnabled=NO;
+        [metalUIKitView addSubview:openingView];
+        NSLog(@"Tux Racer: landscape opening artwork found in asset catalog");
+    }else{
+        NSLog(@"Tux Racer: SplashLandscape missing from compiled asset catalog");
+    }
+
 
     NSError *error=nil;
     NSString *source=[NSString stringWithUTF8String:shaderSource];
@@ -479,6 +497,13 @@ int main(int argc,char **argv){
             }
             CGRect display=metalUIKitView.bounds;
             CGFloat screenWidth=display.size.width,screenHeight=display.size.height;
+            if(openingView){
+                openingView.frame=display;
+                if(SDL_GetTicks64()-openingStart>=2200){
+                    [openingView removeFromSuperview];
+                    openingView=nil;
+                }
+            }
             hud.frame=CGRectMake(screenWidth*.085,screenHeight*.028,
                                   screenWidth*.64,screenHeight*.15);
             controls.frame=CGRectMake(screenWidth*.14,screenHeight*.91,
