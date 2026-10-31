@@ -482,6 +482,9 @@ int main(int argc,char **argv){
     int previousWidth=0,previousHeight=0;
     id<MTLTexture> depthTexture=nil;
     float smoothCameraX=0,smoothCameraZ=-11.0f,smoothCameraY=7;
+    SDL_FingerID activeTapFinger=0;
+    Uint64 activeTapStarted=0;
+    float activeTapX=0,activeTapY=0;
     bool running=true,suspended=false;
     SDL_GameController *controller=NULL;
     for(int i=0;i<SDL_NumJoysticks();i++)
@@ -490,7 +493,7 @@ int main(int argc,char **argv){
     while(running){
         @autoreleasepool {
             SDL_Event ev;
-            int restart=0,pause=0;
+            int restart=0,pause=0,jumpPulse=0;
             while(SDL_PollEvent(&ev)){
                 if(ev.type==SDL_QUIT)running=false;
                 if(ev.type==SDL_APP_WILLENTERBACKGROUND || ev.type==SDL_APP_DIDENTERBACKGROUND)suspended=true;
@@ -500,6 +503,22 @@ int main(int argc,char **argv){
                     if(ev.key.keysym.sym==SDLK_p || ev.key.keysym.sym==SDLK_ESCAPE)pause=1;
                     if(ev.key.keysym.sym==SDLK_h)showHat=!showHat;
                     if(ev.key.keysym.sym==SDLK_c)showScarf=!showScarf;
+                }
+                if(ev.type==SDL_FINGERDOWN){
+                    activeTapFinger=ev.tfinger.fingerId;
+                    activeTapStarted=SDL_GetTicks64();
+                    activeTapX=ev.tfinger.x;
+                    activeTapY=ev.tfinger.y;
+                }
+                if(ev.type==SDL_FINGERUP && ev.tfinger.fingerId==activeTapFinger){
+                    Uint64 held=SDL_GetTicks64()-activeTapStarted;
+                    float movedX=fabsf(ev.tfinger.x-activeTapX);
+                    float movedY=fabsf(ev.tfinger.y-activeTapY);
+                    if(held<=280 && movedX<.075f && movedY<.075f){
+                        if(race.phase==RACE_FINISHED)restart=1;
+                        else jumpPulse=1;
+                    }
+                    activeTapFinger=0;
                 }
                 if(ev.type==SDL_CONTROLLERDEVICEADDED && !controller &&
                    SDL_IsGameController(ev.cdevice.which))
@@ -515,33 +534,59 @@ int main(int argc,char **argv){
             float dt=fminf((float)((double)(now-last)/frequency),.033f);last=now;
             const Uint8 *keys=SDL_GetKeyboardState(NULL);
             RaceInput input={0};
-            input.steer=(keys[SDL_SCANCODE_A]||keys[SDL_SCANCODE_LEFT])?-1:
-                  (keys[SDL_SCANCODE_D]||keys[SDL_SCANCODE_RIGHT])?1:0;
+            float screenSteer=(keys[SDL_SCANCODE_A]||keys[SDL_SCANCODE_LEFT])?-1.0f:
+                 (keys[SDL_SCANCODE_D]||keys[SDL_SCANCODE_RIGHT])?1.0f:0.0f;
             input.brake=keys[SDL_SCANCODE_S]||keys[SDL_SCANCODE_DOWN];
-            input.jump=keys[SDL_SCANCODE_SPACE]||keys[SDL_SCANCODE_UP];
+            input.jump=jumpPulse||keys[SDL_SCANCODE_SPACE]||keys[SDL_SCANCODE_UP];
             input.restart=restart;
             input.pause=pause;
-            int touches=SDL_GetNumTouchDevices();
-            for(int i=0;i<touches;i++){
-                SDL_TouchID id=SDL_GetTouchDevice(i);
-                for(int j=0;j<SDL_GetNumTouchFingers(id);j++){
-                    SDL_Finger *finger=SDL_GetTouchFinger(id,j);
-                    if(!finger)continue;
-                    if(finger->x<.30f)input.steer=-1;
-                    if(finger->x>.70f)input.steer=1;
-                    if(finger->x>.36f&&finger->x<.64f){
-                       if(finger->y>.83f)input.brake=1;
-                       else input.jump=1;
+
+            NSInteger mode=controlMode.selectedSegmentIndex;
+            if(mode!=previousControlMode){
+                calibrateRequested=YES;
+                filteredTilt=0.0f;
+                previousControlMode=mode;
+            }
+            if(mode==1 && hasMotion && motionManager.deviceMotion){
+                /* In landscape, device Y points horizontally. Normalize to
+                 * screen coordinates before mapping through camera convention. */
+                CMAcceleration gravity=motionManager.deviceMotion.gravity;
+                UIInterfaceOrientation orientation=metalUIKitView.window.windowScene.interfaceOrientation;
+                float direction=orientation==UIInterfaceOrientationLandscapeRight?-1.0f:1.0f;
+                float raw=(float)gravity.y;
+                if(calibrateRequested){
+                    neutralTilt=raw;
+                    filteredTilt=0;
+                    calibrateRequested=NO;
+                }
+                float desired=tux_tilt_to_screen((raw-neutralTilt)*direction,3.6f);
+                filteredTilt+=(desired-filteredTilt)*fminf(1,dt*9.0f);
+                screenSteer=filteredTilt;
+            }else if(mode==0){
+                /* Full-width touch zones are deliberately separate from the
+                 * short tap gesture: hold to steer, release a tap to jump. */
+                int touches=SDL_GetNumTouchDevices();
+                for(int i=0;i<touches;i++){
+                    SDL_TouchID id=SDL_GetTouchDevice(i);
+                    for(int j=0;j<SDL_GetNumTouchFingers(id);j++){
+                        SDL_Finger *finger=SDL_GetTouchFinger(id,j);
+                        if(!finger)continue;
+                        if(finger->x<.35f)screenSteer=-1;
+                        else if(finger->x>.65f)screenSteer=1;
+                        if(finger->x>.35f&&finger->x<.65f&&finger->y>.83f)
+                            input.brake=1;
                     }
-                    if(race.phase==RACE_FINISHED)input.restart=1;
                 }
             }
             if(controller){
                 float lx=SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_LEFTX)/32768.0f;
-                if(fabsf(lx)>.17f)input.steer=lx;
+                if(fabsf(lx)>.17f)screenSteer=lx;
                 if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_A))input.jump=1;
                 if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_B))input.brake=1;
             }
+            /* Explicit mapping fixes the user-observed left/right inversion:
+             * right on screen must move the penguin right on screen. */
+            input.steer=tux_screen_steer_to_world(screenSteer);
             if(input.restart){smoothCameraX=0;smoothCameraZ=-11;smoothCameraY=7;was_finished=false;}
             race_step(&race,&settings,input,dt);
             if(race.phase==RACE_FINISHED && !was_finished){
