@@ -10,6 +10,7 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <UIKit/UIKit.h>
+#import <CoreMotion/CoreMotion.h>
 #include <SDL.h>
 #include <SDL_metal.h>
 #include <simd/simd.h>
@@ -19,6 +20,7 @@
 #include <stdlib.h>
 #include "character_mesh.h"
 #include "character_animation.h"
+#include "input_mapping.h"
 #include "race_system.h"
 
 typedef struct { matrix_float4x4 mvp; matrix_float4x4 model; } Uniforms;
@@ -274,6 +276,13 @@ static Vertex *make_gate(unsigned *count,int finish){
     add_box(v,count,256,(vector_float3){-8,5.4f,-.4f},
             (vector_float3){8,6,.4f},beam);
     return v;
+}
+static matrix_float4x4 rotate_y(float a){
+    matrix_float4x4 m=matrix_identity_float4x4;
+    float s=sinf(a),co=cosf(a);
+    m.columns[0]=(vector_float4){co,0,-s,0};
+    m.columns[2]=(vector_float4){s,0,co,0};
+    return m;
 }
 static matrix_float4x4 rotate_z(float a){
     matrix_float4x4 m=matrix_identity_float4x4;
@@ -632,11 +641,16 @@ int main(int argc,char **argv){
              * transforms. Pose comes from a pure C animation controller. */
             TuxPose pose=tux_pose(race.time_seconds,race.speed,
                 race.steer_visual,race.jump_height,race.vertical_velocity);
+            /* Classic belly-slide: rotate the existing articulated Tux onto
+             * the snow, head-first downhill. Rotate around torso height so
+             * the model stays anchored to the sampled surface. */
             matrix_float4x4 characterBase=translate(race.lateral,
                 ground(race.lateral,race.distance+3.5f,course.slope)
-                   +race.jump_height+pose.bob,race.distance+3.5f);
-            characterBase=simd_mul(characterBase,rotate_z(pose.lean));
-            characterBase=simd_mul(characterBase,rotate_x(pose.pitch));
+                   +race.jump_height+pose.bob+.60f,race.distance+3.5f);
+            characterBase=simd_mul(characterBase,rotate_z(pose.lean*.65f));
+            characterBase=simd_mul(characterBase,rotate_x(1.30f+pose.pitch));
+            characterBase=simd_mul(characterBase,rotate_y(3.14159265f));
+            characterBase=simd_mul(characterBase,translate(0,-1.10f,0));
             for(int part=0;part<TUX_PART_COUNT;part++){
                 if((part==TUX_HAT&&!showHat)||(part==TUX_SCARF&&!showScarf))continue;
                 matrix_float4x4 model=characterBase;
