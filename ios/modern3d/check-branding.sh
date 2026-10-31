@@ -38,6 +38,14 @@ if ! grep -q 'image="SplashLandscape"' "$storyboard"; then
   echo "FAIL: launch storyboard does not reference landscape artwork" >&2
   exit 1
 fi
+if grep -q 'launch-backdrop' "$storyboard"; then
+  echo "FAIL: duplicate launch artwork layers cause visible seams" >&2
+  exit 1
+fi
+if ! grep -q 'multiplier="941:1672"' "$storyboard"; then
+  echo "FAIL: launch illustration must preserve source aspect ratio" >&2
+  exit 1
+fi
 if ! grep -q 'UILaunchStoryboardName' "$root/ios/Info.plist"; then
   echo "FAIL: plist is missing UILaunchStoryboardName" >&2
   exit 1
