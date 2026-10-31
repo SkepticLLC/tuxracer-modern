@@ -37,17 +37,21 @@ static const char *shaderSource =
 "using namespace metal;\n"
 "struct V { float3 p; float3 n; float4 color; };\n"
 "struct U { float4x4 mvp; float4x4 model; };\n"
-"struct Out { float4 position [[position]]; float4 color; float3 normal; float haze; };\n"
+"struct Out { float4 position [[position]]; float4 color; float3 normal; float haze; float3 world; };\n"
 "vertex Out vertex_main(uint id [[vertex_id]], const device V *v [[buffer(0)]],"
 " constant U &u [[buffer(1)]]) {\n"
 "Out o; float4 p=float4(float3(v[id].p),1);"
 "o.position=u.mvp*p;"
 "o.normal=normalize((u.model*float4(float3(v[id].n),0)).xyz);"
 "o.color=v[id].color;"
-"o.haze=clamp(o.position.w/310.0,0.0,1.0); return o; }\n"
+"o.world=(u.model*p).xyz;"
+"o.haze=clamp(o.position.w/370.0,0.0,1.0); return o; }\n"
 "fragment float4 fragment_main(Out in [[stage_in]]) {\n"
-"float diffuse=max(dot(normalize(in.normal),normalize(float3(-0.55,0.85,0.40))),0.0);"
-"float3 lit=in.color.rgb*(0.65+0.35*diffuse);"
+"float3 n=normalize(in.normal);"
+"float diffuse=max(dot(n,normalize(float3(-0.55,0.85,0.40))),0.0);"
+"float micro=0.015*sin(in.world.x*7.3+in.world.z*4.1)*sin(in.world.z*11.0);"
+"float highlight=pow(max(dot(n,normalize(float3(0.1,0.98,0.15))),0.0),16.0)*0.045;"
+"float3 lit=in.color.rgb*(0.69+0.31*diffuse+micro)+highlight;"
 "float3 fog=float3(0.58,0.73,0.82);"
 "return float4(mix(lit,fog,in.haze*0.65),in.color.a); }\n";
 
@@ -485,7 +489,7 @@ int main(int argc,char **argv){
        course.checkpointSpacing,course.seed};
     RaceState race={0};
     race_reset(&race,&settings);
-    NSString *recordKey=@"tuxracer.summit-run.bestTime.v1";
+    NSString *recordKey=@"tuxracer.summit-run.bestTime.1600m.v1";
     NSUserDefaults *preferences=[NSUserDefaults standardUserDefaults];
     double bestTime=[preferences doubleForKey:recordKey];
     if(bestTime>0)NSLog(@"Summit Run personal best: %.2fs",bestTime);
