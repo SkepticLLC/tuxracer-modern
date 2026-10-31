@@ -341,6 +341,13 @@ int main(int argc,char **argv){
     raceFeedback.hidden=YES;
     raceFeedback.userInteractionEnabled=NO;
     [metalUIKitView addSubview:raceFeedback];
+    UIProgressView *courseProgress=[[UIProgressView alloc]
+        initWithProgressViewStyle:UIProgressViewStyleDefault];
+    courseProgress.progressTintColor=[UIColor colorWithRed:1 green:.76 blue:.20 alpha:1];
+    courseProgress.trackTintColor=[[UIColor whiteColor] colorWithAlphaComponent:.25];
+    courseProgress.progress=0;
+    courseProgress.userInteractionEnabled=NO;
+    [metalUIKitView addSubview:courseProgress];
 
     /* UIKit's OS launch storyboard is intentionally brief and may disappear
      * before game assets are initialized. Show the approved launch artwork
@@ -532,6 +539,10 @@ int main(int argc,char **argv){
                                       screenWidth*.72,screenHeight*.045);
             raceFeedback.frame=CGRectMake(screenWidth*.30,screenHeight*.22,
                                           screenWidth*.40,screenHeight*.10);
+            courseProgress.frame=CGRectMake(screenWidth*.145,screenHeight*.885,
+                                            screenWidth*.71,4);
+            courseProgress.progress=fminf(1.0f,
+                race.distance/fmaxf(settings.length,1.0f));
             if(race.phase==RACE_FINISHED){
                 raceFeedback.hidden=NO;
                 raceFeedback.text=[NSString stringWithFormat:@"FINISH  %.1fs",race.time_seconds];
@@ -591,7 +602,11 @@ int main(int argc,char **argv){
             float lookY=ground(race.lateral,lookZ,course.slope)+2.2f;
             vector_float3 target={race.lateral,lookY,lookZ};
             matrix_float4x4 view=view_matrix(eye,target);
-            matrix_float4x4 proj=perspective(61.0f*.01745329252f,(float)width/height,.12f,800.0f);
+            /* Gentle speed-dependent FOV gives downhill acceleration a
+             * sense of motion without changing collision or physics. */
+            float dynamicFov=59.0f+fminf(6.0f,race.speed*.19f);
+            matrix_float4x4 proj=perspective(dynamicFov*.01745329252f,
+               (float)width/height,.12f,800.0f);
             Uniforms uniform={simd_mul(proj,view),matrix_identity_float4x4};
 
             MTLRenderPassDescriptor *pass=[MTLRenderPassDescriptor renderPassDescriptor];
