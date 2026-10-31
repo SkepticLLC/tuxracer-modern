@@ -30,6 +30,29 @@ int main(void){
  race.speed=25;
  race_step(&race,&cfg,(RaceInput){0},.05f);
  assert(race.fish==1);
+ assert(race_fish_collected(&race,0));
+ assert(race.fish_flash>.0f);
+ float flash_before=race.fish_flash;
+ race_step(&race,&cfg,(RaceInput){0},.025f);
+ assert(race.fish_flash<flash_before);
+ assert(!race_fish_collected(&race,1));
+ /* Carving accelerates laterally over several frames, no instantaneous snap. */
+ race_reset(&race,&cfg);
+ race_step(&race,&cfg,(RaceInput){1,0,0,0,0},.016f);
+ float initial_velocity=race.lateral_velocity;
+ assert(initial_velocity>0);
+ race_step(&race,&cfg,(RaceInput){1,0,0,0,0},.016f);
+ assert(race.lateral_velocity>initial_velocity);
+ race_step(&race,&cfg,(RaceInput){-1,0,0,0,0},.016f);
+ assert(race.lateral_velocity<cfg.maximum_speed);
+ /* Test collision and its transient hit feedback, away from fish. */
+ race_reset(&race,&cfg);
+ race_object_at(&cfg,0,0,&x1,&z1);
+ race.lateral=x1;
+ race.distance=z1-.2f;
+ race.speed=25;
+ race_step(&race,&cfg,(RaceInput){0},.05f);
+ assert(race.hits==1 && race.hit_flash>0);
  /* Pause stops the simulation; resume continues. */
  race_step(&race,&cfg,(RaceInput){0,0,0,0,1},.04f);
  assert(race.phase==RACE_PAUSED);
