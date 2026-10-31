@@ -14,7 +14,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="852" height="393"/>
                         <viewLayoutGuide key="safeArea" id="launch-safe"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" image="SplashLandscape" translatesAutoresizingMaskIntoConstraints="NO" id="launch-art">
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="SplashLandscape" translatesAutoresizingMaskIntoConstraints="NO" id="launch-art">
                                 <rect key="frame" x="0.0" y="0.0" width="852" height="393"/>
                             </imageView>
                         </subviews>
