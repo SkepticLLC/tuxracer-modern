@@ -512,8 +512,18 @@ int main(int argc,char **argv){
             int restart=0,pause=0,jumpPulse=0;
             while(SDL_PollEvent(&ev)){
                 if(ev.type==SDL_QUIT)running=false;
-                if(ev.type==SDL_APP_WILLENTERBACKGROUND || ev.type==SDL_APP_DIDENTERBACKGROUND)suspended=true;
-                if(ev.type==SDL_APP_WILLENTERFOREGROUND || ev.type==SDL_APP_DIDENTERFOREGROUND)suspended=false;
+                if(ev.type==SDL_APP_WILLENTERBACKGROUND || ev.type==SDL_APP_DIDENTERBACKGROUND){
+                    suspended=true;
+                    if(hasMotion && motionManager.deviceMotionActive)
+                        [motionManager stopDeviceMotionUpdates];
+                }
+                if(ev.type==SDL_APP_WILLENTERFOREGROUND || ev.type==SDL_APP_DIDENTERFOREGROUND){
+                    suspended=false;
+                    if(hasMotion && !motionManager.deviceMotionActive){
+                        [motionManager startDeviceMotionUpdates];
+                        calibrateRequested=YES;
+                    }
+                }
                 if(ev.type==SDL_KEYDOWN && ev.key.repeat==0){
                     if(ev.key.keysym.sym==SDLK_r || ev.key.keysym.sym==SDLK_RETURN)restart=1;
                     if(ev.key.keysym.sym==SDLK_p || ev.key.keysym.sym==SDLK_ESCAPE)pause=1;
