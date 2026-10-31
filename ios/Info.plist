@@ -13,6 +13,8 @@
   <key>CFBundleVersion</key><string>1</string>
   <key>LSRequiresIPhoneOS</key><true/>
   <key>UIRequiresFullScreen</key><true/>
+  <key>NSMotionUsageDescription</key>
+  <string>Use motion sensors to steer Tux when you choose Tilt controls.</string>
   <key>UISupportedInterfaceOrientations</key>
   <array><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <!-- iOS 27 requires a UIScene lifecycle for apps built with SDK 27. -->
