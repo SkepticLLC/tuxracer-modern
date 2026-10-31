@@ -342,6 +342,38 @@ int main(int argc,char **argv){
     controls.font=[UIFont systemFontOfSize:11 weight:UIFontWeightMedium];
     controls.backgroundColor=[[UIColor blackColor] colorWithAlphaComponent:.22];
     [metalUIKitView addSubview:controls];
+
+    /* Native UIKit controls inherit the platform Liquid Glass treatment on
+     * supported iOS versions. In-game Metal remains an immersive 3D surface. */
+    UISegmentedControl *controlMode=[[UISegmentedControl alloc]
+        initWithItems:@[@"Touch",@"Tilt"]];
+    controlMode.selectedSegmentIndex=0;
+    controlMode.accessibilityLabel=@"Steering mode";
+    [metalUIKitView addSubview:controlMode];
+
+    UIButton *calibrateButton=[UIButton buttonWithType:UIButtonTypeSystem];
+    [calibrateButton setTitle:@"Center tilt" forState:UIControlStateNormal];
+    calibrateButton.hidden=YES;
+    [metalUIKitView addSubview:calibrateButton];
+    __block BOOL calibrateRequested=YES;
+    UIAction *calibrateAction=[UIAction actionWithHandler:^(__kindof UIAction *action) {
+        (void)action;
+        calibrateRequested=YES;
+    }];
+    [calibrateButton addAction:calibrateAction forControlEvents:UIControlEventTouchUpInside];
+
+    CMMotionManager *motionManager=[[CMMotionManager alloc] init];
+    BOOL hasMotion=motionManager.deviceMotionAvailable;
+    [controlMode setEnabled:hasMotion forSegmentAtIndex:1];
+    if(hasMotion){
+        motionManager.deviceMotionUpdateInterval=1.0/60.0;
+        [motionManager startDeviceMotionUpdates];
+    }
+    float neutralTilt=0.0f,filteredTilt=0.0f;
+    NSInteger previousControlMode=0;
+    SDL_Log("Tux controls: touch supported, hardware tilt %@",
+        hasMotion?@"available":@"unavailable on this device");
+
     UILabel *raceFeedback=[[UILabel alloc] initWithFrame:CGRectZero];
     raceFeedback.textAlignment=NSTextAlignmentCenter;
     raceFeedback.font=[UIFont systemFontOfSize:21 weight:UIFontWeightHeavy];
@@ -546,6 +578,14 @@ int main(int argc,char **argv){
                                   screenWidth*.64,screenHeight*.15);
             controls.frame=CGRectMake(screenWidth*.14,screenHeight*.91,
                                       screenWidth*.72,screenHeight*.045);
+            controlMode.frame=CGRectMake(screenWidth*.75,screenHeight*.038,
+                                        screenWidth*.19,33.0);
+            calibrateButton.frame=CGRectMake(screenWidth*.77,screenHeight*.12,
+                                              screenWidth*.17,27.0);
+            calibrateButton.hidden=(controlMode.selectedSegmentIndex!=1);
+            controls.text=controlMode.selectedSegmentIndex==1?
+                @"TILT PHONE TO STEER  |  TAP TO JUMP  |  HOLD LOWER CENTER TO BRAKE":
+                @"TOUCH SIDES TO STEER  |  TAP TO JUMP  |  HOLD LOWER CENTER TO BRAKE";
             raceFeedback.frame=CGRectMake(screenWidth*.30,screenHeight*.22,
                                           screenWidth*.40,screenHeight*.10);
             courseProgress.frame=CGRectMake(screenWidth*.145,screenHeight*.885,
@@ -722,6 +762,7 @@ int main(int argc,char **argv){
             [command commit];
         }
     }
+    if(hasMotion)[motionManager stopDeviceMotionUpdates];
     if(controller)SDL_GameControllerClose(controller);
     SDL_Metal_DestroyView(metalView);
     SDL_DestroyWindow(window);
