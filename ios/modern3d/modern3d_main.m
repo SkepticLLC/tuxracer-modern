@@ -300,7 +300,7 @@ int main(int argc,char **argv){
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMECONTROLLER|SDL_INIT_EVENTS)!=0){
         fprintf(stderr,"SDL init: %s\n",SDL_GetError());return 1;
     }
-    SDL_Window *window=SDL_CreateWindow("Tux Racer Modern — 3D",
+    SDL_Window *window=SDL_CreateWindow("Tux Racer",
         SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,1280,720,
         SDL_WINDOW_METAL|SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_FULLSCREEN);
     if(!window){SDL_Log("SDL window: %s",SDL_GetError());SDL_Quit();return 2;}
@@ -333,6 +333,14 @@ int main(int argc,char **argv){
     controls.font=[UIFont systemFontOfSize:11 weight:UIFontWeightMedium];
     controls.backgroundColor=[[UIColor blackColor] colorWithAlphaComponent:.22];
     [metalUIKitView addSubview:controls];
+    UILabel *raceFeedback=[[UILabel alloc] initWithFrame:CGRectZero];
+    raceFeedback.textAlignment=NSTextAlignmentCenter;
+    raceFeedback.font=[UIFont systemFontOfSize:21 weight:UIFontWeightHeavy];
+    raceFeedback.textColor=[UIColor whiteColor];
+    raceFeedback.backgroundColor=[UIColor clearColor];
+    raceFeedback.hidden=YES;
+    raceFeedback.userInteractionEnabled=NO;
+    [metalUIKitView addSubview:raceFeedback];
 
     /* UIKit's OS launch storyboard is intentionally brief and may disappear
      * before game assets are initialized. Show the approved launch artwork
@@ -513,6 +521,27 @@ int main(int argc,char **argv){
                                   screenWidth*.64,screenHeight*.15);
             controls.frame=CGRectMake(screenWidth*.14,screenHeight*.91,
                                       screenWidth*.72,screenHeight*.045);
+            raceFeedback.frame=CGRectMake(screenWidth*.30,screenHeight*.22,
+                                          screenWidth*.40,screenHeight*.10);
+            if(race.phase==RACE_FINISHED){
+                raceFeedback.hidden=NO;
+                raceFeedback.text=[NSString stringWithFormat:@"FINISH  %.1fs",race.time_seconds];
+                raceFeedback.textColor=[UIColor colorWithRed:1 green:.84 blue:.28 alpha:1];
+            }else if(race.hit_flash>.01f){
+                raceFeedback.hidden=NO;
+                raceFeedback.text=@"TREE HIT!";
+                raceFeedback.textColor=[UIColor colorWithRed:1 green:.40 blue:.31 alpha:1];
+            }else if(race.fish_flash>.01f){
+                raceFeedback.hidden=NO;
+                raceFeedback.text=@"+1 FISH";
+                raceFeedback.textColor=[UIColor colorWithRed:1 green:.83 blue:.27 alpha:1];
+            }else if(race.landing_flash>.01f){
+                raceFeedback.hidden=NO;
+                raceFeedback.text=@"NICE LANDING";
+                raceFeedback.textColor=[UIColor colorWithRed:.72 green:.94 blue:1 alpha:1];
+            }else{
+                raceFeedback.hidden=YES;
+            }
             if((int)(race.time_seconds*6)!=(int)((race.time_seconds-dt)*6)
                 ||race.phase!=RACE_RUNNING){
                 NSString *status=race.phase==RACE_FINISHED?@"FINISHED! TAP TO RESTART":
@@ -611,6 +640,7 @@ int main(int argc,char **argv){
                 int count=kind?max_fish:max_tree;
                 for(int i=0;i<count;i++){
                     float x=0,z=0;race_object_at(&settings,kind,i,&x,&z);
+                    if(kind && race_fish_collected(&race,i))continue;
                     if(z<race.distance-11.0f||z>race.distance+170.0f)continue;
                     if(kind && z<race.distance-2.0f)continue;
                     float groundHeight=ground(x,z,course.slope);
