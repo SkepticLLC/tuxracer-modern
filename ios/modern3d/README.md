@@ -45,6 +45,53 @@ Do not add launch images manually in Xcode; it would create duplicate resource
 entries. The OS launch storyboard is a brief static startup screen; a timed
 in-game title screen is a separate feature.
 
+## Extended alpine descent + belly sliding + two steering modes
+
+This cohesive iOS 26+/27 milestone moves the playable Summit Run from 600 m
+to **1,600 m** (JSON source of truth), increases terrain tessellation
+to 104 x 560 quads, and uses gentler rolling elevations and subtle per-pixel
+snow lighting. Fish spacing is adjusted to stay within the current
+64-entry pickup bitset; medal times and personal-best keys are revised for
+the longer course. The original Tcl/SGI courses are still not used.
+
+**Tux's articulated procedural model now slides head-first on its belly.**
+The model is tilted around its torso to keep it above the height-sampled snow
+while preserving flipper and scarf animation. It is still a procedural
+stand-in for the final rigged model.
+
+**Touch** is the default steering mode on the iOS simulator and device:
+hold the left/right sides to steer; a short tap and release (within ~280 ms)
+jumps, including when steering with another finger; hold the lower center
+to brake. Steering direction is corrected at one explicit mapping layer,
+shared by touch, keyboard and game controllers.
+
+**Tilt** is selectable from the upper-right native UIKit segmented control
+on a physical phone with Core Motion support. A **Center tilt** button
+calibrates the current holding angle, with a separate **Invert** toggle if
+the landscape grip reverses the direction. The simulator normally lacks
+Core Motion and disables tilt there. Keyboard and game-controller input remain
+available in either mode.
+
+The steering selector and action buttons use standard UIKit components,
+which adopt Apple's Liquid Glass styling in supported current SDKs. The
+Metal-rendered snow and character should **not** have a system-glass effect
+applied; the design system is for native controls and future menus.
+
+### Validation
+
+```sh
+sh ios/modern3d/test-race.sh
+sh ios/build-xcode.sh iphonesimulator
+```
+
+In simulator, verify left/right arrow keys and touch regions now move Tux
+in the expected direction, short taps jump, Tux slides on his belly, and the
+course extends for 1.6 km. For physical iPhone, enable Tilt, tap Center
+tilt while holding the phone comfortably, then rotate left/right and use
+Invert if needed. Recalibrate after changing grip or orientation.
+
+This milestone has not been compiled or run on the developer's iPhone yet.
+
 ## Game-feel milestone — bundled gameplay and presentation update
 
 The next build includes a **single larger gameplay batch**:
