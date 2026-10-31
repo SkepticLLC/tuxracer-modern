@@ -371,8 +371,8 @@ int main(int argc,char **argv){
     }
     float neutralTilt=0.0f,filteredTilt=0.0f;
     NSInteger previousControlMode=0;
-    SDL_Log("Tux controls: touch supported, hardware tilt %@",
-        hasMotion?@"available":@"unavailable on this device");
+    SDL_Log("Tux controls: touch supported, hardware tilt %s",
+        hasMotion?"available":"unavailable on this device");
 
     UILabel *raceFeedback=[[UILabel alloc] initWithFrame:CGRectZero];
     raceFeedback.textAlignment=NSTextAlignmentCenter;
