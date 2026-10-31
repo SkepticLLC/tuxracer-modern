@@ -340,8 +340,16 @@ int main(int argc,char **argv){
      * branded opening; this is not an interactive loading screen. */
     UIImage *openingImage=[UIImage imageNamed:@"SplashLandscape"];
     UIImageView *openingView=nil;
+    UIImageView *openingBackdrop=nil;
     Uint64 openingStart=SDL_GetTicks64();
     if(openingImage){
+        /* Layer a full-bleed background behind the uncropped 16:9 artwork.
+         * The image's central TUX RACER title remains fully in frame. */
+        openingBackdrop=[[UIImageView alloc] initWithImage:openingImage];
+        openingBackdrop.contentMode=UIViewContentModeScaleAspectFill;
+        openingBackdrop.clipsToBounds=YES;
+        openingBackdrop.userInteractionEnabled=NO;
+        [metalUIKitView addSubview:openingBackdrop];
         openingView=[[UIImageView alloc] initWithImage:openingImage];
         /* The source artwork is 16:9 while modern landscape iPhones are
          * substantially wider. AspectFill crops the top/bottom of the logo. */
@@ -501,10 +509,13 @@ int main(int argc,char **argv){
             CGRect display=metalUIKitView.bounds;
             CGFloat screenWidth=display.size.width,screenHeight=display.size.height;
             if(openingView){
+                openingBackdrop.frame=display;
                 openingView.frame=display;
                 if(SDL_GetTicks64()-openingStart>=2200){
                     [openingView removeFromSuperview];
+                    [openingBackdrop removeFromSuperview];
                     openingView=nil;
+                    openingBackdrop=nil;
                 }
             }
             hud.frame=CGRectMake(screenWidth*.085,screenHeight*.028,
