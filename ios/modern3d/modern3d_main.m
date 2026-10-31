@@ -425,6 +425,10 @@ int main(int argc,char **argv){
        course.checkpointSpacing,course.seed};
     RaceState race={0};
     race_reset(&race,&settings);
+    NSString *recordKey=@"tuxracer.summit-run.bestTime.v1";
+    NSUserDefaults *preferences=[NSUserDefaults standardUserDefaults];
+    double bestTime=[preferences doubleForKey:recordKey];
+    if(bestTime>0)NSLog(@"Summit Run personal best: %.2fs",bestTime);
     bool was_finished=false;
     bool showHat=true,showScarf=true;
     int previousWidth=0,previousHeight=0;
@@ -498,6 +502,11 @@ int main(int argc,char **argv){
                                race.time_seconds<=course.bronzeTime?@"BRONZE":@"FINISHER";
                 SDL_Log("FINISH Summit Run: %.2fs, %s, fish %d, hits %d, checkpoints %d",
                         race.time_seconds,medal.UTF8String,race.fish,race.hits,race.checkpoints);
+                if(bestTime<=0 || race.time_seconds<bestTime){
+                    bestTime=race.time_seconds;
+                    [preferences setDouble:bestTime forKey:recordKey];
+                    NSLog(@"NEW PERSONAL BEST Summit Run: %.2fs",bestTime);
+                }
                 was_finished=true;
             }
             if((int)(race.time_seconds*2)!=(int)((race.time_seconds-dt)*2) &&
@@ -547,8 +556,8 @@ int main(int argc,char **argv){
                 NSString *status=race.phase==RACE_FINISHED?@"FINISHED! TAP TO RESTART":
                                  race.phase==RACE_PAUSED?@"PAUSED  P TO RESUME":@"SUMMIT RUN";
                 hud.text=[NSString stringWithFormat:
-                    @"  %@\n  %03.0f / %.0fm   %02.0f km/h\n  TIME %.1fs   FISH %d   HITS %d",
-                    status,race.distance,course.length,race.speed*3.6f,
+                    @"  %@   BEST %.1fs\n  %03.0f / %.0fm   %02.0f km/h\n  TIME %.1fs   FISH %d   HITS %d",
+                    status,bestTime,race.distance,course.length,race.speed*3.6f,
                     race.time_seconds,race.fish,race.hits];
             }
             int width=0,height=0;
