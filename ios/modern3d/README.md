@@ -45,6 +45,33 @@ Do not add launch images manually in Xcode; it would create duplicate resource
 entries. The OS launch storyboard is a brief static startup screen; a timed
 in-game title screen is a separate feature.
 
+## Game-feel milestone — bundled gameplay and presentation update
+
+The next build includes a **single larger gameplay batch**:
+
+- Steering uses smoothed lateral velocity, so turns carve instead of changing
+  direction instantaneously; the existing character lean responds to steering
+- Fish are remembered once picked up and disappear from the 3D scene until
+  restart; pickups/hits/landings produce temporary onscreen messages
+- 3D tree collisions apply speed penalties with a distinct warning
+- The native HUD includes a course progress meter and a saved personal best
+  time stored with `NSUserDefaults`
+- Chase camera FOV expands mildly at higher speeds for a greater sense of pace
+- Pure C regression tests cover collision state, fish persistence and
+  acceleration, alongside the earlier jumping, race and character tests
+
+This is a cohesive **gameplay and HUD** milestone, not yet production snow
+particles, textured terrain, final rigged character or multiple playable
+courses. Existing `course.json`, app icon, launch screen and macOS
+preservation branch remain unchanged.
+
+Test without Xcode:
+```sh
+sh ios/modern3d/test-race.sh
+```
+Then regenerate the Xcode project and run the simulator once to verify the
+full batch. The new build still requires simulator validation.
+
 ## Modular character/animation milestone
 
 The native Metal renderer now composes the character from separate replaceable
