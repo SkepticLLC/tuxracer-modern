@@ -361,6 +361,18 @@ int main(int argc,char **argv){
         calibrateRequested=YES;
     }];
     [calibrateButton addAction:calibrateAction forControlEvents:UIControlEventTouchUpInside];
+    UIButton *invertButton=[UIButton buttonWithType:UIButtonTypeSystem];
+    [invertButton setTitle:@"Invert" forState:UIControlStateNormal];
+    invertButton.hidden=YES;
+    [metalUIKitView addSubview:invertButton];
+    __block BOOL invertTilt=NO;
+    UIAction *invertAction=[UIAction actionWithHandler:^(__kindof UIAction *action){
+        (void)action;
+        invertTilt=!invertTilt;
+        [invertButton setTitle:invertTilt?@"Invert ON":@"Invert"
+                     forState:UIControlStateNormal];
+    }];
+    [invertButton addAction:invertAction forControlEvents:UIControlEventTouchUpInside];
 
     CMMotionManager *motionManager=[[CMMotionManager alloc] init];
     BOOL hasMotion=motionManager.deviceMotionAvailable;
@@ -553,6 +565,7 @@ int main(int argc,char **argv){
                 CMAcceleration gravity=motionManager.deviceMotion.gravity;
                 UIInterfaceOrientation orientation=metalUIKitView.window.windowScene.interfaceOrientation;
                 float direction=orientation==UIInterfaceOrientationLandscapeRight?-1.0f:1.0f;
+                if(invertTilt)direction=-direction;
                 float raw=(float)gravity.y;
                 if(calibrateRequested){
                     neutralTilt=raw;
@@ -628,6 +641,9 @@ int main(int argc,char **argv){
             calibrateButton.frame=CGRectMake(screenWidth*.77,screenHeight*.12,
                                               screenWidth*.17,27.0);
             calibrateButton.hidden=(controlMode.selectedSegmentIndex!=1);
+            invertButton.frame=CGRectMake(screenWidth*.77,screenHeight*.18,
+                                           screenWidth*.17,27.0);
+            invertButton.hidden=(controlMode.selectedSegmentIndex!=1);
             controls.text=controlMode.selectedSegmentIndex==1?
                 @"TILT PHONE TO STEER  |  TAP TO JUMP  |  HOLD LOWER CENTER TO BRAKE":
                 @"TOUCH SIDES TO STEER  |  TAP TO JUMP  |  HOLD LOWER CENTER TO BRAKE";
