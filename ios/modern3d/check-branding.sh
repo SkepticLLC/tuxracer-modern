@@ -29,4 +29,17 @@ if [ "$icon_width" != "1024" ] || [ "$icon_height" != "1024" ]; then
   exit 1
 fi
 /usr/bin/plutil -lint "$root/ios/Info.plist"
+storyboard="$root/ios/modern3d/LaunchScreen.storyboard"
+if ! grep -q 'initialViewController="launch-controller"' "$storyboard"; then
+  echo "FAIL: launch storyboard has no initialViewController" >&2
+  exit 1
+fi
+if ! grep -q 'image="SplashLandscape"' "$storyboard"; then
+  echo "FAIL: launch storyboard does not reference landscape artwork" >&2
+  exit 1
+fi
+if ! grep -q 'UILaunchStoryboardName' "$root/ios/Info.plist"; then
+  echo "FAIL: plist is missing UILaunchStoryboardName" >&2
+  exit 1
+fi
 echo "PASS: Tux Racer app icon + landscape/portrait art + catalog definitions"
