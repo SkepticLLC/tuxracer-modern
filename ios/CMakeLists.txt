@@ -50,6 +50,7 @@ set(_tux_ios_sources
 if(TUX_IOS_MODERN3D AND NOT TUX_IOS_METAL_SMOKE)
   list(APPEND _tux_ios_sources
     modern3d/race_system.c
+    modern3d/input_mapping.c
     modern3d/character_animation.c
     modern3d/character_mesh.c)
 elseif(NOT TUX_IOS_METAL_SMOKE)
@@ -86,7 +87,7 @@ set_target_properties(TuxRacerModernIOS PROPERTIES
   XCODE_ATTRIBUTE_GENERATE_INFOPLIST_FILE "NO"
 )
 target_link_libraries(TuxRacerModernIOS PRIVATE SDL2::SDL2 SDL2::SDL2main
-  "-framework Metal" "-framework QuartzCore" "-framework Foundation")
+  "-framework Metal" "-framework QuartzCore" "-framework Foundation" "-framework CoreMotion")
 target_include_directories(TuxRacerModernIOS PRIVATE
   ${sdl2_SOURCE_DIR}/include
   ${sdl2_SOURCE_DIR}/src/video/uikit
