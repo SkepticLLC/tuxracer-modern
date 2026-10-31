@@ -343,7 +343,10 @@ int main(int argc,char **argv){
     Uint64 openingStart=SDL_GetTicks64();
     if(openingImage){
         openingView=[[UIImageView alloc] initWithImage:openingImage];
-        openingView.contentMode=UIViewContentModeScaleAspectFill;
+        /* The source artwork is 16:9 while modern landscape iPhones are
+         * substantially wider. AspectFill crops the top/bottom of the logo. */
+        openingView.contentMode=UIViewContentModeScaleAspectFit;
+        openingView.backgroundColor=[UIColor colorWithRed:.05 green:.31 blue:.59 alpha:1];
         openingView.clipsToBounds=YES;
         openingView.userInteractionEnabled=NO;
         [metalUIKitView addSubview:openingView];
