@@ -16,7 +16,7 @@ trap 'rm -f "$binary" "$animation"' EXIT HUP INT TERM
   "$root/ios/modern3d/character_animation_test.c" \
   -lm -o "$animation"
 "$animation"
-inputtest="${TMPDIR:-/tmp}/tux-modern3d-input-test-$"
+inputtest="${TMPDIR:-/tmp}/tux-modern3d-input-test-$$"
 trap 'rm -f "$binary" "$animation" "$inputtest"' EXIT HUP INT TERM
 "${CC:-cc}" -std=c99 -Wall -Wextra -Werror \
   "$root/ios/modern3d/input_mapping.c" \
